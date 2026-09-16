@@ -1,0 +1,115 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version '1.17.17'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.mod_id
+}
+
+repositories {
+}
+
+dependencies {
+	// Optional: pinata, compiled against the sibling checkout's jar and never bundled. The pinata
+	// settings show, and pinatas go up, only where it is installed.
+	def pinataProperties = file("../pinata/gradle.properties")
+	if (pinataProperties.exists()) {
+		def pinataVersion = new Properties().with {
+			pinataProperties.withInputStream { load(it) }
+			getProperty("mod_version")
+		}
+		def pinataJar = file("../pinata/build/libs/pinata-${pinataVersion}.jar")
+		if (!pinataJar.exists()) {
+			throw new GradleException("pinata ${pinataVersion} is not built. Run `mc-build pinata`" +
+				" (or ./gradlew build in ../pinata) first - this mod compiles against its API.")
+		}
+		compileOnly files(pinataJar)
+	}
+
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+	implementation(project(':pandorical'))
+}
+
+// Fabric tests these predicates against the loader's *normalized* game version,
+// not Mojang's id: 26.3-snapshot-10 is compared as 26.3-alpha.10. So a floor of
+// ">=26.3" is false on every 26.3 snapshot, and writing the obvious thing makes
+// the mod refuse to load on the version it was built for. Derived from the pin
+// rather than written into the manifest, so the two cannot drift apart.
+def mcFloor = project.minecraft_version
+	.replaceFirst(/-snapshot-/, '-alpha.')
+	.replaceFirst(/-pre-/, '-pre.')
+	.replaceFirst(/-rc-/, '-rc.')
+// The trailing dash is load-bearing: "<26.4" would still admit 26.4's snapshots,
+// because a prerelease sorts below its own release.
+def mcParts = mcFloor.tokenize('.-')
+def minecraftDependency = ">=${mcFloor} <${mcParts[0]}.${(mcParts[1] as int) + 1}-"
+// The +26.3 build tag is ignored in comparison; the floor is the number.
+def fabricApiFloor = ">=" + project.fabric_version.replaceFirst(/\+.*$/, '')
+
+loom {
+	runs {
+		server {
+			vmArg "-Dpvpdimensions.debug=true"
+		}
+		// A client that joins the dev server by itself, for testing the menus without clicking
+		// through the title screen: ./gradlew runTestClient while runServer is up.
+		testClient {
+			client()
+			name "Test Client"
+			runDir "run-client"
+			programArgs "--quickPlayMultiplayer", "localhost:25598", "--username", "Tester", "--width", "1280", "--height", "720"
+		}
+		// A second player alongside it, for what takes two: teams, the horde, a race: ./gradlew runSecondClient.
+		secondClient {
+			client()
+			name "Second Client"
+			runDir "run-client2"
+			programArgs "--quickPlayMultiplayer", "localhost:25598", "--username", "Tester2", "--width", "1280", "--height", "720"
+		}
+		// A third, for what takes three: an assist, a teammate avenged: ./gradlew runThirdClient.
+		thirdClient {
+			client()
+			name "Third Client"
+			runDir "run-client3"
+			programArgs "--quickPlayMultiplayer", "localhost:25598", "--username", "Tester3", "--width", "1280", "--height", "720"
+		}
+	}
+}
+
+processResources {
+	inputs.property "version", project.version
+	inputs.property "minecraftDependency", minecraftDependency
+	inputs.property "loaderVersion", project.loader_version
+	inputs.property "fabricApiVersion", fabricApiFloor
+
+	filesMatching("fabric.mod.json") {
+		expand "version": project.version,
+		       "minecraftDependency": minecraftDependency,
+		       "loaderVersion": project.loader_version,
+		       "fabricApiVersion": fabricApiFloor
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+}
+
+java {
+	withSourcesJar()
+}
+
+jar {
+	from("LICENSE") {
+		rename { "${it}_${project.base.archivesName.get()}"}
+	}
+	// The readme rides in the jar beside the licence, so a server can show it in-game.
+	from("README.md") {
+		rename { "README_${project.base.archivesName.get()}.md" }
+	}
+}

@@ -1,0 +1,12 @@
+{
+  "type": "pvp-dimensions-justfatlard:arena",
+  "generator": {
+    "type": "pvp-dimensions-justfatlard:arena",
+    "settings": "minecraft:overworld",
+    "biome_source": {
+      "type": "pvp-dimensions-justfatlard:arena",
+      "biomes": "#minecraft:is_overworld",
+      "fallback": "minecraft:plains"
+    }
+  }
+}

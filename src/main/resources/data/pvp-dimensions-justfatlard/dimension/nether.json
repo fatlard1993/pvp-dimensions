@@ -1,0 +1,12 @@
+{
+  "type": "pvp-dimensions-justfatlard:arena_nether",
+  "generator": {
+    "type": "pvp-dimensions-justfatlard:arena",
+    "settings": "minecraft:nether",
+    "biome_source": {
+      "type": "pvp-dimensions-justfatlard:arena",
+      "biomes": "#minecraft:is_nether",
+      "fallback": "minecraft:nether_wastes"
+    }
+  }
+}

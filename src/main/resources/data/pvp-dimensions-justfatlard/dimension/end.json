@@ -1,0 +1,12 @@
+{
+  "type": "pvp-dimensions-justfatlard:arena_end",
+  "generator": {
+    "type": "pvp-dimensions-justfatlard:arena",
+    "settings": "minecraft:end",
+    "biome_source": {
+      "type": "pvp-dimensions-justfatlard:arena",
+      "biomes": "#minecraft:is_end",
+      "fallback": "minecraft:end_highlands"
+    }
+  }
+}

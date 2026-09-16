@@ -1,0 +1,35 @@
+# gradle
+
+.gradle/
+build/
+out/
+classes/
+
+# idea
+
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# vscode
+
+.settings/
+.vscode/
+bin/
+.classpath
+.project
+
+# fabric
+
+run/
+
+# Mac
+
+.DS_Store
+
+# the test clients
+
+run-client/
+run-client2/
+run-client3/

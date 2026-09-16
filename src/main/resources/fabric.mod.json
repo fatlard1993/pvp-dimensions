@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "pvp-dimensions-justfatlard",
+  "version": "${version}",
+  "name": "PvP Dimensions",
+  "description": "Arenas on demand: a dimension of its own for a fight, started from a menu, entered by invite or through a nearby portal frame, gone when the game is over",
+  "authors": [
+    "justfatlard"
+  ],
+  "contact": {
+    "sources": "https://github.com/fatlard1993/pvp-dimensions"
+  },
+  "license": "MIT",
+  "icon": "assets/pvp-dimensions-justfatlard/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "justfatlard.pvp_dimensions.PvpDimensions"
+    ]
+  },
+  "mixins": [
+    "pvp-dimensions-justfatlard.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loaderVersion}",
+    "fabric-api": "${fabricApiVersion}",
+    "minecraft": "${minecraftDependency}",
+    "java": ">=25",
+    "pandorical": ">=1.3.9"
+  },
+  "suggests": {
+    "pinata": "*"
+  }
+}

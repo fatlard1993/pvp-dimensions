@@ -1,0 +1,24 @@
+{
+  "required": true,
+  "package": "justfatlard.pvp_dimensions.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "BlockItemMixin",
+    "EntityMixin",
+    "ItemEntityMixin",
+    "LevelMixin",
+    "MobAccessor",
+    "MobMixin",
+    "NaturalSpawnerMixin",
+    "NetherPortalBlockMixin",
+    "PlayerListMixin",
+    "PortalForcerMixin",
+    "PrimedTntAccessor",
+    "ServerExplosionMixin",
+    "ServerLevelMixin",
+    "ServerPlayerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
