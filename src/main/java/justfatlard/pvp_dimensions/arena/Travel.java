@@ -401,23 +401,33 @@ public final class Travel {
 	/**
 	 * Why a teleport may not set this player down here, or null where it may.
 	 *
-	 * <p>An arena that puts what a player carries aside at the door, or charges to come in, is
-	 * entered through {@link #enter}: that is where the stash is taken, the fee paid, a team and a
-	 * game mode given, and it is the only way any of that happens. A teleport steps around the lot
-	 * and leaves a player standing in the arena holding their own things where nobody else has
-	 * theirs, owing an entry nobody collected. So the teleport is refused and the door named, which
-	 * is worth more to whoever typed it than the silent undoing {@link #changedLevel} would do a
-	 * tick later.
+	 * <p>Both ways through the wall are refused, because both doors do work a teleport skips.
+	 * {@link #enter} is where the stash is taken, the fee paid, a team and a game mode given;
+	 * {@link #leave} is where all of that is handed back, a prize settled and an early exit
+	 * charged. Teleporting in leaves a player standing in an arena holding their own things where
+	 * nobody else has theirs, owing an entry nobody collected. Teleporting out runs the whole
+	 * leaving, silently, off the back of a command that said nothing about leaving - forfeit
+	 * included. So the command is refused and the door named, which is worth more to whoever typed
+	 * it than the quiet undoing {@link #changedLevel} would do a tick later.
 	 *
-	 * <p>Admins are not stopped: somebody has to be able to get in and build. Nor is anyone who
-	 * already has a visit, which includes every player on their way in through the front door,
-	 * since {@link #enter} sets the visit before the trip.
+	 * <p>Coming in, an admin is not stopped: somebody has to be able to get in and build. Going
+	 * out, nobody is exempt, because there is nothing to exempt them from - leaving is one command
+	 * and it is the same command for everyone. The exception is a visit whose arena is gone, which
+	 * is no longer anybody's rule to keep and would only strand whoever holds it.
 	 */
-	public static @Nullable String uninvited(ServerPlayer player, ServerLevel level, double x, double z) {
-		if (!Places.isArena(level.dimension())) return null;
-		if (Visit.of(player) != null || Access.admin(player)) return null;
-
+	public static @Nullable String refuse(ServerPlayer player, ServerLevel level, double x, double z) {
 		String who = player.getGameProfile().name();
+		Visit visit = Visit.of(player);
+		if (visit != null) {
+			Arena arena = Arenas.get(player.level().getServer(), visit.arena());
+			if (arena == null || level.dimension().equals(arena.dimension)) return null;
+			String holding = visit.stash().isPresent() ? ", which is holding what they carried in" : "";
+			return who + " is in " + arena.title() + holding + ". Leaving is its own step: /pvp leave"
+				+ ", or /execute as " + who + " run pvp leave";
+		}
+
+		if (!Places.isArena(level.dimension()) || Access.admin(player)) return null;
+
 		Arena arena = Arenas.at(level, x, z);
 		if (arena == null) {
 			return who + " has no arena to be put down in: arena ground is entered by invitation or through a lit frame";

@@ -19,11 +19,12 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * An arena with a door on it is not entered by {@code /tp}.
+ * An arena is not entered or left by {@code /tp}; it has doors, and they do work.
  *
- * <p>The command is failed outright rather than allowed and undone: whoever typed it is the one
- * who can do something about it, and a command that says "Teleported BennyW2020" while nothing
- * happens is worse than one that says why not.
+ * <p>The command is failed outright rather than allowed and put right afterwards: whoever typed it
+ * is the one who can do something about it, and a command that says "Teleported BennyW2020" while
+ * nothing happens - or while it quietly ends their game for them - is worse than one that says
+ * why not.
  */
 @Mixin(TeleportCommand.class)
 public class TeleportCommandMixin {
@@ -38,7 +39,7 @@ public class TeleportCommandMixin {
 		if (!(victim instanceof ServerPlayer player)) return;
 		// x and z are the destination itself: the command works out its own relative offsets after
 		// this point, from these same absolute numbers.
-		String refused = Travel.uninvited(player, level, x, z);
+		String refused = Travel.refuse(player, level, x, z);
 		if (refused != null) throw UNINVITED.create(refused);
 	}
 }
