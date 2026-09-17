@@ -414,7 +414,31 @@ public final class Travel {
 		}
 		if (Places.isArena(to.dimension()) && !Access.admin(player)) {
 			Say.to(player, "Arenas are entered by invitation or through a lit frame");
-			player.teleport(home(player.level().getServer(), new Visit.Home(Places.OVERWORLD, 0, 0, 0, 0, 0)));
+			sendHomeNextTick(player);
 		}
+	}
+
+	/**
+	 * Take a player home on the tick after this one, never during the teleport that brought them.
+	 *
+	 * <p>This event fires from the middle of {@code ServerPlayer.teleport}, which finishes by
+	 * calling {@code teleportSpectators} against the level the player just left: every player still
+	 * standing there whose camera is themselves - which is every player who is not spectating
+	 * something - gets sent along the same trip. Turning a player around from in here puts them
+	 * back in that old level before that runs, so the tail of the outer teleport picks them up and
+	 * sends them into the arena again, which fires this again, with no stack ever unwinding. It
+	 * ends as a StackOverflowError in the tick loop; it took the server down on 2026-09-17.
+	 *
+	 * <p>A tick later the outer teleport is over and there is nothing left to re-enter. The player
+	 * is looked up afresh because they may have logged out or died in between.
+	 */
+	private static void sendHomeNextTick(ServerPlayer player) {
+		MinecraftServer server = player.level().getServer();
+		java.util.UUID id = player.getUUID();
+		server.execute(() -> {
+			ServerPlayer now = server.getPlayerList().getPlayer(id);
+			if (now == null || !Places.isArena(now.level().dimension()) || Visit.of(now) != null) return;
+			now.teleport(home(server, new Visit.Home(Places.OVERWORLD, 0, 0, 0, 0, 0)));
+		});
 	}
 }
