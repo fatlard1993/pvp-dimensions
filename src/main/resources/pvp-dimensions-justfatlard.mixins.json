@@ -16,7 +16,8 @@
     "PrimedTntAccessor",
     "ServerExplosionMixin",
     "ServerLevelMixin",
-    "ServerPlayerMixin"
+    "ServerPlayerMixin",
+    "TeleportCommandMixin"
   ],
   "injectors": {
     "defaultRequire": 1

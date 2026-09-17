@@ -399,6 +399,40 @@ public final class Travel {
 	}
 
 	/**
+	 * Why a teleport may not set this player down here, or null where it may.
+	 *
+	 * <p>An arena that puts what a player carries aside at the door, or charges to come in, is
+	 * entered through {@link #enter}: that is where the stash is taken, the fee paid, a team and a
+	 * game mode given, and it is the only way any of that happens. A teleport steps around the lot
+	 * and leaves a player standing in the arena holding their own things where nobody else has
+	 * theirs, owing an entry nobody collected. So the teleport is refused and the door named, which
+	 * is worth more to whoever typed it than the silent undoing {@link #changedLevel} would do a
+	 * tick later.
+	 *
+	 * <p>Admins are not stopped: somebody has to be able to get in and build. Nor is anyone who
+	 * already has a visit, which includes every player on their way in through the front door,
+	 * since {@link #enter} sets the visit before the trip.
+	 */
+	public static @Nullable String uninvited(ServerPlayer player, ServerLevel level, double x, double z) {
+		if (!Places.isArena(level.dimension())) return null;
+		if (Visit.of(player) != null || Access.admin(player)) return null;
+
+		String who = player.getGameProfile().name();
+		Arena arena = Arenas.at(level, x, z);
+		if (arena == null) {
+			return who + " has no arena to be put down in: arena ground is entered by invitation or through a lit frame";
+		}
+
+		String fee = "charges " + arena.preset.entryFee.describe(6) + " at the door";
+		String door = arena.preset.isolated()
+			? arena.preset.entryFee.isEmpty() ? "puts what a player carries aside at the door"
+				: "puts what a player carries aside and " + fee
+			: arena.preset.entryFee.isEmpty() ? null : fee;
+		return who + " has no invitation to " + arena.title() + (door == null ? "" : ", which " + door)
+			+ ". Ask them in instead: /pvp invite " + who + " " + arena.id;
+	}
+
+	/**
 	 * Moved between dimensions by something that is not this mod: an op's teleport, another
 	 * mod's home command. Out of an arena that way still counts as leaving it; into one with no
 	 * visit is not allowed for anyone but an admin.
