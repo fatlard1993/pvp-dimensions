@@ -139,6 +139,7 @@ public final class Summary {
 				case BURIED -> " buried underground";
 			};
 			case SPY -> "to find the one who was not told where they are";
+			case HITS -> p.hitTarget > 0 ? "to land " + p.hitTarget + " hits" : "to land the most hits";
 		};
 	}
 

@@ -60,6 +60,10 @@ public final class Fields {
 		fields.add(new Field.Choice(GAME, "goal", "Played for", Fields::goalOptions,
 			p -> p.goal.name().toLowerCase(Locale.ROOT), (p, v) -> p.goal = Preset.Goal.valueOf(v.toUpperCase(Locale.ROOT)))
 			.help("How the arena is won before its time runs out; capture the flag and the rest need teams"));
+		fields.add(new Field.Number(GAME, "hit_target", "Hits to win", KILL_TARGETS, v -> v == 0 ? "Most hits" : v + " hits",
+			p -> p.hitTarget, (p, v) -> p.hitTarget = v).help(
+				"Landing this many wins it; nought counts the most hits when time is up")
+			.when(p -> p.activeGoal() == Preset.Goal.HITS));
 		fields.add(new Field.Number(GAME, "kill_target", "Kills to win", KILL_TARGETS, v -> v == 0 ? "No target" : v + " kills",
 			p -> p.killTarget, (p, v) -> p.killTarget = v).help(
 				"The first player to reach it wins; with teams, the first team between them")
@@ -818,6 +822,7 @@ public final class Fields {
 			case BANK -> "Banking";
 			case RACE -> "Race";
 			case SPY -> "The odd one out";
+			case HITS -> "Snowball fight";
 		};
 	}
 
@@ -840,6 +845,8 @@ public final class Fields {
 		// Offered whatever else the preset says: it is played by talking, so it asks nothing of
 		// the arena but a room to stand in and a clock to run down.
 		options.add(new Field.Choice.Option("spy", "The odd one out"));
+		// Whatever is thrown comes from the kit, so this needs nothing of the preset but a target.
+		options.add(new Field.Choice.Option("hits", "Snowball fight"));
 		if (preset.teamsOn()) {
 			options.add(new Field.Choice.Option("ctf", "Capture the flag"));
 			options.add(new Field.Choice.Option("takeover", "Colour takeover"));

@@ -128,6 +128,8 @@ public final class Goals {
 			// Said out loud to the whole hall, so it names the game and nothing about the round:
 			// every word of what anybody holds is on their own card.
 			case SPY -> "One of you was not told where you are. Ask each other about the place until you know who";
+			case HITS -> preset.hitTarget > 0 ? "Pelt each other: " + preset.hitTarget + " hits wins it"
+				: "Pelt each other: the most hits when time is up wins";
 		};
 		if (how != null) Arenas.tellInside(server, arena, how);
 	}
@@ -540,6 +542,7 @@ public final class Goals {
 		String livesLeft = lives;
 		return switch (preset.activeGoal()) {
 			case SPY -> Spies.card(arena, viewer);
+			case HITS -> Hits.status(arena, member);
 			case KILLS -> member == null ? null
 				: member.kills + (preset.killTarget > 0 ? " of " + preset.killTarget : "") + " kills" + livesLeft;
 			case MOBS -> {
@@ -727,6 +730,7 @@ public final class Goals {
 		Preset preset = arena.preset;
 		Map<Integer, Integer> byTeam = new HashMap<>();
 		if (preset.activeGoal() == Preset.Goal.SPY) return Spies.timeUp(server, arena);
+		if (preset.activeGoal() == Preset.Goal.HITS) return Hits.timeUp(server, arena);
 		switch (preset.activeGoal()) {
 			case CTF, BANK -> byTeam.putAll(arena.scores);
 			case HILL -> {

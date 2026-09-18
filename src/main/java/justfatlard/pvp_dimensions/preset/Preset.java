@@ -34,7 +34,7 @@ public final class Preset {
 	public enum Rarity { RARE, NORMAL, COMMON, SWARM }
 	/** How often one kind of mob turns up among the rest; any kind not given one is normal. */
 	public enum MobLevel { OFF, RARE, NORMAL, COMMON }
-	public enum Goal { TIME, KILLS, MOBS, CTF, TAKEOVER, DESTRUCTION, WAVES, HILL, BANK, RACE, SPY }
+	public enum Goal { TIME, KILLS, MOBS, CTF, TAKEOVER, DESTRUCTION, WAVES, HILL, BANK, RACE, SPY, HITS }
 	public enum MobStyle { STEADY, WAVES }
 	public enum AfterWaves { REPEAT_LAST, START_OVER, STOP }
 	public enum Scope { PLAYER, TEAM, EVERYONE }
@@ -207,6 +207,9 @@ public final class Preset {
 	public MarkerPlace finishPlace = MarkerPlace.CENTER;
 	public FinishStyle finishStyle = FinishStyle.GROUND;
 	/** Paid out of what each player brings, on the way in. */
+	/** Hits to win a snowball fight; nought for the most hits when time is up. */
+	public int hitTarget = 20;
+
 	public ItemList entryFee = new ItemList();
 	/** Whether everyone is handed a compass pointed at the goal: the hill, the finish, the other team's base. */
 	public boolean goalCompass = false;
