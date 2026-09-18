@@ -138,6 +138,7 @@ public final class Summary {
 				case SKY -> " up in the sky";
 				case BURIED -> " buried underground";
 			};
+			case SPY -> "to find the one who was not told where they are";
 		};
 	}
 

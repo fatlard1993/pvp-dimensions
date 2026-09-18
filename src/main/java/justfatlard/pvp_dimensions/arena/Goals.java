@@ -96,6 +96,7 @@ public final class Goals {
 		}
 		if (goal == Preset.Goal.HILL) Hill.begin(level, arena, System.currentTimeMillis());
 		if (goal == Preset.Goal.RACE) Race.begin(level, arena);
+		if (goal == Preset.Goal.SPY) Spies.begin(server, arena);
 		if (preset.livesOn() && preset.pooledLives()) {
 			for (int team = 0; team < preset.teams; team++) arena.pools.put(team, preset.livesCount);
 		}
@@ -124,6 +125,9 @@ public final class Goals {
 				case SKY -> ", up in the sky: build your way to it";
 				case BURIED -> ", buried: dig down to it";
 			};
+			// Said out loud to the whole hall, so it names the game and nothing about the round:
+			// every word of what anybody holds is on their own card.
+			case SPY -> "One of you was not told where you are. Ask each other about the place until you know who";
 		};
 		if (how != null) Arenas.tellInside(server, arena, how);
 	}
@@ -535,6 +539,7 @@ public final class Goals {
 		}
 		String livesLeft = lives;
 		return switch (preset.activeGoal()) {
+			case SPY -> Spies.card(arena, viewer);
 			case KILLS -> member == null ? null
 				: member.kills + (preset.killTarget > 0 ? " of " + preset.killTarget : "") + " kills" + livesLeft;
 			case MOBS -> {
@@ -720,6 +725,7 @@ public final class Goals {
 	public static boolean timeUp(MinecraftServer server, Arena arena) {
 		Preset preset = arena.preset;
 		Map<Integer, Integer> byTeam = new HashMap<>();
+		if (preset.activeGoal() == Preset.Goal.SPY) return Spies.timeUp(server, arena);
 		switch (preset.activeGoal()) {
 			case CTF, BANK -> byTeam.putAll(arena.scores);
 			case HILL -> {
@@ -877,5 +883,6 @@ public final class Goals {
 		coveredPercent.remove(arena.id);
 		Hill.forget(arena);
 		Moments.forget(arena);
+		Spies.clear(arena);
 	}
 }

@@ -34,7 +34,7 @@ public final class Preset {
 	public enum Rarity { RARE, NORMAL, COMMON, SWARM }
 	/** How often one kind of mob turns up among the rest; any kind not given one is normal. */
 	public enum MobLevel { OFF, RARE, NORMAL, COMMON }
-	public enum Goal { TIME, KILLS, MOBS, CTF, TAKEOVER, DESTRUCTION, WAVES, HILL, BANK, RACE }
+	public enum Goal { TIME, KILLS, MOBS, CTF, TAKEOVER, DESTRUCTION, WAVES, HILL, BANK, RACE, SPY }
 	public enum MobStyle { STEADY, WAVES }
 	public enum AfterWaves { REPEAT_LAST, START_OVER, STOP }
 	public enum Scope { PLAYER, TEAM, EVERYONE }

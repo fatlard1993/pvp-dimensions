@@ -817,6 +817,7 @@ public final class Fields {
 			case HILL -> "The hill";
 			case BANK -> "Banking";
 			case RACE -> "Race";
+			case SPY -> "The odd one out";
 		};
 	}
 
@@ -836,6 +837,9 @@ public final class Fields {
 		if (preset.mobStyle == Preset.MobStyle.WAVES) options.add(new Field.Choice.Option("waves", "Survive the waves"));
 		options.add(new Field.Choice.Option("hill", "King of the hill"));
 		options.add(new Field.Choice.Option("race", "Race"));
+		// Offered whatever else the preset says: it is played by talking, so it asks nothing of
+		// the arena but a room to stand in and a clock to run down.
+		options.add(new Field.Choice.Option("spy", "The odd one out"));
 		if (preset.teamsOn()) {
 			options.add(new Field.Choice.Option("ctf", "Capture the flag"));
 			options.add(new Field.Choice.Option("takeover", "Colour takeover"));
