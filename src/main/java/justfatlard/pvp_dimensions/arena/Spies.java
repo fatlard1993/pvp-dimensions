@@ -12,7 +12,10 @@ import java.util.UUID;
 import justfatlard.pvp_dimensions.Say;
 import net.minecraft.ChatFormatting;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.decoration.ArmorStand;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -103,6 +106,7 @@ public final class Spies {
 
 		rounds.put(arena.id, new Round(place, spy, dealt));
 		for (Arena.Member member : playing) deal(server, arena, member.id);
+		seat(server, arena);
 	}
 
 	/** Tell one player what they hold, as plainly as the card would. */
@@ -263,6 +267,7 @@ public final class Spies {
 	private static void begin(MinecraftServer server, Arena arena, Call call) {
 		long now = System.currentTimeMillis();
 		hunts.put(arena.id, new Hunt(call.accused(), now + WINDOW_MILLIS, now));
+		standAll(server, arena);
 		Arenas.tellInside(server, arena, "The room has named " + call.accusedName()
 			+ ". Blades are out - on anybody.");
 		ServerPlayer accused = server.getPlayerList().getPlayer(call.accused());
@@ -340,6 +345,11 @@ public final class Spies {
 
 	/** Lapse a call nobody took up, shut a window whose time is done, and pay for staying alive. */
 	public static void tick(MinecraftServer server, Arena arena, long now) {
+		// Sitting is not a state a player can be trusted to stay in: shift gets anybody off a
+		// seat, and a round where one person is walking about while the rest are sat down is the
+		// round giving itself away. Whoever stood up sits back down.
+		if (rounds.containsKey(arena.id) && !open(arena)) seat(server, arena);
+
 		Call call = calls.get(arena.id);
 		if (call != null && now >= call.closesAt()) {
 			calls.remove(arena.id);
@@ -357,10 +367,80 @@ public final class Spies {
 		// evidence, and a round where it was would be a round with one question in it.
 		Arenas.tellInside(server, arena, "Blades away. "
 			+ (survivor == null ? "" : survivor.name + " is still standing."));
+		seat(server, arena);
+	}
+
+	// --- Sitting for the talk ---
+
+	/**
+	 * Everybody stays put while the talking is on.
+	 *
+	 * <p>The table game has everyone round a table, and nothing about standing in a Minecraft room
+	 * says that: people wander, climb the walls and are halfway across the hall by the third
+	 * question. So for as long as the blades are down, every player sits on a seat of their own
+	 * and cannot walk off it - a bed without the bed, which is what fatlard asked for and what a
+	 * bed cannot be here, since two of the three arena worlds treat one as a bomb.
+	 *
+	 * <p>A seat is an armour stand nobody can see, with no gravity and no hitbox, which is the
+	 * oldest trick in the book and the only one that holds a player still without fighting their
+	 * client for it. Anything that clamps a position instead ends up in a tug of war the player
+	 * feels as rubber-banding, and the round would look broken rather than seated.
+	 */
+	private static final Map<String, Map<UUID, Integer>> seats = new HashMap<>();
+
+	/** Sit everyone who is not sitting, and let go of everyone who should not be. */
+	private static void seat(MinecraftServer server, Arena arena) {
+		Map<UUID, Integer> theirs = seats.computeIfAbsent(arena.id, id -> new HashMap<>());
+		boolean talking = !open(arena);
+		for (Arena.Member member : arena.members.values()) {
+			ServerPlayer player = server.getPlayerList().getPlayer(member.id);
+			if (player == null) continue;
+			boolean shouldSit = talking && member.inside && !member.out && !member.watching;
+			if (!shouldSit) {
+				stand(player, theirs.remove(member.id));
+				continue;
+			}
+			// Riding anything at all is enough: a player on a seat stays on it whoever put them
+			// there, and re-seating one who is already sitting would drop them a block each time.
+			if (player.getVehicle() != null) continue;
+			// No marker flag: it is private in this version, so the seat keeps a hitbox. It is
+			// invisible, unhittable and inside the player sitting on it, which is near enough.
+			ArmorStand seat = new ArmorStand(player.level(), player.getX(), player.getY(), player.getZ());
+			seat.setInvisible(true);
+			seat.setNoGravity(true);
+			seat.setPermanentlyInvulnerable(true);
+			seat.setSilent(true);
+			player.level().addFreshEntity(seat);
+			player.startRiding(seat, true, true);
+			theirs.put(member.id, seat.getId());
+		}
+	}
+
+	/** Let one player up, and take their seat away with them. */
+	private static void stand(ServerPlayer player, @Nullable Integer seatId) {
+		Entity vehicle = player.getVehicle();
+		if (vehicle instanceof ArmorStand) {
+			player.stopRiding();
+			vehicle.discard();
+		}
+		if (seatId == null) return;
+		Entity left = ((ServerLevel) player.level()).getEntity(seatId);
+		if (left instanceof ArmorStand) left.discard();
+	}
+
+	/** Everyone up, seats gone: the round is over or the blades are out. */
+	private static void standAll(MinecraftServer server, Arena arena) {
+		Map<UUID, Integer> theirs = seats.remove(arena.id);
+		if (theirs == null) return;
+		for (Map.Entry<UUID, Integer> sat : theirs.entrySet()) {
+			ServerPlayer player = server.getPlayerList().getPlayer(sat.getKey());
+			if (player != null) stand(player, sat.getValue());
+		}
 	}
 
 	/** A round is over: its cards mean nothing now. */
 	public static void clear(Arena arena) {
+		seats.remove(arena.id);
 		rounds.remove(arena.id);
 		calls.remove(arena.id);
 		hunts.remove(arena.id);
