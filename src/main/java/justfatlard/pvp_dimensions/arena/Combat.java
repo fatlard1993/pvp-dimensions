@@ -34,7 +34,11 @@ public final class Combat {
 		Arena arena = Arenas.of(player);
 		if (arena == null) return null;
 		Arena.Member member = arena.member(player.getUUID());
-		return arena.phase == Arena.Phase.LIVE && arena.preset.pvp && member != null && !member.watching;
+		if (member == null || member.watching) return false;
+		// The odd one out is played with blades down until the room names somebody; then they are
+		// out for everybody at once, which is what makes a scramble out of an execution.
+		if (Spies.open(arena)) return arena.phase == Arena.Phase.LIVE;
+		return arena.phase == Arena.Phase.LIVE && arena.preset.pvp;
 	}
 
 	/** Whether one player may hurt another where the horde decides it; null to leave it to the rule above. */
@@ -139,6 +143,7 @@ public final class Combat {
 		if (trapper != null) credit = trapper;
 		if (!(credit instanceof ServerPlayer killer) || killer == victim) {
 			Moments.assists(server, arena, victim, lost, null);
+			if (Spies.open(arena)) Spies.died(server, arena, victim, null);
 			Arenas.vault(server).touch();
 			return;
 		}
@@ -179,6 +184,12 @@ public final class Combat {
 		killer.containerMenu.broadcastChanges();
 		Moments.headline(killer, earned, lost, victim);
 
+		if (Spies.open(arena)) {
+			// Who swung is the one thing the room does not get told; Spies says the rest.
+			Spies.died(server, arena, victim, killer);
+			Arenas.vault(server).touch();
+			return;
+		}
 		String line = killer.getGameProfile().name() + (trapper != null ? "'s trap got " : " took out ") + victim.getGameProfile().name()
 			+ (bonuses.isEmpty() ? "" : " (" + String.join(", ", bonuses) + ")")
 			+ (helped.isEmpty() ? "" : ", with help from " + String.join(" and ", helped.stream().map(p -> p.getGameProfile().name()).toList()));

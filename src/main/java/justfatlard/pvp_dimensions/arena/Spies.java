@@ -5,7 +5,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import justfatlard.pvp_dimensions.Say;
 import net.minecraft.ChatFormatting;
@@ -159,8 +161,208 @@ public final class Spies {
 		return true;
 	}
 
+	// --- The scramble ---
+
+	/**
+	 * How long a call stands before it lapses, and how long the window stays open once it carries.
+	 *
+	 * <p>Twenty seconds to answer a call is long enough to think and short enough that nobody can
+	 * stall a round out by refusing to vote. Thirty seconds of open window is the number to feel
+	 * out in play: long enough for the accused to make a real run of it, short enough that the
+	 * talking is still the game.
+	 */
+	private static final long CALL_MILLIS = 20_000L;
+	private static final long WINDOW_MILLIS = 30_000L;
+
+	/** What a second of staying alive is worth to whoever the room named. */
+	private static final int SURVIVED_PER_SECOND = 2;
+	/** What a kill is worth before the doubling: the sign is what the roles decide. */
+	private static final int KILL = 20;
+	/** What the room lynching one of its own is worth to the one who talked them into it. */
+	private static final int MISDIRECTED = 40;
+
+	/** A name put up, and who has agreed to it so far. */
+	private record Call(UUID accused, String accusedName, long closesAt, Set<UUID> agreed) {}
+
+	/** The window: who the room named, and when it shuts. */
+	private record Hunt(UUID target, long endsAt, long openedAt) {}
+
+	private static final Map<String, Call> calls = new HashMap<>();
+	private static final Map<String, Hunt> hunts = new HashMap<>();
+
+	/** Whether blades are out in this arena, which is the only time they are in this mode. */
+	public static boolean open(Arena arena) {
+		return hunts.containsKey(arena.id);
+	}
+
+	/** Who the room named, for the scoring to tell a lynching from a murder. */
+	private static @Nullable UUID target(Arena arena) {
+		Hunt hunt = hunts.get(arena.id);
+		return hunt == null ? null : hunt.target();
+	}
+
+	/** Put a name up. Anybody may, once there is nothing else running. */
+	public static void accuse(MinecraftServer server, Arena arena, ServerPlayer caller, ServerPlayer accused) {
+		if (rounds.get(arena.id) == null) {
+			Say.to(caller, "Nothing to accuse anybody of: this arena is not playing the odd one out");
+			return;
+		}
+		if (open(arena)) {
+			Say.to(caller, "Blades are already out");
+			return;
+		}
+		if (calls.containsKey(arena.id)) {
+			Say.to(caller, "A name is already up; say /pvp agree if you want it");
+			return;
+		}
+		Arena.Member member = arena.member(accused.getUUID());
+		if (member == null || !member.inside || member.out) {
+			Say.to(caller, accused.getGameProfile().name() + " is not in this round");
+			return;
+		}
+		calls.put(arena.id, new Call(accused.getUUID(), accused.getGameProfile().name(),
+			System.currentTimeMillis() + CALL_MILLIS, new HashSet<>(Set.of(caller.getUUID()))));
+		Arenas.tellInside(server, arena, caller.getGameProfile().name() + " says it is "
+			+ accused.getGameProfile().name() + ". Say /pvp agree to take the blame with them.");
+	}
+
+	/** Agree to the name up. Enough of the room agreeing is what opens the window. */
+	public static void agree(MinecraftServer server, Arena arena, ServerPlayer voter) {
+		Call call = calls.get(arena.id);
+		if (call == null) {
+			Say.to(voter, "No name is up");
+			return;
+		}
+		if (voter.getUUID().equals(call.accused())) {
+			Say.to(voter, "Not your own");
+			return;
+		}
+		if (!call.agreed().add(voter.getUUID())) {
+			Say.to(voter, "You have said so already");
+			return;
+		}
+		int standing = standing(arena);
+		int needed = standing / 2 + 1;
+		if (call.agreed().size() < needed) {
+			Arenas.tellInside(server, arena, call.agreed().size() + " of " + needed + " for "
+				+ call.accusedName());
+			return;
+		}
+		calls.remove(arena.id);
+		begin(server, arena, call);
+	}
+
+	/** Everyone still standing in the round: what a majority is counted out of. */
+	private static int standing(Arena arena) {
+		int count = 0;
+		for (Arena.Member member : arena.members.values()) if (member.inside && !member.out && !member.watching) count++;
+		return count;
+	}
+
+	/** The window opens. No head start: a scramble is the point. */
+	private static void begin(MinecraftServer server, Arena arena, Call call) {
+		long now = System.currentTimeMillis();
+		hunts.put(arena.id, new Hunt(call.accused(), now + WINDOW_MILLIS, now));
+		Arenas.tellInside(server, arena, "The room has named " + call.accusedName()
+			+ ". Blades are out - on anybody.");
+		ServerPlayer accused = server.getPlayerList().getPlayer(call.accused());
+		if (accused != null) Say.to(accused, ChatFormatting.RED + "They have named you. Stay alive.");
+	}
+
+	/**
+	 * A death while the blades are out.
+	 *
+	 * <p>Everything this mode scores happens here. The sign of a kill is what the two roles
+	 * disagree about and nothing else: killing the one who was not told is worth something to
+	 * anybody who knew the place, and killing somebody who knew it is worth the same to the one
+	 * who did not. Either way it doubles when the victim is not the name the room put up, because
+	 * going off the room's own call is a read somebody is backing with their own money.
+	 *
+	 * <p>The room is told who fell and whether they knew the place. It is never told who swung.
+	 * That is the whole of the shady half: the fact is in the world, where people were standing and
+	 * what they were holding, and not in the chat log.
+	 */
+	public static void died(MinecraftServer server, Arena arena, ServerPlayer victim, @Nullable ServerPlayer killer) {
+		Round round = rounds.get(arena.id);
+		if (round == null || !open(arena)) return;
+
+		Arena.Member lost = arena.member(victim.getUUID());
+		if (lost == null) return;
+		boolean victimKnew = !round.spy().equals(victim.getUUID());
+		boolean onTarget = victim.getUUID().equals(target(arena));
+
+		if (killer != null && !killer.getUUID().equals(victim.getUUID())) {
+			Arena.Member hand = arena.member(killer.getUUID());
+			if (hand != null) {
+				boolean killerKnew = !round.spy().equals(killer.getUUID());
+				// One line covers all three ways this can happen, because the rule is the same
+				// rule: taking somebody of the other sort pays, taking one of your own costs. A
+				// knower taking the one who did not know is paid; a knower taking a knower is
+				// charged; the one who did not know is paid for every knower, which is everybody
+				// they can reach. Doubled off the room's own call, either way round: going by your
+				// own read rather than the vote is a read you are backing with your own money.
+				int worth = victimKnew == killerKnew ? -KILL : KILL;
+				hand.points += worth * (onTarget ? 1 : 2);
+			}
+		}
+
+		// The room's own call, carried out on somebody who knew the place: that is the work of
+		// whoever talked them into it, and it pays whether or not they lifted a finger.
+		if (onTarget && victimKnew) {
+			Arena.Member spy = arena.members.get(round.spy());
+			if (spy != null) spy.points += MISDIRECTED;
+		}
+
+		Arenas.tellInside(server, arena, lost.name + " is down. "
+			+ (victimKnew ? "They knew the place." : ChatFormatting.RED + "They did not know the place."));
+
+		lost.out = true;
+		hunts.remove(arena.id);
+
+		if (!victimKnew) {
+			Goals.winTogether(server, arena, "the one who did not know is down; it was " + round.place().name());
+			return;
+		}
+		if (knowersLeft(arena, round) == 0) {
+			Arena.Member spy = arena.members.get(round.spy());
+			if (spy != null) Goals.winPlayer(server, arena, spy, "everybody who knew the place is down");
+		}
+	}
+
+	private static int knowersLeft(Arena arena, Round round) {
+		int count = 0;
+		for (Arena.Member member : arena.members.values()) {
+			if (member.id.equals(round.spy()) || member.out || !member.inside) continue;
+			count++;
+		}
+		return count;
+	}
+
+	/** Lapse a call nobody took up, shut a window whose time is done, and pay for staying alive. */
+	public static void tick(MinecraftServer server, Arena arena, long now) {
+		Call call = calls.get(arena.id);
+		if (call != null && now >= call.closesAt()) {
+			calls.remove(arena.id);
+			Arenas.tellInside(server, arena, "Nobody else would say it was " + call.accusedName());
+		}
+		Hunt hunt = hunts.get(arena.id);
+		if (hunt == null || now < hunt.endsAt()) return;
+
+		hunts.remove(arena.id);
+		Arena.Member survivor = arena.members.get(hunt.target());
+		if (survivor != null) {
+			survivor.points += (int) ((hunt.endsAt() - hunt.openedAt()) / 1000L) * SURVIVED_PER_SECOND;
+		}
+		// Nothing is revealed about somebody who lived through it: surviving a scramble is not
+		// evidence, and a round where it was would be a round with one question in it.
+		Arenas.tellInside(server, arena, "Blades away. "
+			+ (survivor == null ? "" : survivor.name + " is still standing."));
+	}
+
 	/** A round is over: its cards mean nothing now. */
 	public static void clear(Arena arena) {
 		rounds.remove(arena.id);
+		calls.remove(arena.id);
+		hunts.remove(arena.id);
 	}
 }

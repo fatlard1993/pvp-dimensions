@@ -18,6 +18,7 @@ import justfatlard.pvp_dimensions.Access;
 import justfatlard.pvp_dimensions.Say;
 import justfatlard.pvp_dimensions.arena.Arena;
 import justfatlard.pvp_dimensions.arena.Arenas;
+import justfatlard.pvp_dimensions.arena.Spies;
 import justfatlard.pvp_dimensions.arena.Places;
 import justfatlard.pvp_dimensions.arena.Portals;
 import justfatlard.pvp_dimensions.arena.Teams;
@@ -76,6 +77,30 @@ public final class PvpCommands {
 				}))));
 
 		root.then(Commands.literal("leave").executes(context -> run(context, PvpCommands::leave)));
+
+		// Naming somebody and agreeing to a name: the whole of the odd one out that is not talking.
+		root.then(Commands.literal("accuse").then(Commands.argument("player", EntityArgument.player())
+			.executes(context -> run(context, player -> {
+				Arena arena = Arenas.of(player);
+				if (arena == null) {
+					Say.to(player, "You are not in an arena");
+					return;
+				}
+				try {
+					Spies.accuse(player.level().getServer(), arena, player,
+						EntityArgument.getPlayer(context, "player"));
+				} catch (com.mojang.brigadier.exceptions.CommandSyntaxException e) {
+					Say.to(player, "No such player here");
+				}
+			}))));
+		root.then(Commands.literal("agree").executes(context -> run(context, player -> {
+			Arena arena = Arenas.of(player);
+			if (arena == null) {
+				Say.to(player, "You are not in an arena");
+				return;
+			}
+			Spies.agree(player.level().getServer(), arena, player);
+		})));
 
 		root.then(Commands.literal("loadout")
 			.executes(context -> run(context, player -> {

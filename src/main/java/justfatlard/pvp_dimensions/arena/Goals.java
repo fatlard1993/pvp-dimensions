@@ -591,6 +591,7 @@ public final class Goals {
 			return;
 		}
 		ticks++;
+		if (arena.preset.activeGoal() == Preset.Goal.SPY) Spies.tick(server, arena, now);
 		switch (arena.preset.activeGoal()) {
 			case CTF -> flags(server, level, arena);
 			case DESTRUCTION -> bases(server, level, arena);

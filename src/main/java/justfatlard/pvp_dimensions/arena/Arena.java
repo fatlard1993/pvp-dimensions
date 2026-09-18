@@ -58,6 +58,8 @@ public final class Arena {
 		public boolean paid;
 		/** Which loadout they picked: 0, the entry kit, until they pick. */
 		public int loadout;
+		/** What this round has been worth to them, where the goal keeps a score of its own. */
+		public int points;
 
 		Member(UUID id, String name) {
 			this.id = id;
@@ -82,6 +84,7 @@ public final class Arena {
 			tag.putInt("held", held);
 			tag.putBoolean("paid", paid);
 			tag.putInt("loadout", loadout);
+			tag.putInt("points", points);
 			if (!fee.isEmpty()) tag.store("fee", Presets.ITEMS, fee);
 			return tag;
 		}
@@ -103,6 +106,7 @@ public final class Arena {
 				member.held = tag.getIntOr("held", 0);
 				member.paid = tag.getBooleanOr("paid", false);
 				member.loadout = tag.getIntOr("loadout", 0);
+				member.points = tag.getIntOr("points", 0);
 				member.fee = tag.read("fee", Presets.ITEMS).orElseGet(ItemList::new);
 				return member;
 			});
