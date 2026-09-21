@@ -35,6 +35,15 @@ public final class Preset {
 	/** How often one kind of mob turns up among the rest; any kind not given one is normal. */
 	public enum MobLevel { OFF, RARE, NORMAL, COMMON }
 	public enum Goal { TIME, KILLS, MOBS, CTF, TAKEOVER, DESTRUCTION, WAVES, HILL, BANK, RACE, SPY, HITS }
+	/**
+	 * What lands a hit, where hits are what the arena is played for.
+	 *
+	 * <p>The goal counts a hit and nothing about how it arrived, so the only thing left to choose
+	 * is which arrivals it is willing to count. Thrown is a snowball fight, an egg fight or a poop
+	 * fight, depending on what the kit hands out; melee is a boxing match; either is a fight where
+	 * both count and what you bring is your own business.
+	 */
+	public enum HitKind { THROWN, MELEE, ANY }
 	public enum MobStyle { STEADY, WAVES }
 	public enum AfterWaves { REPEAT_LAST, START_OVER, STOP }
 	public enum Scope { PLAYER, TEAM, EVERYONE }
@@ -207,8 +216,10 @@ public final class Preset {
 	public MarkerPlace finishPlace = MarkerPlace.CENTER;
 	public FinishStyle finishStyle = FinishStyle.GROUND;
 	/** Paid out of what each player brings, on the way in. */
-	/** Hits to win a snowball fight; nought for the most hits when time is up. */
+	/** Hits to win; nought for the most hits when time is up. */
 	public int hitTarget = 50;
+	/** What counts as a hit: thrown makes it a snowball fight, melee makes it a boxing match. */
+	public HitKind hitKind = HitKind.THROWN;
 
 	public ItemList entryFee = new ItemList();
 	/** Whether everyone is handed a compass pointed at the goal: the hill, the finish, the other team's base. */

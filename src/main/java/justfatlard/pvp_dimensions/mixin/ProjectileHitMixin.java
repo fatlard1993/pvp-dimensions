@@ -3,6 +3,7 @@ package justfatlard.pvp_dimensions.mixin;
 import justfatlard.pvp_dimensions.arena.Arena;
 import justfatlard.pvp_dimensions.arena.Arenas;
 import justfatlard.pvp_dimensions.arena.Hits;
+import justfatlard.pvp_dimensions.preset.Preset;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -21,6 +22,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * snowball, an egg and a handful of somebody's poop all arrive here the same way, and so will
  * whatever gets added next.
  *
+ * <p>Only where the arena is counting thrown hits. A boxing match is played with hits too, and
+ * would otherwise be won by whoever kept an egg in their pocket.
+ *
  * <p>Nothing is cancelled. A snowball does no damage to a player anyway, and the ones that do are
  * still the arena's business to allow or refuse through {@code Combat} - this only watches.
  */
@@ -37,7 +41,7 @@ public abstract class ProjectileHitMixin {
 		if (!(owner instanceof ServerPlayer thrower)) return;
 
 		Arena arena = Arenas.of(hit);
-		if (arena == null || !Hits.counting(arena) || arena != Arenas.of(thrower)) return;
+		if (arena == null || !Hits.counts(arena.preset, Preset.HitKind.THROWN) || arena != Arenas.of(thrower)) return;
 		Hits.landed(level.getServer(), arena, thrower, hit);
 	}
 }

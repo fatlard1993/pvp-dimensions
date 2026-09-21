@@ -3,12 +3,13 @@
 	"id": "pvp-dimensions-gametest",
 	"version": "1.0.0",
 	"name": "PvP Dimensions smoke test",
-	"description": "Loads the mod, joins a world, and fails if anything on the way threw.",
+	"description": "Loads the mod, joins a world, and checks a hits preset survives a save.",
 	"license": "MIT",
 	"environment": "*",
 	"entrypoints": {
 		"fabric-client-gametest": [
-			"justfatlard.pvp_dimensions.gametest.SmokeTest"
+			"justfatlard.pvp_dimensions.gametest.SmokeTest",
+			"justfatlard.pvp_dimensions.gametest.HitsSurvive"
 		]
 	},
 	"depends": {

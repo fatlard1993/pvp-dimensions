@@ -62,6 +62,11 @@ public final class Fields {
 		fields.add(new Field.Choice(GAME, "goal", "Played for", Fields::goalOptions,
 			p -> p.goal.name().toLowerCase(Locale.ROOT), (p, v) -> p.goal = Preset.Goal.valueOf(v.toUpperCase(Locale.ROOT)))
 			.help("How the arena is won before its time runs out; capture the flag and the rest need teams"));
+		fields.add(new Field.Choice(GAME, "hit_kind", "What counts", Fields::hitKindOptions,
+			p -> p.hitKind.name().toLowerCase(Locale.ROOT),
+			(p, v) -> p.hitKind = Preset.HitKind.valueOf(v.toUpperCase(Locale.ROOT)))
+			.help("Thrown is a snowball fight, melee is a boxing match; neither needs pvp on")
+			.when(p -> p.activeGoal() == Preset.Goal.HITS));
 		fields.add(new Field.Number(GAME, "hit_target", "Hits to win", HIT_TARGETS, v -> v == 0 ? "Most hits" : v + " hits",
 			p -> p.hitTarget, (p, v) -> p.hitTarget = v).help(
 				"Landing this many wins it; nought counts the most hits when time is up")
@@ -824,7 +829,11 @@ public final class Fields {
 			case BANK -> "Banking";
 			case RACE -> "Race";
 			case SPY -> "The odd one out";
-			case HITS -> "Snowball fight";
+			case HITS -> switch (preset.hitKind) {
+				case THROWN -> "Snowball fight";
+				case MELEE -> "Boxing";
+				case ANY -> "Hits";
+			};
 		};
 	}
 
@@ -847,8 +856,9 @@ public final class Fields {
 		// Offered whatever else the preset says: it is played by talking, so it asks nothing of
 		// the arena but a room to stand in and a clock to run down.
 		options.add(new Field.Choice.Option("spy", "The odd one out"));
-		// Whatever is thrown comes from the kit, so this needs nothing of the preset but a target.
-		options.add(new Field.Choice.Option("hits", "Snowball fight"));
+		// What the hits are made of is the kit's business and the hit kind's, so this needs
+		// nothing of the preset but a target.
+		options.add(new Field.Choice.Option("hits", "Landing hits"));
 		if (preset.teamsOn()) {
 			options.add(new Field.Choice.Option("ctf", "Capture the flag"));
 			options.add(new Field.Choice.Option("takeover", "Colour takeover"));
@@ -887,6 +897,20 @@ public final class Fields {
 		List<Field.Choice.Option> options = new ArrayList<>();
 		options.add(new Field.Choice.Option("any", "Any hostile mob"));
 		for (String kind : MobKinds.of(preset.world)) options.add(new Field.Choice.Option(kind, MobKinds.name(kind)));
+		return options;
+	}
+
+	/**
+	 * What lands a hit.
+	 *
+	 * <p>Worded by the fight each one makes rather than by the mechanism, because "thrown" and
+	 * "melee" describe the code and "a snowball fight" is what somebody is actually setting up.
+	 */
+	private static List<Field.Choice.Option> hitKindOptions(Preset preset) {
+		List<Field.Choice.Option> options = new ArrayList<>();
+		options.add(new Field.Choice.Option("thrown", "Thrown: snowballs, eggs, poop"));
+		options.add(new Field.Choice.Option("melee", "Fists and blades: a boxing match"));
+		options.add(new Field.Choice.Option("any", "Either one"));
 		return options;
 	}
 

@@ -128,10 +128,20 @@ public final class Goals {
 			// Said out loud to the whole hall, so it names the game and nothing about the round:
 			// every word of what anybody holds is on their own card.
 			case SPY -> "One of you was not told where you are. Ask each other about the place until you know who";
-			case HITS -> preset.hitTarget > 0 ? "Pelt each other: " + preset.hitTarget + " hits wins it"
-				: "Pelt each other: the most hits when time is up wins";
+			case HITS -> hitsBlurb(preset);
 		};
 		if (how != null) Arenas.tellInside(server, arena, how);
+	}
+
+	/** How a hits round is announced, in the verb that fits what it counts. */
+	private static String hitsBlurb(Preset preset) {
+		String verb = switch (preset.hitKind) {
+			case THROWN -> "Pelt each other";
+			case MELEE -> "Box each other";
+			case ANY -> "Land what you can on each other";
+		};
+		return preset.hitTarget > 0 ? verb + ": " + preset.hitTarget + " hits wins it"
+			: verb + ": the most hits when time is up wins";
 	}
 
 	/**

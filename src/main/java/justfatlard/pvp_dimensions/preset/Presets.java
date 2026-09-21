@@ -188,6 +188,7 @@ public final class Presets {
 		json.addProperty("goal", name(p.goal));
 		json.addProperty("kill_target", p.killTarget);
 		json.addProperty("hit_target", p.hitTarget);
+		json.addProperty("hit_kind", name(p.hitKind));
 		json.addProperty("lives", name(p.lives));
 		json.addProperty("lives_count", p.livesCount);
 		json.addProperty("mob_goal_kind", p.mobGoalKind);
@@ -377,6 +378,7 @@ public final class Presets {
 		p.goal = choice(json, "goal", Preset.Goal.class, p.goal);
 		integer(json, "kill_target", v -> p.killTarget = Math.max(0, v));
 		integer(json, "hit_target", v -> p.hitTarget = Math.max(0, v));
+		p.hitKind = choice(json, "hit_kind", Preset.HitKind.class, p.hitKind);
 		p.lives = choice(json, "lives", Preset.Lives.class, p.lives);
 		integer(json, "lives_count", v -> p.livesCount = Math.max(1, v));
 		string(json, "mob_goal_kind", v -> p.mobGoalKind = v);

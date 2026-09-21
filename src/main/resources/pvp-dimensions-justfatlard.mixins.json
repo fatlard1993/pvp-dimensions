@@ -18,7 +18,8 @@
     "ServerLevelMixin",
     "ServerPlayerMixin",
     "TeleportCommandMixin",
-    "ProjectileHitMixin"
+    "ProjectileHitMixin",
+    "MeleeHitMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -8,14 +8,19 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 
 /**
- * A snowball fight: what counts is the hit, not the harm.
+ * Hits: what counts is the landing, not the harm.
  *
  * <p>Every other way of winning an arena here is settled by damage of some kind. This one is not
  * settled by damage at all - a snowball does nothing to a player and is not supposed to, which is
- * exactly why a fight made of them is worth having. What is counted is the thrown thing landing,
- * and nothing about the thing itself: snowballs, eggs, a handful of poop, anything a player can
- * throw at somebody. The preset decides what they are given to throw, because ammunition is the
- * kit's business and never the goal's.
+ * exactly why a fight made of them is worth having. What is counted is one player's blow reaching
+ * another, and nothing about the blow: a snowball, an egg, a handful of poop, a bare fist. The
+ * preset decides what they are given to fight with, because ammunition is the kit's business and
+ * never the goal's.
+ *
+ * <p>{@link Preset.HitKind} is the whole of the difference between the matches this makes. Thrown
+ * is a snowball fight; melee is a boxing match; either counts both and lets the players choose. A
+ * hit is counted whether or not the blow was allowed to hurt, so a boxing match works with the
+ * arena's pvp switched off, where nobody can take damage and the count is the only thing moving.
  *
  * <p>On a server running stackz that also solves the supply: a stack holds millions, so the kit
  * handing out one stack of snowballs is a fight nobody runs out of.
@@ -111,8 +116,17 @@ public final class Hits {
 		return true;
 	}
 
-	/** Whether this arena is counting hits at all, for the projectile hook to ask before it looks further. */
-	public static boolean counting(Arena arena) {
-		return arena.preset.activeGoal() == Preset.Goal.HITS;
+	/**
+	 * Whether a blow of this kind counts here.
+	 *
+	 * <p>Asked by each hook for its own kind, so a boxing match does not quietly award a point to
+	 * whoever brought eggs, and a snowball fight is not won by walking up and punching.
+	 *
+	 * <p>Takes the preset rather than the arena because that is all it reads, and a rule about
+	 * presets can then be asked about a preset - with no world, no arena and nobody standing in it.
+	 */
+	public static boolean counts(Preset preset, Preset.HitKind kind) {
+		if (preset.activeGoal() != Preset.Goal.HITS) return false;
+		return preset.hitKind == Preset.HitKind.ANY || preset.hitKind == kind;
 	}
 }
