@@ -411,7 +411,7 @@ public final class Goals {
 		return new int[] {left, blocks.size()};
 	}
 
-	private static BlockState terracotta(int team) {
+	static BlockState terracotta(int team) {
 		return Terrain.block("minecraft:" + TeamColors.of(team).dye() + "_terracotta", Blocks.TERRACOTTA.defaultBlockState());
 	}
 
@@ -600,7 +600,13 @@ public final class Goals {
 
 	public static void tick(MinecraftServer server, ServerLevel level, Arena arena, long now) {
 		if (arena.closesAt > 0) {
-			if (now >= arena.closesAt) Arenas.end(server, arena, "it has been won");
+			// The fork a series puts in the one place a won game used to have: another round, or
+			// the end. Rounds.over already counts the round just won, so a best of three that has
+			// gone two-nil closes here rather than playing a third for nothing.
+			if (now >= arena.closesAt) {
+				if (Rounds.over(arena)) Arenas.end(server, arena, Rounds.playing(arena) ? Rounds.result(arena) : "it has been won");
+				else Rounds.next(server, arena);
+			}
 			return;
 		}
 		ticks++;
@@ -714,7 +720,9 @@ public final class Goals {
 	/** Everyone wins: a hunt done together. */
 	public static void winTogether(MinecraftServer server, Arena arena, String how) {
 		if (arena.closesAt > 0) return;
-		crown(server, arena, arena.members.values().stream().filter(member -> !member.zombie).map(member -> member.id).toList(), "You win!", how);
+		Rounds.everyoneWon(arena);
+		crown(server, arena, arena.members.values().stream().filter(member -> !member.zombie).map(member -> member.id).toList(), "You win!", how,
+			Rounds.over(arena));
 		arena.closesAt = System.currentTimeMillis() + CELEBRATION_MILLIS;
 		Arenas.vault(server).touch();
 	}
@@ -758,7 +766,8 @@ public final class Goals {
 						}
 					}
 					if (best != null && !tie && best.held > 0) {
-						crown(server, arena, List.of(best.id), best.name + " wins!", "held the hill longest");
+						Rounds.playerWon(arena, best);
+						crown(server, arena, List.of(best.id), best.name + " wins!", "held the hill longest", Rounds.over(arena));
 						return true;
 					}
 					return false;
@@ -791,7 +800,9 @@ public final class Goals {
 						}
 					}
 					if (best != null && !tie && best.mobKills > 0) {
-						crown(server, arena, List.of(best.id), best.name + " wins!", "with " + best.mobKills + " " + mobWords(preset));
+						Rounds.playerWon(arena, best);
+						crown(server, arena, List.of(best.id), best.name + " wins!", "with " + best.mobKills + " " + mobWords(preset),
+							Rounds.over(arena));
 						return true;
 					}
 					return false;
@@ -812,7 +823,8 @@ public final class Goals {
 						}
 					}
 					if (best != null && !tie && best.kills > 0) {
-						crown(server, arena, List.of(best.id), best.name + " wins!", "with " + best.kills + " kills");
+						Rounds.playerWon(arena, best);
+						crown(server, arena, List.of(best.id), best.name + " wins!", "with " + best.kills + " kills", Rounds.over(arena));
 						return true;
 					}
 					return false;
@@ -835,7 +847,8 @@ public final class Goals {
 			}
 		}
 		if (best < 0 || tie) return false;
-		crown(server, arena, teamMembers(arena, best), TeamColors.of(best).name() + " wins!", "ahead when time ran out");
+		Rounds.teamWon(arena, best);
+		crown(server, arena, teamMembers(arena, best), TeamColors.of(best).name() + " wins!", "ahead when time ran out", Rounds.over(arena));
 		return true;
 	}
 
@@ -843,14 +856,16 @@ public final class Goals {
 
 	public static void winTeam(MinecraftServer server, Arena arena, int team, String how) {
 		if (arena.closesAt > 0) return;
-		crown(server, arena, teamMembers(arena, team), TeamColors.of(team).name() + " wins!", how);
+		Rounds.teamWon(arena, team);
+		crown(server, arena, teamMembers(arena, team), TeamColors.of(team).name() + " wins!", how, Rounds.over(arena));
 		arena.closesAt = System.currentTimeMillis() + CELEBRATION_MILLIS;
 		Arenas.vault(server).touch();
 	}
 
 	public static void winPlayer(MinecraftServer server, Arena arena, Arena.Member winner, String how) {
 		if (arena.closesAt > 0) return;
-		crown(server, arena, List.of(winner.id), winner.name + " wins!", how);
+		Rounds.playerWon(arena, winner);
+		crown(server, arena, List.of(winner.id), winner.name + " wins!", how, Rounds.over(arena));
 		arena.closesAt = System.currentTimeMillis() + CELEBRATION_MILLIS;
 		Arenas.vault(server).touch();
 	}
@@ -865,24 +880,34 @@ public final class Goals {
 	 * The title for everyone inside and how it was won beneath it, and the prize drawn and
 	 * announced. The winners still inside are owed it, handed over as they go home: given here, a
 	 * pack the arena keeps apart would take it back on the way out.
+	 *
+	 * @param spoils whether this win ends the arena and so carries the prize and the pot. A round
+	 *     of a series that still has rounds left is won and said out loud, but pays nothing: the
+	 *     prize is for taking the series, and drawing one every round would hand out five of them
+	 *     in a best of five. It is also why the winners are only written down on the last one -
+	 *     that list is what the trip home pays out against.
 	 */
-	private static void crown(MinecraftServer server, Arena arena, List<UUID> winners, String words, String how) {
+	private static void crown(MinecraftServer server, Arena arena, List<UUID> winners, String words, String how, boolean spoils) {
 		Component title = Component.literal(words).withStyle(ChatFormatting.GOLD);
-		Component subtitle = Component.literal(how).withStyle(ChatFormatting.YELLOW);
-		List<Integer> drawable = new ArrayList<>();
-		for (int i = 0; i < arena.preset.prizes.size(); i++) if (!arena.preset.prizes.get(i).isEmpty()) drawable.add(i);
-		if (arena.prize < 0 && !drawable.isEmpty()) arena.prize = drawable.get(PRIZE_DRAW.nextInt(drawable.size()));
-		ItemList prize = arena.prizeItems();
-		String prizeWords = prize == null ? null
-			: (drawable.size() > 1 ? "The prize, drawn from " + drawable.size() + ": " : "The prize: ") + prize.describe(8);
-		ItemList pot = Fees.shareOut(arena, winners);
-		if (pot != null) {
-			String potWords = "The pot, shared " + (winners.size() == 1 ? "by the winner" : winners.size() + " ways") + ": " + pot.describe(8);
-			prizeWords = prizeWords == null ? potWords : prizeWords + ". " + potWords;
+		String beneath = Rounds.playing(arena) ? how + " · " + Rounds.standing(arena) + ": " + Rounds.tally(arena) : how;
+		Component subtitle = Component.literal(beneath).withStyle(ChatFormatting.YELLOW);
+		String prizeWords = null;
+		if (spoils) {
+			List<Integer> drawable = new ArrayList<>();
+			for (int i = 0; i < arena.preset.prizes.size(); i++) if (!arena.preset.prizes.get(i).isEmpty()) drawable.add(i);
+			if (arena.prize < 0 && !drawable.isEmpty()) arena.prize = drawable.get(PRIZE_DRAW.nextInt(drawable.size()));
+			ItemList prize = arena.prizeItems();
+			prizeWords = prize == null ? null
+				: (drawable.size() > 1 ? "The prize, drawn from " + drawable.size() + ": " : "The prize: ") + prize.describe(8);
+			ItemList pot = Fees.shareOut(arena, winners);
+			if (pot != null) {
+				String potWords = "The pot, shared " + (winners.size() == 1 ? "by the winner" : winners.size() + " ways") + ": " + pot.describe(8);
+				prizeWords = prizeWords == null ? potWords : prizeWords + ". " + potWords;
+			}
 		}
 		for (Arena.Member member : arena.inside()) {
 			boolean won = winners.contains(member.id);
-			if (won) arena.winners.add(member.id);
+			if (won && spoils) arena.winners.add(member.id);
 			ServerPlayer player = server.getPlayerList().getPlayer(member.id);
 			if (player == null) continue;
 			player.connection.send(new ClientboundSetTitlesAnimationPacket(10, 70, 20));

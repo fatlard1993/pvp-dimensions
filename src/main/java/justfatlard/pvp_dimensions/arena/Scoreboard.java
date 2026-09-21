@@ -192,6 +192,12 @@ public final class Scoreboard {
 		}
 		String extra = lives(arena, viewer);
 		if (extra != null) footer = footer == null ? extra : footer + " · " + extra;
+		// The series rides under whatever the goal was already saying, because it is the one
+		// number that outlives the round on screen: the lines above are all wiped when it ends.
+		if (Rounds.playing(arena)) {
+			String series = Rounds.standing(arena) + " · " + Rounds.tally(arena);
+			footer = footer == null ? series : footer + " · " + series;
+		}
 		return new Board(title, goal, lines, footer);
 	}
 

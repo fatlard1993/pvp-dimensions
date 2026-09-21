@@ -38,6 +38,8 @@ public final class Fields {
 	private static final int[] KILL_TARGETS = {0, 3, 5, 10, 15, 20, 25, 30, 50, 100};
 	/** Hits, not kills: a snowball fight at twenty is over before anybody has found their feet. */
 	private static final int[] HIT_TARGETS = {0, 25, 50, 75, 100, 150, 200, 300};
+	/** Odd numbers past one, so a series has a winner without needing a decider. */
+	private static final int[] ROUNDS = {1, 2, 3, 5, 7, 9};
 	private static final int[] MOB_TARGETS = {5, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200};
 	private static final int[] HILL_MOVES = {0, 1, 2, 3, 5, 10, 15};
 	private static final int[] HILL_TARGETS = {0, 1, 2, 3, 5, 10, 15, 20, 30};
@@ -62,6 +64,11 @@ public final class Fields {
 		fields.add(new Field.Choice(GAME, "goal", "Played for", Fields::goalOptions,
 			p -> p.goal.name().toLowerCase(Locale.ROOT), (p, v) -> p.goal = Preset.Goal.valueOf(v.toUpperCase(Locale.ROOT)))
 			.help("How the arena is won before its time runs out; capture the flag and the rest need teams"));
+		fields.add(new Field.Number(GAME, "rounds", "Rounds", ROUNDS,
+			v -> v == 1 ? "One game" : "Best of " + v,
+			p -> p.rounds, (p, v) -> p.rounds = Math.max(1, v)).help(
+				"Played this many times over with the same people and teams; most rounds won takes it, "
+				+ "and it stops early once the rest cannot change the answer"));
 		fields.add(new Field.Choice(GAME, "hit_kind", "What counts", Fields::hitKindOptions,
 			p -> p.hitKind.name().toLowerCase(Locale.ROOT),
 			(p, v) -> p.hitKind = Preset.HitKind.valueOf(v.toUpperCase(Locale.ROOT)))

@@ -9,7 +9,8 @@
 	"entrypoints": {
 		"fabric-client-gametest": [
 			"justfatlard.pvp_dimensions.gametest.SmokeTest",
-			"justfatlard.pvp_dimensions.gametest.HitsSurvive"
+			"justfatlard.pvp_dimensions.gametest.HitsSurvive",
+			"justfatlard.pvp_dimensions.gametest.SeriesCounts"
 		]
 	},
 	"depends": {

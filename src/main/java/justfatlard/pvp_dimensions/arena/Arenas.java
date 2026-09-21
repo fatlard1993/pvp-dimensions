@@ -566,7 +566,16 @@ public final class Arenas {
 			// game that ended level, or with nobody having scored at all, said only "time is up"
 			// and left everyone to guess.
 			boolean crowned = Goals.timeUp(server, arena);
-			end(server, arena, crowned ? "time is up" : "time is up with no clear winner");
+			// Time running out is the other way a round finishes, and it never went through
+			// closesAt: it crowned and ended in the same breath. A series has to fork here too,
+			// or every round after the first would be played only if somebody won it outright.
+			if (!Rounds.over(arena)) {
+				Arenas.tellInside(server, arena, crowned ? "Time is up." : "Time is up with no clear winner.");
+				Rounds.next(server, arena);
+				return;
+			}
+			String why = crowned ? "time is up" : "time is up with no clear winner";
+			end(server, arena, Rounds.playing(arena) ? why + ". " + Rounds.result(arena) : why);
 			return;
 		}
 		if (ticks % 40 == 0) {
@@ -641,12 +650,15 @@ public final class Arenas {
 		switch (arena.phase) {
 			case LOBBY -> words = arena.title() + ": waiting room";
 			case LIVE -> {
+				// The round is part of what this game is, so it rides with the title rather than
+				// waiting for somebody to open the board.
+				String head = Rounds.playing(arena) ? arena.title() + " · " + Rounds.standing(arena) : arena.title();
 				if (arena.endsAt > 0) {
 					long left = Math.max(0, arena.endsAt - now);
-					words = arena.title() + ": " + clock(left) + " left";
+					words = head + ": " + clock(left) + " left";
 					progress = (float) left / Math.max(1, arena.endsAt - arena.liveAt);
 				} else {
-					words = arena.title();
+					words = head;
 				}
 			}
 			default -> words = arena.title() + ": getting ready";

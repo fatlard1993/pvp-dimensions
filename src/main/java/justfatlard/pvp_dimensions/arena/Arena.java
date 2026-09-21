@@ -60,6 +60,8 @@ public final class Arena {
 		public int loadout;
 		/** What this round has been worth to them, where the goal keeps a score of its own. */
 		public int points;
+		/** Rounds of the series they have won; kept while points and the rest are wiped between rounds. */
+		public int roundsWon;
 
 		Member(UUID id, String name) {
 			this.id = id;
@@ -85,6 +87,7 @@ public final class Arena {
 			tag.putBoolean("paid", paid);
 			tag.putInt("loadout", loadout);
 			tag.putInt("points", points);
+			tag.putInt("rounds_won", roundsWon);
 			if (!fee.isEmpty()) tag.store("fee", Presets.ITEMS, fee);
 			return tag;
 		}
@@ -107,6 +110,7 @@ public final class Arena {
 				member.paid = tag.getBooleanOr("paid", false);
 				member.loadout = tag.getIntOr("loadout", 0);
 				member.points = tag.getIntOr("points", 0);
+				member.roundsWon = tag.getIntOr("rounds_won", 0);
 				member.fee = tag.read("fee", Presets.ITEMS).orElseGet(ItemList::new);
 				return member;
 			});
@@ -147,6 +151,11 @@ public final class Arena {
 	public final Set<UUID> winners = new HashSet<>();
 	/** Which of the preset's prizes the win drew; -1 until a win has drawn one. */
 	public int prize = -1;
+
+	/** Which round of the series is being played; 1 for the first, and for every one-round match. */
+	public int round = 1;
+	/** Each team's rounds won across the series, beside {@link Member#roundsWon} for the players. */
+	public final Map<Integer, Integer> teamRounds = new java.util.HashMap<>();
 
 	/** Each team's score toward the goal: flags captured. */
 	public final Map<Integer, Integer> scores = new java.util.HashMap<>();
@@ -324,6 +333,8 @@ public final class Arena {
 		tag.putLong("wave_started_at", waveStartedAt);
 		tag.putBoolean("waves_over", wavesOver);
 		tag.store("scores", SCORES, scores);
+		tag.putInt("round", round);
+		tag.store("team_rounds", SCORES, teamRounds);
 		tag.store("flag_numbers", SCORES, flagNumbers);
 		tag.store("pools", SCORES, pools);
 		tag.store("bases", BlockPos.CODEC.listOf(), bases);
@@ -401,6 +412,8 @@ public final class Arena {
 		arena.waveStartedAt = tag.getLongOr("wave_started_at", 0);
 		arena.wavesOver = tag.getBooleanOr("waves_over", false);
 		arena.scores.putAll(tag.read("scores", SCORES).orElse(Map.of()));
+		arena.round = Math.max(1, tag.getIntOr("round", 1));
+		arena.teamRounds.putAll(tag.read("team_rounds", SCORES).orElse(Map.of()));
 		arena.flagNumbers.putAll(tag.read("flag_numbers", SCORES).orElse(Map.of()));
 		arena.pools.putAll(tag.read("pools", SCORES).orElse(Map.of()));
 		arena.bases.addAll(tag.read("bases", BlockPos.CODEC.listOf()).orElse(List.of()));

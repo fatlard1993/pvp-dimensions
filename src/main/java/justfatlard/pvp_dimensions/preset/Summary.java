@@ -172,8 +172,12 @@ public final class Summary {
 	}
 
 	private static String length(Preset p) {
-		if (p.lifeMinutes <= 0) return "No time limit";
-		String line = "Lasts " + Fields.duration(p.lifeMinutes).toLowerCase(Locale.ROOT);
+		// Said first, because how long one round lasts means something different once there are
+		// several of them: an hour each is not an hour.
+		String series = p.rounds > 1 ? "Best of " + p.rounds + ". " : "";
+		if (p.lifeMinutes <= 0) return series + (series.isEmpty() ? "No time limit" : "No time limit per round");
+		String line = series + (series.isEmpty() ? "Lasts " : "Each round lasts ")
+			+ Fields.duration(p.lifeMinutes).toLowerCase(Locale.ROOT);
 		if (p.activeGoal() != Preset.Goal.TIME && p.activeGoal() != Preset.Goal.WAVES) line += "; the leader then wins";
 		if (p.borderShrink > 0) line += ", the border closing in as it goes";
 		if (!p.modeChanges.isEmpty()) {

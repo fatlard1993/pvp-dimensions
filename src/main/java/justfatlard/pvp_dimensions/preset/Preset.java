@@ -216,6 +216,15 @@ public final class Preset {
 	public MarkerPlace finishPlace = MarkerPlace.CENTER;
 	public FinishStyle finishStyle = FinishStyle.GROUND;
 	/** Paid out of what each player brings, on the way in. */
+	/**
+	 * How many rounds the match is played over; 1 is a single game, the way it always was.
+	 *
+	 * <p>Rounds are played until one side cannot be caught, so a best of three stops at two-nil
+	 * rather than playing a dead rubber. Each round is scored the way the goal says; the series is
+	 * scored in rounds won, and a series that ends level is a draw.
+	 */
+	public int rounds = 1;
+
 	/** Hits to win; nought for the most hits when time is up. */
 	public int hitTarget = 50;
 	/** What counts as a hit: thrown makes it a snowball fight, melee makes it a boxing match. */
