@@ -36,6 +36,8 @@ public final class Fields {
 	private static final int[] PINATA_MINUTES = {1, 2, 3, 5, 10, 15, 20, 30, 45, 60};
 	private static final int[] HITS = {1, 3, 5, 10, 15, 20, 30, 50, 100};
 	private static final int[] KILL_TARGETS = {0, 3, 5, 10, 15, 20, 25, 30, 50, 100};
+	/** Hits, not kills: a snowball fight at twenty is over before anybody has found their feet. */
+	private static final int[] HIT_TARGETS = {0, 25, 50, 75, 100, 150, 200, 300};
 	private static final int[] MOB_TARGETS = {5, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200};
 	private static final int[] HILL_MOVES = {0, 1, 2, 3, 5, 10, 15};
 	private static final int[] HILL_TARGETS = {0, 1, 2, 3, 5, 10, 15, 20, 30};
@@ -60,7 +62,7 @@ public final class Fields {
 		fields.add(new Field.Choice(GAME, "goal", "Played for", Fields::goalOptions,
 			p -> p.goal.name().toLowerCase(Locale.ROOT), (p, v) -> p.goal = Preset.Goal.valueOf(v.toUpperCase(Locale.ROOT)))
 			.help("How the arena is won before its time runs out; capture the flag and the rest need teams"));
-		fields.add(new Field.Number(GAME, "hit_target", "Hits to win", KILL_TARGETS, v -> v == 0 ? "Most hits" : v + " hits",
+		fields.add(new Field.Number(GAME, "hit_target", "Hits to win", HIT_TARGETS, v -> v == 0 ? "Most hits" : v + " hits",
 			p -> p.hitTarget, (p, v) -> p.hitTarget = v).help(
 				"Landing this many wins it; nought counts the most hits when time is up")
 			.when(p -> p.activeGoal() == Preset.Goal.HITS));

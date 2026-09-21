@@ -1,0 +1,19 @@
+{
+  "overview": [
+    "Arenas on demand. Pick a preset from a menu and a fresh piece of ground is made for the fight, floating alone in a dimension of its own, gone when the clock runs out."
+  ],
+  "versions": {
+    "1.1.0": [
+      "The arena is a menu now: arenas, join, loadout, begin and leave are buttons rather than things you type in the middle of a fight.",
+      "A match ends by saying the score it was actually played for, banks filled, flags taken or the hill held, instead of a line about kills, and says so plainly when the clock runs out with nobody ahead. A team's bank is counted even when nobody is standing near it, so the board stops quietly drifting.",
+      "Dying outside an arena puts you back in your own bed again rather than at some arena's door with the respawn button greyed out."
+    ],
+    "1.0.1": [
+      "Two new games: the odd one out, where everybody but one is dealt the place and the room has to find who was not, ending in a scramble anybody can call; and a snowball fight scored by what lands rather than by damage. Players sit down while the talking is on.",
+      "A plain teleport into or out of an arena is now refused, and says what the door does, instead of being quietly undone afterwards."
+    ],
+    "1.0.0": [
+      "/pvp opens a menu of presets: a fresh arena inside a border, everyone invited with a button in chat, the empty obsidian frame beside you lit as a way in, and everybody sent home when the time is up. Admins make and edit presets, users start the ones marked for them."
+    ]
+  }
+}

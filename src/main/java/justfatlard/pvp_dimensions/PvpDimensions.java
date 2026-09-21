@@ -1,5 +1,6 @@
 package justfatlard.pvp_dimensions;
 
+import justfatlard.pandorical.api.ActionMenuApi;
 import justfatlard.pandorical.api.PandoricalApi;
 import justfatlard.pvp_dimensions.arena.Arena;
 import justfatlard.pvp_dimensions.arena.Arenas;
@@ -74,6 +75,7 @@ public class PvpDimensions implements ModInitializer {
 		ItemSessions.init();
 		Arenas.init();
 		ServerConfig.load();
+		promoteArenaButtons();
 
 		ServerLifecycleEvents.SERVER_STARTING.register(starting -> {
 			server = starting;
@@ -163,4 +165,32 @@ public class PvpDimensions implements ModInitializer {
 
 		LOGGER.info("PvP Dimensions loaded");
 	}
+
+	/**
+	 * The arena, as a menu of buttons.
+	 *
+	 * <p>This mod is a command interface with a game attached: joining, leaving, picking a loadout
+	 * and calling the start are all words you type, several times an evening, in the middle of
+	 * something else. That is exactly what an action menu is for.
+	 *
+	 * <p>The admin half - presets, terrain, grants - is deliberately absent. It is op-gated, done
+	 * once when an arena is built, and a button for it would sit in every player's menu refusing
+	 * to work.
+	 */
+	private static void promoteArenaButtons() {
+		PandoricalApi.actionMenus().suggestMenu(MOD_ID + ":arena", "Arena", java.util.List.of(
+			ActionMenuApi.Button.runs("minecraft:iron_sword", "Arenas", "pvp"),
+			ActionMenuApi.Button.runs("minecraft:oak_door", "Join", "pvp join"),
+			ActionMenuApi.Button.runs("minecraft:chest", "Loadout", "pvp loadout"),
+			ActionMenuApi.Button.runs("minecraft:bell", "Begin", "pvp begin"),
+			ActionMenuApi.Button.runs("minecraft:iron_door", "Leave", "pvp leave")));
+
+		PandoricalApi.commandHelp().describe("/pvp", "Open the arena menu.");
+		PandoricalApi.commandHelp().describe("/pvp join", "Join an arena that is waiting for players.");
+		PandoricalApi.commandHelp().describe("/pvp leave", "Leave the arena you are in, giving up the match.");
+		PandoricalApi.commandHelp().describe("/pvp loadout", "Pick what you carry into the next round.");
+		PandoricalApi.commandHelp().describe("/pvp begin", "Start the match everyone is waiting in.");
+		PandoricalApi.commandHelp().describe("/pvp invite", "Bring somebody into the arena you are in.");
+	}
+
 }

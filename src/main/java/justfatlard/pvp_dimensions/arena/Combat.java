@@ -58,21 +58,49 @@ public final class Combat {
 
 	/** Where a death in an arena that keeps its dead comes back; null to let the game decide. */
 	public static @Nullable TeleportTransition respawn(ServerPlayer player, TeleportTransition.PostTeleportTransition after) {
-		Visit visit = Visit.of(player);
-		if (visit != null) {
-			Arena any = Arenas.get(player.level().getServer(), visit.arena());
-			if (any == null || any.phase == Arena.Phase.ENDED) return Travel.homeTrip(player.level().getServer(), visit.home());
-		}
+		// Nothing here has any business with somebody who died outside an arena. This used to ask
+		// about their visit first, and a visit outlives the game it was for: a player carrying a
+		// stale one who died at home was sent to an arena's doorstep instead of their own bed, and
+		// if that trip did not take, the respawn button greyed out and stayed that way.
 		Arena arena = Arenas.of(player);
 		if (arena == null || !player.level().dimension().equals(arena.dimension)) return null;
+
+		Visit visit = Visit.of(player);
+		// Inside, but with nothing to come back to: a game that has ended, or a build arena's
+		// lobby that was never stood up. The way out is home, which is what the visit remembers.
+		if (!respawnsInside(arena)) {
+			if (visit != null) return Travel.homeTrip(player.level().getServer(), visit.home());
+			return Travel.spawnTrip(player.level().getServer());
+		}
 		boolean inLobby = arena.phase == Arena.Phase.LOBBY;
-		if (!inLobby && !(arena.phase == Arena.Phase.LIVE && arena.preset.respawnsInside())) return null;
 		ServerLevel level = player.level();
 		Arena.Member member = arena.member(player.getUUID());
 		boolean zombie = member != null && member.out && arena.preset.hordeOn();
-		Vec3 spot = inLobby && arena.lobbyStanding ? Lobby.arrival(arena)
+		Vec3 spot = inLobby ? Lobby.arrival(arena)
 			: zombie ? Spawns.random(level, arena) : Spawns.forPlayer(level, arena, member != null ? member.team : -1);
+		// Nowhere to put them is the one answer that must never be given to somebody who is dead:
+		// vanilla would be left to place them, in a dimension it knows nothing about.
+		if (spot == null) {
+			return visit != null ? Travel.homeTrip(player.level().getServer(), visit.home())
+				: Travel.spawnTrip(player.level().getServer());
+		}
 		return new TeleportTransition(level, spot, Vec3.ZERO, player.getYRot(), 0, Set.of(), after);
+	}
+
+	/**
+	 * Whether this arena has somewhere for a dead player to come back to inside it.
+	 *
+	 * <p>A live game that respawns its dead, or a lobby with somewhere to stand. Anything else -
+	 * no arena at all, one that has ended, one still being generated, or a lobby that was never
+	 * built - means the only way back is out.
+	 */
+	private static boolean respawnsInside(@Nullable Arena arena) {
+		if (arena == null) return false;
+		return switch (arena.phase) {
+			case LIVE -> arena.preset.respawnsInside();
+			case LOBBY -> arena.lobbyStanding;
+			case GENERATING, ENDED -> false;
+		};
 	}
 
 	/**

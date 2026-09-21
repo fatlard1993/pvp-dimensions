@@ -1,0 +1,18 @@
+{
+	"schemaVersion": 1,
+	"id": "pvp-dimensions-gametest",
+	"version": "1.0.0",
+	"name": "PvP Dimensions smoke test",
+	"description": "Loads the mod, joins a world, and fails if anything on the way threw.",
+	"license": "MIT",
+	"environment": "*",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"justfatlard.pvp_dimensions.gametest.SmokeTest"
+		]
+	},
+	"depends": {
+		"pvp-dimensions-justfatlard": "*",
+		"fabric-client-gametest-api-v1": "*"
+	}
+}

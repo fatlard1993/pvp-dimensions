@@ -5,7 +5,9 @@ import java.util.function.BiFunction;
 import justfatlard.pvp_dimensions.PvpDimensions;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 
 /**
  * Dead Heads, where it is installed: told how long a head placed in an arena stays its owner's, by
@@ -18,6 +20,27 @@ public final class DeadHeads {
 	public static final boolean INSTALLED = FabricLoader.getInstance().isModLoaded("dead-heads");
 
 	private static final String MANAGER = "justfatlard.dead_heads.DeadHeadManager";
+	private static final String API = "justfatlard.dead_heads.api.DeadHeadsApi";
+
+	/**
+	 * Forget every head on an arena's plot, because the plot is about to be built over.
+	 *
+	 * <p>A head in an arena is a record of a whole inventory keyed to a block, and an arena's
+	 * ground is flattened and reused: leave them and nobody can ever break or loot one, so nothing
+	 * ever removes it. Enough of those and Dead Heads writes a save it can no longer read, which
+	 * it discovers at startup, which takes the server with it. That is not a hypothetical.
+	 */
+	public static void forgetPlot(ResourceKey<Level> dimension, int minX, int minZ, int maxX, int maxZ) {
+		if (!INSTALLED) return;
+		try {
+			Method forget = Class.forName(API).getMethod(
+				"forgetWithin", ResourceKey.class, BlockPos.class, BlockPos.class);
+			forget.invoke(null, dimension, new BlockPos(minX, 0, minZ), new BlockPos(maxX, 0, maxZ));
+		} catch (ReflectiveOperationException | RuntimeException e) {
+			PvpDimensions.LOGGER.info("This Dead Heads can't be told an arena's ground is gone;"
+				+ " heads left in arenas will pile up in its save");
+		}
+	}
 
 	/** {@code where} answers in minutes for a place, or null to leave it to the server's. */
 	public static void lockTimeAt(BiFunction<ServerLevel, BlockPos, Integer> where) {

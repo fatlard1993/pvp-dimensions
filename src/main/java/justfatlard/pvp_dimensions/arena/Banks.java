@@ -30,6 +30,10 @@ public final class Banks {
 	static void build(ServerLevel level, Arena arena, int team) {
 		BlockPos bank = arena.bases.get(team);
 		level.setBlock(bank, Blocks.CHEST.defaultBlockState(), Block.UPDATE_ALL);
+		// Held loaded for the length of the game. A bank is counted where it stands, so a chunk
+		// nobody is standing in is a team whose score quietly stops moving - and the last thing
+		// anybody suspects, because the number on the board is still there, just wrong.
+		level.setChunkForced(bank.getX() >> 4, bank.getZ() >> 4, true);
 		BlockState banner = Terrain.block(TeamColors.of(team).banner(), Blocks.OBSIDIAN.defaultBlockState());
 		level.setBlock(bank.east(), banner, Block.UPDATE_ALL);
 		if (!Spawns.solid(level.getBlockState(bank.below()))) level.setBlock(bank.below(), Blocks.STONE.defaultBlockState(), Block.UPDATE_ALL);
@@ -74,12 +78,36 @@ public final class Banks {
 		Preset preset = arena.preset;
 		for (int team = 0; team < preset.teams && team < arena.bases.size(); team++) {
 			BlockPos bank = arena.bases.get(team);
-			if (!level.hasChunk(bank.getX() >> 4, bank.getZ() >> 4)) continue;
+			// Kept loaded at build time, but a reload or a hand-edited arena can still lose it:
+			// say so rather than leaving a stale number standing.
+			if (!level.hasChunk(bank.getX() >> 4, bank.getZ() >> 4)) {
+				level.setChunkForced(bank.getX() >> 4, bank.getZ() >> 4, true);
+				continue;
+			}
 			if (!level.getBlockState(bank).is(Blocks.CHEST)) level.setBlock(bank, Blocks.CHEST.defaultBlockState(), Block.UPDATE_ALL);
 			int points = level.getBlockEntity(bank) instanceof Container chest ? worth(preset, chest) : 0;
 			arena.scores.put(team, points);
 			if (preset.bankTarget > 0 && points >= preset.bankTarget) Goals.winTeam(server, arena, team, points + " points in the bank");
 		}
+	}
+
+	/** Let the banks' chunks go when the game is over. */
+	public static void done(ServerLevel level, Arena arena) {
+		for (int team = 0; team < arena.preset.teams && team < arena.bases.size(); team++) {
+			BlockPos bank = arena.bases.get(team);
+			level.setChunkForced(bank.getX() >> 4, bank.getZ() >> 4, false);
+		}
+	}
+
+	/** Every team's total, for the line said when the game ends. */
+	public static String tally(Arena arena) {
+		StringBuilder line = new StringBuilder();
+		for (int team = 0; team < arena.preset.teams; team++) {
+			if (team > 0) line.append(", ");
+			line.append(TeamColors.of(team).name()).append(" ")
+				.append(arena.scores.getOrDefault(team, 0));
+		}
+		return line.toString();
 	}
 
 	public static String status(Arena arena) {

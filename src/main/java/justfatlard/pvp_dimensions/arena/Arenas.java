@@ -562,8 +562,11 @@ public final class Arenas {
 		Goals.tick(server, level, arena, now);
 		if (arena.phase != Arena.Phase.LIVE) return;
 		if (arena.endsAt > 0 && now >= arena.endsAt && arena.closesAt == 0) {
-			Goals.timeUp(server, arena);
-			end(server, arena, "time is up");
+			// The answer was being thrown away: timeUp says whether it found a winner, and a
+			// game that ended level, or with nobody having scored at all, said only "time is up"
+			// and left everyone to guess.
+			boolean crowned = Goals.timeUp(server, arena);
+			end(server, arena, crowned ? "time is up" : "time is up with no clear winner");
 			return;
 		}
 		if (ticks % 40 == 0) {
@@ -696,6 +699,8 @@ public final class Arenas {
 		if (bar != null) bar.removeAllPlayers();
 		Pinatas.clear(server, arena);
 		ServerLevel ended = level(server, arena);
+		// The banks were held loaded so they could be counted; let them go with the game.
+		if (ended != null && arena.preset.activeGoal() == Preset.Goal.BANK) Banks.done(ended, arena);
 		if (ended != null && justfatlard.pvp_dimensions.integration.ChestUtils.INSTALLED) {
 			for (BlockPos chest : arena.teamChests.keySet()) justfatlard.pvp_dimensions.integration.ChestUtils.strip(ended, chest);
 			if (arena.preset.activeGoal() == Preset.Goal.CTF) {
@@ -732,7 +737,18 @@ public final class Arenas {
 	 * The top five by kills where players fight; by the hunted mobs taken down on a hunt; and
 	 * nothing for a fight against mobs that keeps no count.
 	 */
+	/**
+	 * What the game is closed with: the scores that decided it.
+	 *
+	 * <p>It used to report kills and nothing else, so every goal scored some other way - a bank
+	 * filled, a flag taken, a hill held - ended with a line about kills, or with no line at all
+	 * where the preset had no fighting in it. The numbers the game was actually played for were
+	 * never said out loud, which is the one thing everybody wants at the end of it.
+	 */
 	public static String scores(Arena arena) {
+		String byGoal = goalScores(arena);
+		if (!byGoal.isEmpty()) return byGoal;
+
 		boolean pvp = arena.preset.pvp;
 		if (!pvp && arena.preset.activeGoal() != Preset.Goal.MOBS) return "";
 		String what = pvp ? "kills" : Goals.mobWords(arena.preset) + " down";
@@ -747,6 +763,16 @@ public final class Arenas {
 			line.append(ranked.get(i).name).append(" ").append(count.applyAsInt(ranked.get(i)));
 		}
 		return line.toString();
+	}
+
+	/** The per-team total for a goal that keeps one, or empty for a goal that does not. */
+	private static String goalScores(Arena arena) {
+		return switch (arena.preset.activeGoal()) {
+			case BANK -> "Banks: " + Banks.tally(arena);
+			case CTF -> "Flags: " + Banks.tally(arena);
+			case HILL -> arena.preset.teamsOn() ? "Held: " + Banks.tally(arena) : "";
+			default -> "";
+		};
 	}
 
 	public static void tellInside(MinecraftServer server, Arena arena, String words) {

@@ -208,7 +208,7 @@ public final class Preset {
 	public FinishStyle finishStyle = FinishStyle.GROUND;
 	/** Paid out of what each player brings, on the way in. */
 	/** Hits to win a snowball fight; nought for the most hits when time is up. */
-	public int hitTarget = 20;
+	public int hitTarget = 50;
 
 	public ItemList entryFee = new ItemList();
 	/** Whether everyone is handed a compass pointed at the goal: the hill, the finish, the other team's base. */
