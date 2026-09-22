@@ -16,15 +16,18 @@ import justfatlard.pvp_dimensions.Say;
 import justfatlard.pvp_dimensions.preset.Field;
 import justfatlard.pvp_dimensions.preset.Kinds;
 import justfatlard.pvp_dimensions.preset.Presets;
-import justfatlard.pvp_dimensions.preset.Sharing;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import static justfatlard.pvp_dimensions.ui.Ui.*;
 
 /**
- * Where a new preset comes from: one of the kinds of match, in families, or a preset another
- * server shared. A row each, picture, name and a line about it, the same rows the menu lists
- * arenas and presets with. Picking a kind makes the preset and opens it.
+ * Where a new preset comes from: one of the kinds of match, in families. A row each, picture, name
+ * and a line about it, the same rows the menu lists arenas and presets with. Picking a kind makes
+ * the preset and opens it.
+ *
+ * <p>This screen used to have a second half for importing a preset another server shared. A preset
+ * copied into the presets folder is simply in the list already, so there is nothing left for that
+ * half to do.
  */
 public final class KindScreen {
 	private KindScreen() {}
@@ -35,8 +38,6 @@ public final class KindScreen {
 	private static final int ROW = 22;
 	private static final int ROWS = 6;
 
-	/** Who is looking at what: the kinds, or the shared folder. */
-	private static final Map<UUID, Boolean> importing = new ConcurrentHashMap<>();
 
 	static void register(ScreenApi screens) {
 		screens.onActionFallback(TYPE, KindScreen::pressed);
@@ -44,37 +45,18 @@ public final class KindScreen {
 	}
 
 	static void forget(UUID player) {
-		importing.remove(player);
 	}
 
 	public static void show(ServerPlayer player) {
-		show(player, importing.getOrDefault(player.getUUID(), false));
-	}
-
-	private static void show(ServerPlayer player, boolean imports) {
 		if (!Access.admin(player)) return;
 		MinecraftServer server = player.level().getServer();
-		importing.put(player.getUUID(), imports);
 		int inner = WIDTH - PAD * 2;
 		int width = inner - 6;
 		List<ComponentBuilder> rows = new ArrayList<>();
 		int rowY = 0;
 		int count = 0;
 
-		if (imports) {
-			List<Sharing.Offer> offers = Sharing.offers(server);
-			if (offers.isEmpty()) {
-				rows.add(faint("none", 2, 8, "Nothing in config/pvp-dimensions/shared yet"));
-				count++;
-			}
-			for (Sharing.Offer offer : offers) {
-				ComponentBuilder button = row(rows, "import:" + offer.file(), rowY, width, offer.icon(), offer.name(),
-					offer.describe(), offer.name() + ": " + offer.describe());
-				if (!offer.ready()) button.prop(ComponentType.PROP_ACCENT, "#FFD04A4A");
-				rowY += ROW;
-				count++;
-			}
-		} else {
+		{
 			for (Kinds.Family family : Kinds.Family.values()) {
 				List<Kinds> here = new ArrayList<>();
 				for (Kinds kind : Kinds.values()) {
@@ -98,9 +80,9 @@ public final class KindScreen {
 		y += ROWS * ROW + 4;
 		ScreenBuilder screen = new ScreenBuilder(TYPE).title("New game").pauseGame(false);
 		List<ComponentBuilder> under = new ArrayList<>();
-		under.add(text("title", PAD, 7, imports ? "Import a preset" : "What kind of match?"));
-		under.add(button("swap", PAD, y, 86, BUTTON, imports ? "The kinds" : "Import one",
-			imports ? "Back to the kinds of match" : "A preset another server shared, from config/pvp-dimensions/shared"));
+		under.add(text("title", PAD, 7, "What kind of match?"));
+		// No import button: a preset dropped into config/pvp-dimensions/presets is already in the
+		// list below, so there is nothing here for one to do.
 		under.add(button("back", PAD + inner - 50, y, 50, BUTTON, "Back", "To the menu"));
 		y += BUTTON;
 
@@ -144,7 +126,6 @@ public final class KindScreen {
 				forget(player.getUUID());
 				MainScreen.show(player);
 			}
-			case "swap" -> show(player, !importing.getOrDefault(player.getUUID(), false));
 			default -> {
 				if (id.startsWith("kind:")) {
 					Kinds made;
@@ -155,13 +136,6 @@ public final class KindScreen {
 					}
 					forget(player.getUUID());
 					EditorScreen.show(player, Presets.save(null, made.make()), Field.Section.GAME);
-				} else if (id.startsWith("import:")) {
-					List<String> told = new ArrayList<>();
-					String made = Sharing.importFile(server, id.substring(7), told);
-					for (String line : told) Say.to(player, line);
-					if (made == null) return;
-					forget(player.getUUID());
-					EditorScreen.show(player, made, Field.Section.GAME);
 				}
 			}
 		}

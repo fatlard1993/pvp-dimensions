@@ -84,7 +84,7 @@ public final class ChatMenus {
 			}
 			if (any) Say.to(player, line);
 		}
-		Say.to(player, Say.line("Or ").append(Say.suggest("import one", "/pvp preset import ")).append(Component.literal(" shared with this server")));
+		Say.to(player, Say.line("Or copy a preset file into config/pvp-dimensions/presets; it will be in this list"));
 	}
 
 	/** One section of a preset, a row a setting, each with the clicks that change it. */

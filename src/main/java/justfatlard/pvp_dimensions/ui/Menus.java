@@ -13,7 +13,7 @@ public final class Menus {
 		else ChatMenus.main(player);
 	}
 
-	/** Where a new preset starts: the kinds of match, and the presets others have shared. */
+	/** Where a new preset starts: the kinds of match. */
 	public static void newPreset(ServerPlayer player) {
 		if (PandoricalApi.isAvailable(player)) KindScreen.show(player);
 		else ChatMenus.kinds(player);

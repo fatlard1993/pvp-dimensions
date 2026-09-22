@@ -10,7 +10,8 @@
 		"fabric-client-gametest": [
 			"justfatlard.pvp_dimensions.gametest.SmokeTest",
 			"justfatlard.pvp_dimensions.gametest.HitsSurvive",
-			"justfatlard.pvp_dimensions.gametest.SeriesCounts"
+			"justfatlard.pvp_dimensions.gametest.SeriesCounts",
+			"justfatlard.pvp_dimensions.gametest.PresetFiles"
 		]
 	},
 	"depends": {

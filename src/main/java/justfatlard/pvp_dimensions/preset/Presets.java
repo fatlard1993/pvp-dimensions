@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import com.google.gson.Gson;
@@ -22,14 +23,28 @@ import com.google.gson.JsonParser;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 import justfatlard.pvp_dimensions.PvpDimensions;
+import justfatlard.pvp_dimensions.world.SavedTerrains;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.SharedConstants;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.resources.RegistryOps;
+import net.minecraft.server.MinecraftServer;
 import org.jspecify.annotations.Nullable;
 
 /**
  * The saved presets, one file each in {@code config/pvp-dimensions/presets}: a server's, not a
  * world's, so a good arena survives a new map and can be copied to another server by hand.
+ *
+ * <p>The file on disk is the only copy there is, and it is already the shareable one. There used
+ * to be a second folder, {@code shared}, with a second format, and a preset became portable by
+ * being exported into it and arrived by being imported out of it. That made copying a preset a
+ * three-step job with two places for it to sit, and the two formats drifted: a live preset had no
+ * record of what mods it needed, so the check only ran on the way in. Now every preset is written
+ * in the portable shape, and moving one between servers is copying a file. Anything left in the
+ * old shared folder is adopted on the first load and the folder is left empty behind it.
+ *
+ * <p>The folder is re-read whenever it has changed, so a file dropped in is simply there, and one
+ * deleted is simply gone. That is the whole of what used to be importing.
  *
  * <p>Items are written with the game's own codec, enchantments and all, which needs the server's
  * registries; so presets load once the server has started and not before.
@@ -39,23 +54,63 @@ public final class Presets {
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 	private static final Map<String, Preset> byId = new LinkedHashMap<>();
+	/** What each preset names that this server hasn't got; empty for the ones that will run. */
+	private static final Map<String, List<String>> lacking = new LinkedHashMap<>();
 	private static HolderLookup.@Nullable Provider registries;
+	private static @Nullable MinecraftServer running;
+	/** The folder as it looked when it was last read: name to size and time, for spotting a change. */
+	private static Map<String, String> lastSeen = Map.of();
+	/** Not more than once a second, so opening a menu does not stat the folder on every frame. */
+	private static long checkedAt;
+
+	private static final long CHECK_EVERY = 1000L;
+	private static final String TERRAIN_SUFFIX = ".terrain";
 
 	public static Path folder() {
 		return FabricLoader.getInstance().getConfigDir().resolve("pvp-dimensions").resolve("presets");
 	}
 
-	public static void load(HolderLookup.Provider lookup) {
-		registries = lookup;
+	/** Where presets used to have to be exported to; kept only to empty it. */
+	private static Path oldSharedFolder() {
+		return FabricLoader.getInstance().getConfigDir().resolve("pvp-dimensions").resolve("shared");
+	}
+
+	public static void load(MinecraftServer server) {
+		running = server;
+		registries = server.registryAccess();
+		adoptOldShared();
+		reread();
+		if (byId.isEmpty()) {
+			Preset first = new Preset();
+			first.name = "Skirmish";
+			save(null, first);
+		}
+	}
+
+	/**
+	 * Read the folder, whatever is in it now.
+	 *
+	 * <p>Rebuilds the whole map rather than patching it, because a file can change on disk in ways
+	 * no event here saw: edited in a text editor, replaced wholesale, or dropped in by hand. The
+	 * folder is the truth and this is how it is asked.
+	 */
+	private static void reread() {
 		byId.clear();
+		lacking.clear();
 		Path folder = folder();
+		Map<String, String> seen = new LinkedHashMap<>();
+		Set<String> here = running == null ? Set.of() : Needs.namespaces(running);
 		try {
 			Files.createDirectories(folder);
 			try (Stream<Path> files = Files.list(folder)) {
 				for (Path file : files.filter(f -> f.toString().endsWith(".json")).sorted().toList()) {
 					String id = file.getFileName().toString().replaceFirst("\\.json$", "");
+					seen.put(id, stamp(file));
 					try {
-						byId.put(id, read(JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonObject()));
+						JsonObject json = JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonObject();
+						byId.put(id, readFile(json));
+						lacking.put(id, absent(json, here));
+						installGround(id, json);
 					} catch (Exception e) {
 						PvpDimensions.LOGGER.error("Preset {} could not be read and was skipped", file, e);
 					}
@@ -64,21 +119,93 @@ public final class Presets {
 		} catch (IOException e) {
 			PvpDimensions.LOGGER.error("Presets could not be listed", e);
 		}
-		if (byId.isEmpty()) {
-			Preset first = new Preset();
-			first.name = "Skirmish";
-			save(null, first);
+		lastSeen = seen;
+		checkedAt = System.currentTimeMillis();
+	}
+
+	/**
+	 * Re-read if the folder has changed since it was last looked at.
+	 *
+	 * <p>Called before anything that answers a question about the presets, so a file dropped into
+	 * the folder is simply there the next time somebody opens the menu, with nothing to import and
+	 * no command to run. Size and modified time rather than content: reading every file to find
+	 * out whether to read every file is the wrong way round.
+	 */
+	private static void sync() {
+		long now = System.currentTimeMillis();
+		if (now - checkedAt < CHECK_EVERY) return;
+		checkedAt = now;
+		Map<String, String> seen = new LinkedHashMap<>();
+		try (Stream<Path> files = Files.list(folder())) {
+			for (Path file : files.filter(f -> f.toString().endsWith(".json")).sorted().toList()) {
+				seen.put(file.getFileName().toString().replaceFirst("\\.json$", ""), stamp(file));
+			}
+		} catch (IOException e) {
+			return;
+		}
+		if (!seen.equals(lastSeen)) reread();
+	}
+
+	/** A file's size and modified time, as one string to compare against the last look. */
+	private static String stamp(Path file) {
+		try {
+			return Files.size(file) + "@" + Files.getLastModifiedTime(file).toMillis();
+		} catch (IOException e) {
+			return "?";
 		}
 	}
 
+	/**
+	 * A preset out of a file, in either shape it can be in.
+	 *
+	 * <p>Wrapped is what is written now, and what the old shared folder wrote. Bare is what the
+	 * live files used to be, and what somebody hand-editing one might leave it as. The wrapper is
+	 * spotted by its {@code preset} object rather than its version marker, so a file written by
+	 * either of the two old paths reads without knowing which one made it.
+	 */
+	public static Preset readFile(JsonObject json) {
+		return read(bare(json));
+	}
+
+	private static JsonObject bare(JsonObject json) {
+		return json.has("preset") && json.get("preset").isJsonObject() ? json.getAsJsonObject("preset") : json;
+	}
+
+	/** What the file says it needs that this server has not got. */
+	private static List<String> absent(JsonObject json, Set<String> here) {
+		List<String> missing = new ArrayList<>();
+		if (json.has("needs") && json.get("needs").isJsonArray()) {
+			for (var mod : json.getAsJsonArray("needs")) {
+				if (!here.contains(mod.getAsString())) missing.add(mod.getAsString());
+			}
+		}
+		return missing;
+	}
+
 	public static List<Map.Entry<String, Preset>> all() {
+		sync();
 		List<Map.Entry<String, Preset>> list = new ArrayList<>(byId.entrySet());
 		list.sort(Comparator.comparing(entry -> entry.getValue().name.toLowerCase(Locale.ROOT)));
 		return list;
 	}
 
 	public static @Nullable Preset get(String id) {
+		sync();
 		return byId.get(id);
+	}
+
+	/**
+	 * What this preset names that the server hasn't got: the mods whose items, mobs or biomes it
+	 * uses and which are not installed here.
+	 *
+	 * <p>Empty for one written on this server, and for one copied in from a server running the
+	 * same mods. The check used to run once, on the way in through the import menu, which meant a
+	 * preset could be fine on arrival and broken later by a mod being removed, with nothing said.
+	 * Read from the file every time the folder changes, it stays true.
+	 */
+	public static List<String> missing(String id) {
+		sync();
+		return lacking.getOrDefault(id, List.of());
 	}
 
 	public static List<String> ids() {
@@ -93,19 +220,132 @@ public final class Presets {
 	public static String save(@Nullable String id, Preset preset) {
 		String key = id != null ? id : freshId(preset.name);
 		byId.put(key, copy(preset));
+		lacking.put(key, List.of());
 		try {
 			Files.createDirectories(folder());
-			Files.writeString(folder().resolve(key + ".json"), GSON.toJson(write(preset)), StandardCharsets.UTF_8);
+			Files.writeString(folder().resolve(key + ".json"), GSON.toJson(writeFile(preset)), StandardCharsets.UTF_8);
+			keepGround(key, preset);
+			lastSeen = new LinkedHashMap<>(lastSeen);
+			lastSeen.put(key, stamp(folder().resolve(key + ".json")));
 		} catch (IOException e) {
 			PvpDimensions.LOGGER.error("Preset {} could not be saved", key, e);
 		}
 		return key;
 	}
 
+	/**
+	 * The file as it is written: the preset, and what somebody carrying it to another server needs
+	 * to know before they find out the hard way.
+	 *
+	 * <p>This used to be written only by exporting, which meant the copy on disk - the one people
+	 * actually pass around - was the one without it. The wrapper costs a few lines in a file
+	 * nobody reads by hand and makes every preset portable by simply existing.
+	 */
+	public static JsonObject writeFile(Preset preset) {
+		JsonObject file = new JsonObject();
+		file.addProperty("pvp_preset", 1);
+		file.addProperty("name", preset.name);
+		file.addProperty("made_with", "Minecraft " + SharedConstants.getCurrentVersion().name() + ", PvP Dimensions "
+			+ FabricLoader.getInstance().getModContainer(PvpDimensions.MOD_ID)
+				.map(mod -> mod.getMetadata().getVersion().getFriendlyString()).orElse("?"));
+		JsonArray needed = new JsonArray();
+		Needs.needs(preset).forEach(needed::add);
+		file.add("needs", needed);
+		if (preset.source == Preset.Source.SAVED && !preset.saved.isEmpty()) file.addProperty("terrain", preset.saved);
+		file.add("preset", write(preset));
+		return file;
+	}
+
+	/**
+	 * A preset played on saved ground keeps a copy of that ground beside it.
+	 *
+	 * <p>So the pair of files is the whole preset and copying them is the whole move. Written once
+	 * and then left alone: the ground does not change under a preset, and copying it on every edit
+	 * would make saving a name change cost megabytes.
+	 */
+	private static void keepGround(String id, Preset preset) {
+		if (preset.source != Preset.Source.SAVED || preset.saved.isEmpty()) return;
+		Path beside = folder().resolve(id + TERRAIN_SUFFIX);
+		if (Files.exists(beside)) return;
+		Path from = SavedTerrains.folder(preset.saved);
+		if (from == null || !Files.isDirectory(from)) return;
+		try {
+			Needs.copyTree(from, beside);
+		} catch (IOException e) {
+			PvpDimensions.LOGGER.error("The ground for preset {} could not be kept beside it", id, e);
+		}
+	}
+
+	/**
+	 * Ground that arrived with a preset, put where the game looks for ground.
+	 *
+	 * <p>The other half of keeping it beside the file: a preset copied in from another server
+	 * brings its map with it and is playable without anybody being told to go and fetch it. Only
+	 * where this server hasn't got ground by that name already - an incoming file does not get to
+	 * overwrite a map somebody here has been building on.
+	 */
+	private static void installGround(String id, JsonObject json) {
+		if (running == null || !json.has("terrain")) return;
+		String name = json.get("terrain").getAsString();
+		if (SavedTerrains.names().contains(name)) return;
+		Path beside = folder().resolve(id + TERRAIN_SUFFIX);
+		Path into = SavedTerrains.folder(name);
+		if (!Files.isDirectory(beside) || into == null) return;
+		try {
+			Needs.copyTree(beside, into);
+			SavedTerrains.load(running);
+			PvpDimensions.LOGGER.info("Ground {} came in with preset {}", name, id);
+		} catch (IOException e) {
+			PvpDimensions.LOGGER.error("The ground that came with preset {} could not be installed", id, e);
+		}
+	}
+
+	/**
+	 * Anything still sitting in the old shared folder becomes a preset here, once.
+	 *
+	 * <p>Exported presets were real work and deleting the folder without them would throw it away.
+	 * They are moved rather than copied, so a second start does not make a second copy of each,
+	 * and the empty folder is left behind rather than removed, because something else may have
+	 * been put in it.
+	 */
+	private static void adoptOldShared() {
+		Path old = oldSharedFolder();
+		if (!Files.isDirectory(old)) return;
+		try (Stream<Path> files = Files.list(old)) {
+			for (Path file : files.filter(f -> f.toString().endsWith(".json")).sorted().toList()) {
+				String id = file.getFileName().toString().replaceFirst("\\.json$", "");
+				Path into = folder().resolve(id + ".json");
+				for (int n = 2; Files.exists(into); n++) into = folder().resolve(id + "_" + n + ".json");
+				Files.createDirectories(folder());
+				Path ground = old.resolve(id + TERRAIN_SUFFIX);
+				if (Files.isDirectory(ground)) {
+					Needs.copyTree(ground, folder().resolve(
+						into.getFileName().toString().replaceFirst("\\.json$", "") + TERRAIN_SUFFIX));
+					deleteTree(ground);
+				}
+				Files.move(file, into);
+				PvpDimensions.LOGGER.info("Adopted shared preset {} into the presets folder", id);
+			}
+		} catch (IOException e) {
+			PvpDimensions.LOGGER.error("The old shared folder could not be adopted", e);
+		}
+	}
+
+	private static void deleteTree(Path root) throws IOException {
+		try (Stream<Path> walk = Files.walk(root)) {
+			for (Path path : walk.sorted(Comparator.reverseOrder()).toList()) Files.deleteIfExists(path);
+		}
+	}
+
 	public static boolean delete(String id) {
 		if (byId.remove(id) == null) return false;
+		lacking.remove(id);
 		try {
 			Files.deleteIfExists(folder().resolve(id + ".json"));
+			// The ground kept beside it goes too, or the folder fills with the maps of presets
+			// nobody has any more.
+			Path ground = folder().resolve(id + TERRAIN_SUFFIX);
+			if (Files.isDirectory(ground)) deleteTree(ground);
 		} catch (IOException e) {
 			PvpDimensions.LOGGER.error("Preset {} could not be deleted", id, e);
 		}

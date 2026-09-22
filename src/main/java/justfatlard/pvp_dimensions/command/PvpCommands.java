@@ -438,26 +438,6 @@ public final class PvpCommands {
 				context.getSource().sendSuccess(() -> Say.line("Deleted " + presetId(context)), false);
 				return 1;
 			})))
-			.then(Commands.literal("export").then(presetArgument().executes(context -> {
-				Preset preset = Presets.get(presetId(context));
-				if (preset == null) return fail(context, "No preset called " + presetId(context));
-				String said = justfatlard.pvp_dimensions.preset.Sharing.export(presetId(context), preset);
-				context.getSource().sendSuccess(() -> Say.line(said), false);
-				return 1;
-			})))
-			.then(Commands.literal("import").then(Commands.argument("file", StringArgumentType.word())
-				.suggests((context, builder) -> SharedSuggestionProvider.suggest(
-					justfatlard.pvp_dimensions.preset.Sharing.offers(context.getSource().getServer()).stream().map(offer -> offer.file()), builder))
-				.executes(context -> {
-					List<String> told = new java.util.ArrayList<>();
-					String id = justfatlard.pvp_dimensions.preset.Sharing.importFile(context.getSource().getServer(),
-						StringArgumentType.getString(context, "file"), told);
-					for (String line : told) context.getSource().sendSuccess(() -> Say.line(line), false);
-					if (id == null) return 0;
-					ServerPlayer player = context.getSource().getPlayer();
-					if (player != null) Menus.edit(player, id, Field.Section.GAME);
-					return 1;
-				})))
 			.then(Commands.literal("set").then(presetArgument().then(fieldArgument()
 				.then(Commands.argument("value", StringArgumentType.greedyString()).suggests(PvpCommands::values)
 					.executes(context -> edit(context, (preset, field) -> field.set(preset, StringArgumentType.getString(context, "value"))))))))

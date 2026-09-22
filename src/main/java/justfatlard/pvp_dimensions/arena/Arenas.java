@@ -125,8 +125,8 @@ public final class Arenas {
 	 * by file, so their chunks come back as empty void the next time anything asks.
 	 */
 	public static void beforeLevels(MinecraftServer server) {
-		Presets.load(server.registryAccess());
 		SavedTerrains.load(server);
+		Presets.load(server);
 		Path root = server.getWorldPath(LevelResource.ROOT);
 		for (ArenaVault.DeadPlot dead : vault(server).takeDead()) {
 			Path dimension = DimensionType.getStorageFolder(dead.dimension(), root);
@@ -182,6 +182,14 @@ public final class Arenas {
 	 */
 	public static @Nullable Arena start(MinecraftServer server, @Nullable ServerPlayer starter, String presetId, Preset source,
 			Start options, java.util.function.Consumer<String> complain) {
+		// Refused here rather than in a menu, so a command and a button get the same answer: a
+		// preset naming mods this server hasn't got would run with its kits and prizes quietly
+		// missing their modded halves, which is a different game wearing the same name.
+		List<String> short_ = justfatlard.pvp_dimensions.preset.Presets.missing(presetId);
+		if (!short_.isEmpty()) {
+			complain.accept(source.name + " needs " + String.join(", ", short_) + ", which this server hasn't got");
+			return null;
+		}
 		List<Arena> open = running(server);
 		if (open.size() >= ServerConfig.maxArenas()) {
 			complain.accept("There are already " + open.size() + " arenas running, the most this server allows");

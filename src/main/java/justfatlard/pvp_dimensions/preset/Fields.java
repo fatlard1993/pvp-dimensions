@@ -165,8 +165,10 @@ public final class Fields {
 			(p, key) -> { if (!p.adjustable.remove(key)) p.adjustable.add(key); },
 			p -> p.adjustable.isEmpty() ? "Nothing" : p.adjustable.size() + " settings")
 			.help("Settings a user can set for their own game when they start this preset").when(p -> p.forUsers));
-		fields.add(new Field.Action(GAME, "export", "Share", "Export", p -> {})
-			.help("To a file in config/pvp-dimensions/shared, saying which mods it needs, for another server to import"));
+		// Not a button any more. There is nothing to press: the preset is already a file, written
+		// in the shape another server can read, and sharing it is copying it.
+		fields.add(new Field.Note(GAME, "share", false,
+			p -> "Shared by copying its file from config/pvp-dimensions/presets"));
 		fields.add(new Field.Heading(GAME, "summary_heading", "This match"));
 		List<String> lines = new ArrayList<>();
 		for (String sentence : Summary.sentences(preset)) lines.addAll(wrap(sentence, SUMMARY_WIDTH));

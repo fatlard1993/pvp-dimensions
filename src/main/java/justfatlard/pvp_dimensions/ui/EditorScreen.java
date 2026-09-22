@@ -383,7 +383,6 @@ public final class EditorScreen {
 			}
 			case "act" -> {
 				if (key.equals("swap.add")) problem = held(player, preset, field);
-				else if (key.equals("export")) Say.to(player, justfatlard.pvp_dimensions.preset.Sharing.export(state.preset(), preset));
 				else if (field instanceof Field.Action action) action.run(preset);
 			}
 			default -> {

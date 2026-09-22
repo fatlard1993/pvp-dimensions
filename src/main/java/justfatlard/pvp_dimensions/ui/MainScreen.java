@@ -129,7 +129,7 @@ public final class MainScreen {
 		int adjustCount = 0;
 		if (tier.atLeast(Access.Tier.USER)) {
 			heading(under, over, "start", y, "minecraft:iron_sword", tier == Access.Tier.ADMIN ? "Start or edit a game" : "Start a game");
-			if (tier == Access.Tier.ADMIN) under.add(button("new", PAD + inner - 46, y - 2, 46, BUTTON, "New", "Make a new preset, from a kind of match or one shared with you"));
+			if (tier == Access.Tier.ADMIN) under.add(button("new", PAD + inner - 46, y - 2, 46, BUTTON, "New", "Make a new preset from a kind of match"));
 			y += 20;
 			List<Map.Entry<String, Preset>> presets = new ArrayList<>();
 			for (Map.Entry<String, Preset> entry : Presets.all()) {
@@ -140,8 +140,15 @@ public final class MainScreen {
 			for (Map.Entry<String, Preset> entry : presets) {
 				String id = entry.getKey();
 				Preset preset = entry.getValue();
+				// A preset copied in from a server with more mods than this one is listed, and
+				// says what it wants, rather than being hidden or quietly starting a game with
+				// holes in its kits. This is the check the import menu used to make once.
+				List<String> short_ = Presets.missing(id);
+				String about = short_.isEmpty() ? describe(preset)
+					: "Needs " + String.join(", ", short_) + ", which this server hasn't got";
 				ComponentBuilder row = KindScreen.row(rows, "pick:" + id, rowY, inner - 6 - (tier == Access.Tier.ADMIN ? 32 : 0),
-					preset.icon, preset.name, describe(preset), preset.name + ": " + describe(preset));
+					preset.icon, preset.name, about, preset.name + ": " + about);
+				if (!short_.isEmpty()) row.prop(ComponentType.PROP_ACCENT, "#FFD04A4A");
 				if (choice != null && choice.preset().equals(id)) row.prop(ComponentType.PROP_STYLE, "pressed");
 				if (tier == Access.Tier.ADMIN) {
 					rows.add(button("edit:" + id, inner - 6 - 30, rowY + 2, 30, 16, "Edit", "Edit " + preset.name));

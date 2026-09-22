@@ -55,14 +55,14 @@ setting flipped:
 Each starts with the settings that make that game work together, and several come with a moment
 or two already paying: a double kill, a capture, a flawless wave. All of it stays editable.
 
-**Sharing a game with another server**: **Export** (on the Game tab, or `/pvp preset export`)
-writes the preset to `config/pvp-dimensions/shared/`, with the mods its game needs written on the
-front: every item, block, mob, biome and enchantment it names that isn't the game's own, and
-Pinata if it has pinatas. A preset on saved ground takes the ground with it, in a folder beside
-the file. Copy both to the other server's `shared` folder, and **Import one**, beside the kinds
-under **New** (or `/pvp preset import`), lists what it finds. A file needing a mod the server
-doesn't have says which, and isn't imported: a kit or a prize missing its modded half would be a
-different game.
+**Sharing a game with another server**: copy the file. Every preset is one file in
+`config/pvp-dimensions/presets/`, and that file is already the shareable one - it carries the mods
+its game needs on the front: every item, block, mob, biome and enchantment it names that isn't the
+game's own, and Pinata if it has pinatas. A preset on saved ground keeps the ground in a folder
+beside it, and copying the pair brings the map too. Drop a file into the other server's presets
+folder and it is in the list, with nothing to import and no command to run; take one out and it is
+gone. A preset naming a mod the server hasn't got is listed in red saying which, and won't start:
+a kit or a prize missing its modded half would be a different game.
 
 The editor asks five questions, a tab each, in the order a host thinks them: **Game** (what it is
 called and how it is won), **Players**, **Arena**, **Timeline**, **Gear**. A new preset opens on
@@ -354,7 +354,6 @@ valuables to let out, pinata loot that gets better with each pinata.
 | `/pvp invite <names \| everyone> [arena]`, `/pvp light <arena>` | host, players | Invite more (to the arena you're in or host, unless named); light another frame |
 | `/pvp end [arena]`, `/pvp list` | host, anyone | End one; list them |
 | `/pvp preset list \| show \| new \| copy \| delete` | admins | Presets; `new` on its own asks what kind of match, `new kind <KIND>` makes one straight off |
-| `/pvp preset export <preset>`, `/pvp preset import <file>` | admins | Share a preset with another server |
 | `/pvp preset set <preset> <setting> <value>` | admins | Change one setting (for a spawn-egg grid, the mob to click) |
 | `/pvp preset items <preset> <list>`, `/pvp done`, `/pvp cancel` | admins | Edit an item list by holding it |
 | `/pvp preset shuffle <preset> <list>` | admins | Fill an item list at random |
