@@ -43,8 +43,10 @@ import org.jspecify.annotations.Nullable;
  * in the portable shape, and moving one between servers is copying a file. Anything left in the
  * old shared folder is adopted on the first load and the folder is left empty behind it.
  *
- * <p>The folder is re-read whenever it has changed, so a file dropped in is simply there, and one
- * deleted is simply gone. That is the whole of what used to be importing.
+ * <p>The folder is read once, when the server starts. A file dropped in is a preset from the next
+ * start; one taken out is gone from it. That is the whole of what used to be importing, and it is
+ * deliberately not watched while running: a preset is read into an arena that then holds its own
+ * copy, so re-reading mid-game would only make the menu disagree with the games already running.
  *
  * <p>Items are written with the game's own codec, enchantments and all, which needs the server's
  * registries; so presets load once the server has started and not before.
@@ -58,12 +60,6 @@ public final class Presets {
 	private static final Map<String, List<String>> lacking = new LinkedHashMap<>();
 	private static HolderLookup.@Nullable Provider registries;
 	private static @Nullable MinecraftServer running;
-	/** The folder as it looked when it was last read: name to size and time, for spotting a change. */
-	private static Map<String, String> lastSeen = Map.of();
-	/** Not more than once a second, so opening a menu does not stat the folder on every frame. */
-	private static long checkedAt;
-
-	private static final long CHECK_EVERY = 1000L;
 	private static final String TERRAIN_SUFFIX = ".terrain";
 
 	public static Path folder() {
@@ -87,25 +83,17 @@ public final class Presets {
 		}
 	}
 
-	/**
-	 * Read the folder, whatever is in it now.
-	 *
-	 * <p>Rebuilds the whole map rather than patching it, because a file can change on disk in ways
-	 * no event here saw: edited in a text editor, replaced wholesale, or dropped in by hand. The
-	 * folder is the truth and this is how it is asked.
-	 */
+	/** Read the folder, whatever is in it: the one time it is asked, at startup. */
 	private static void reread() {
 		byId.clear();
 		lacking.clear();
 		Path folder = folder();
-		Map<String, String> seen = new LinkedHashMap<>();
 		Set<String> here = running == null ? Set.of() : Needs.namespaces(running);
 		try {
 			Files.createDirectories(folder);
 			try (Stream<Path> files = Files.list(folder)) {
 				for (Path file : files.filter(f -> f.toString().endsWith(".json")).sorted().toList()) {
 					String id = file.getFileName().toString().replaceFirst("\\.json$", "");
-					seen.put(id, stamp(file));
 					try {
 						JsonObject json = JsonParser.parseString(Files.readString(file, StandardCharsets.UTF_8)).getAsJsonObject();
 						byId.put(id, readFile(json));
@@ -118,40 +106,6 @@ public final class Presets {
 			}
 		} catch (IOException e) {
 			PvpDimensions.LOGGER.error("Presets could not be listed", e);
-		}
-		lastSeen = seen;
-		checkedAt = System.currentTimeMillis();
-	}
-
-	/**
-	 * Re-read if the folder has changed since it was last looked at.
-	 *
-	 * <p>Called before anything that answers a question about the presets, so a file dropped into
-	 * the folder is simply there the next time somebody opens the menu, with nothing to import and
-	 * no command to run. Size and modified time rather than content: reading every file to find
-	 * out whether to read every file is the wrong way round.
-	 */
-	private static void sync() {
-		long now = System.currentTimeMillis();
-		if (now - checkedAt < CHECK_EVERY) return;
-		checkedAt = now;
-		Map<String, String> seen = new LinkedHashMap<>();
-		try (Stream<Path> files = Files.list(folder())) {
-			for (Path file : files.filter(f -> f.toString().endsWith(".json")).sorted().toList()) {
-				seen.put(file.getFileName().toString().replaceFirst("\\.json$", ""), stamp(file));
-			}
-		} catch (IOException e) {
-			return;
-		}
-		if (!seen.equals(lastSeen)) reread();
-	}
-
-	/** A file's size and modified time, as one string to compare against the last look. */
-	private static String stamp(Path file) {
-		try {
-			return Files.size(file) + "@" + Files.getLastModifiedTime(file).toMillis();
-		} catch (IOException e) {
-			return "?";
 		}
 	}
 
@@ -183,14 +137,12 @@ public final class Presets {
 	}
 
 	public static List<Map.Entry<String, Preset>> all() {
-		sync();
 		List<Map.Entry<String, Preset>> list = new ArrayList<>(byId.entrySet());
 		list.sort(Comparator.comparing(entry -> entry.getValue().name.toLowerCase(Locale.ROOT)));
 		return list;
 	}
 
 	public static @Nullable Preset get(String id) {
-		sync();
 		return byId.get(id);
 	}
 
@@ -199,12 +151,11 @@ public final class Presets {
 	 * uses and which are not installed here.
 	 *
 	 * <p>Empty for one written on this server, and for one copied in from a server running the
-	 * same mods. The check used to run once, on the way in through the import menu, which meant a
-	 * preset could be fine on arrival and broken later by a mod being removed, with nothing said.
-	 * Read from the file every time the folder changes, it stays true.
+	 * same mods. The check used to run on the way in through the import menu, once per preset ever;
+	 * asked at every startup instead, it catches a mod removed since the preset arrived, which the
+	 * old one never could.
 	 */
 	public static List<String> missing(String id) {
-		sync();
 		return lacking.getOrDefault(id, List.of());
 	}
 
@@ -225,8 +176,6 @@ public final class Presets {
 			Files.createDirectories(folder());
 			Files.writeString(folder().resolve(key + ".json"), GSON.toJson(writeFile(preset)), StandardCharsets.UTF_8);
 			keepGround(key, preset);
-			lastSeen = new LinkedHashMap<>(lastSeen);
-			lastSeen.put(key, stamp(folder().resolve(key + ".json")));
 		} catch (IOException e) {
 			PvpDimensions.LOGGER.error("Preset {} could not be saved", key, e);
 		}

@@ -84,7 +84,7 @@ public final class ChatMenus {
 			}
 			if (any) Say.to(player, line);
 		}
-		Say.to(player, Say.line("Or copy a preset file into config/pvp-dimensions/presets; it will be in this list"));
+		Say.to(player, Say.line("Or copy a preset file into config/pvp-dimensions/presets; it joins this list when the server next starts"));
 	}
 
 	/** One section of a preset, a row a setting, each with the clicks that change it. */

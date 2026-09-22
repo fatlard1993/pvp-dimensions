@@ -29,8 +29,7 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>This used to be the whole story of a separate shared folder, checked once as a preset was
  * imported out of it. There is no importing now - {@link Presets} reads the folder the presets
- * already live in - so what is left here is the question itself, asked of every preset each time
- * the folder changes.
+ * already live in - so what is left here is the question itself, asked of every preset at startup.
  */
 public final class Needs {
 	private Needs() {}

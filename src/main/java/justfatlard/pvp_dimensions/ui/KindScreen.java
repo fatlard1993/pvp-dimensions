@@ -26,8 +26,8 @@ import static justfatlard.pvp_dimensions.ui.Ui.*;
  * the preset and opens it.
  *
  * <p>This screen used to have a second half for importing a preset another server shared. A preset
- * copied into the presets folder is simply in the list already, so there is nothing left for that
- * half to do.
+ * copied into the presets folder is in the list from the next server start, so there is nothing
+ * left for that half to do.
  */
 public final class KindScreen {
 	private KindScreen() {}
@@ -81,8 +81,8 @@ public final class KindScreen {
 		ScreenBuilder screen = new ScreenBuilder(TYPE).title("New game").pauseGame(false);
 		List<ComponentBuilder> under = new ArrayList<>();
 		under.add(text("title", PAD, 7, "What kind of match?"));
-		// No import button: a preset dropped into config/pvp-dimensions/presets is already in the
-		// list below, so there is nothing here for one to do.
+		// No import button: a preset copied into config/pvp-dimensions/presets is in the list
+		// below from the next server start, so there is nothing here for one to do.
 		under.add(button("back", PAD + inner - 50, y, 50, BUTTON, "Back", "To the menu"));
 		y += BUTTON;
 

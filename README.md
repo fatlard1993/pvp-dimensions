@@ -60,8 +60,10 @@ or two already paying: a double kill, a capture, a flawless wave. All of it stay
 its game needs on the front: every item, block, mob, biome and enchantment it names that isn't the
 game's own, and Pinata if it has pinatas. A preset on saved ground keeps the ground in a folder
 beside it, and copying the pair brings the map too. Drop a file into the other server's presets
-folder and it is in the list, with nothing to import and no command to run; take one out and it is
-gone. A preset naming a mod the server hasn't got is listed in red saying which, and won't start:
+folder and it is in the list from that server's next start, with nothing to import and no command
+to run; take one out and it is gone from it. The folder is read at startup and not watched after:
+a running arena holds its own copy of the preset it was started from, so re-reading mid-game would
+only make the menu disagree with the games already going. A preset naming a mod the server hasn't got is listed in red saying which, and won't start:
 a kit or a prize missing its modded half would be a different game.
 
 The editor asks five questions, a tab each, in the order a host thinks them: **Game** (what it is

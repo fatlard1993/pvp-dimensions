@@ -169,6 +169,8 @@ public final class Fields {
 		// in the shape another server can read, and sharing it is copying it.
 		fields.add(new Field.Note(GAME, "share", false,
 			p -> "Shared by copying its file from config/pvp-dimensions/presets"));
+		fields.add(new Field.Note(GAME, "share_when", false,
+			p -> "A file copied in is read at the next server start"));
 		fields.add(new Field.Heading(GAME, "summary_heading", "This match"));
 		List<String> lines = new ArrayList<>();
 		for (String sentence : Summary.sentences(preset)) lines.addAll(wrap(sentence, SUMMARY_WIDTH));
