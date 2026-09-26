@@ -28,6 +28,7 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityLevelChangeEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
+import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLevelEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -55,6 +56,8 @@ import org.slf4j.LoggerFactory;
 public class PvpDimensions implements ModInitializer {
 	public static final String MOD_ID = "pvp-dimensions-justfatlard";
 	public static final Logger LOGGER = LoggerFactory.getLogger("pvp-dimensions");
+	/** After Dead Heads has read its save on start, so what it forgets is there to forget. */
+	private static final Identifier STRAY_HEADS = id("stray_heads");
 
 	private static volatile @Nullable MinecraftServer server;
 
@@ -85,6 +88,8 @@ public class PvpDimensions implements ModInitializer {
 			if (level.getChunkSource().getGenerator() instanceof ArenaGenerator generator) generator.bind(level.dimension());
 		});
 		ServerLifecycleEvents.SERVER_STARTED.register(Arenas::afterLevels);
+		ServerLifecycleEvents.SERVER_STARTED.addPhaseOrdering(Event.DEFAULT_PHASE, STRAY_HEADS);
+		ServerLifecycleEvents.SERVER_STARTED.register(STRAY_HEADS, Arenas::forgetStrayHeads);
 		ServerLifecycleEvents.SERVER_STOPPING.register(Arenas::stopping);
 		ServerLifecycleEvents.SERVER_STOPPED.register(stopped -> {
 			Footprints.clear();

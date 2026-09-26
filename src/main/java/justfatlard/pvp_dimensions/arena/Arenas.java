@@ -33,7 +33,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerBossEvent;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
 import net.minecraft.world.BossEvent;
@@ -158,6 +160,25 @@ public final class Arenas {
 			Teams.create(server, arena);
 			if (arena.phase == Arena.Phase.GENERATING) hold(server, arena);
 			if (arena.endsAt > 0 && now >= arena.endsAt) end(server, arena, "ran its time while the server was down");
+		}
+	}
+
+	/**
+	 * Heads left on ground that is gone, from arenas that ended before their heads were forgotten:
+	 * every one in a dimension with no arena running, and every one on an ended arena's plot.
+	 * After Dead Heads has read its save, or there is nothing yet to forget.
+	 */
+	public static void forgetStrayHeads(MinecraftServer server) {
+		List<Arena> running = running(server);
+		for (ResourceKey<Level> dimension : List.of(Places.OVERWORLD, Places.NETHER, Places.END)) {
+			if (running.stream().noneMatch(arena -> arena.dimension.equals(dimension))) {
+				justfatlard.pvp_dimensions.integration.DeadHeads.forgetDimension(dimension);
+			}
+		}
+		for (Arena arena : vault(server).arenas().values()) {
+			if (arena.phase != Arena.Phase.ENDED) continue;
+			Footprint plot = arena.footprint();
+			justfatlard.pvp_dimensions.integration.DeadHeads.forgetPlot(arena.dimension, plot.minX(), plot.minZ(), plot.maxX(), plot.maxZ());
 		}
 	}
 
@@ -736,6 +757,8 @@ public final class Arenas {
 		Teams.remove(server, arena);
 		Gateways.petsHome(server, arena);
 		release(server, arena);
+		Footprint plot = arena.footprint();
+		justfatlard.pvp_dimensions.integration.DeadHeads.forgetPlot(arena.dimension, plot.minX(), plot.minZ(), plot.maxX(), plot.maxZ());
 		Footprints.remove(arena.id);
 		emptySince.remove(arena.id);
 		ArenaVault vault = vault(server);
