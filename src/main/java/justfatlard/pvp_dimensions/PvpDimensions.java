@@ -121,8 +121,12 @@ public class PvpDimensions implements ModInitializer {
 		ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
 			if (!Places.isArena(level.dimension())) return;
 			if (entity instanceof net.minecraft.world.entity.item.PrimedTnt tnt) justfatlard.pvp_dimensions.arena.Traps.primed(tnt, level);
-			if (Mobs.allowed(entity, level)) Mobs.loaded(entity);
-			else entity.discard();
+			if (!Mobs.allowed(entity, level)) {
+				entity.discard();
+				return;
+			}
+			Mobs.loaded(entity);
+			Horde.guard(entity);
 		});
 		PlayerBlockBreakEvents.BEFORE.register((level, player, pos, state, blockEntity) -> {
 			if (!(level instanceof ServerLevel serverLevel) || !Places.isArena(level.dimension())) return true;

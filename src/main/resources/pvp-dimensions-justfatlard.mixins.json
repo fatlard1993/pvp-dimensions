@@ -5,6 +5,7 @@
   "mixins": [
     "BlockItemMixin",
     "EntityMixin",
+    "IronGolemMixin",
     "ItemEntityMixin",
     "LevelMixin",
     "MobAccessor",

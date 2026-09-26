@@ -320,7 +320,8 @@ What you carry, at four stops.
   arena where what the dead drop is the loot. Against the mobs,
   **the fallen rise as zombies**: whoever is out, out of lives or dead where nobody comes back,
   comes back on the mobs' side instead of watching. The mobs leave them be; they hunt the players
-  still standing, who can fight them back, whatever the rule on players fighting. A zombie wears a
+  still standing, who can fight them back, whatever the rule on players fighting, and so do the
+  iron and snow golems the players build. A zombie wears a
   zombie's head and rags it can't take off, carries the preset's **zombie kit** (a stone sword to
   begin with; armour in it is worn in place of the rags), all of it gone when its zombie dies, can't pick anything up, open
   anything, break or build, and rises again elsewhere when put down; its kills and deaths count

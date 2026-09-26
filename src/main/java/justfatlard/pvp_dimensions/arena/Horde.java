@@ -1,6 +1,7 @@
 package justfatlard.pvp_dimensions.arena;
 
 import justfatlard.pvp_dimensions.Say;
+import justfatlard.pvp_dimensions.mixin.MobAccessor;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
@@ -8,6 +9,10 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
+import net.minecraft.world.entity.animal.golem.IronGolem;
+import net.minecraft.world.entity.animal.golem.SnowGolem;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -105,6 +110,17 @@ public final class Horde {
 		if (data == null) return false;
 		CompoundTag tag = data.copyTag();
 		return tag.getBooleanOr(MARK, false);
+	}
+
+	/**
+	 * A golem the players built, loaded: set on the horde as it would be on any zombie. The iron
+	 * golem's own refusal to hurt a player is lifted for the horde in {@code IronGolemMixin}.
+	 */
+	public static void guard(Entity entity) {
+		boolean built = entity instanceof IronGolem iron ? iron.isPlayerCreated() : entity instanceof SnowGolem;
+		if (!built || !(entity instanceof Mob golem)) return;
+		((MobAccessor) golem).pvpDimensions$targets().addGoal(3,
+			new NearestAttackableTargetGoal<>(golem, Player.class, 10, true, false, (target, level) -> is(target)));
 	}
 
 	/** Human again, on the way out: the tag off, and the horde's things taken back. */
