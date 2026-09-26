@@ -32,7 +32,7 @@ public final class Pictures {
 
 	public static Field.Picture.Canvas map(Preset p) {
 		Palette palette = new Palette();
-		int ground = palette.add(switch (p.world) {
+		int ground = palette.add(switch (p.groundWorld()) {
 			case OVERWORLD -> GROUND_OVERWORLD;
 			case NETHER -> GROUND_NETHER;
 			case END -> GROUND_END;

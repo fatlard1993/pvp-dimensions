@@ -19,6 +19,7 @@ import org.jspecify.annotations.Nullable;
  * server thread, read by every worldgen thread after.
  *
  * @param kind      the ground as it grows, the same ground laid flat, or nothing (a saved terrain is pasted in later)
+ * @param ground    the world whose stone, fluid and surface the ground is made of, on this dimension's shape
  * @param depth     how far below its surface each column keeps its ground; 0 keeps all of it
  * @param features  whether trees, spikes, pools and the rest of the biome's features grow; a flat arena may go without
  * @param wallTop   the highest block a wall or the shell reaches
@@ -30,6 +31,7 @@ import org.jspecify.annotations.Nullable;
 public record Terrain(
 	Kind kind,
 	Holder<Biome> biome,
+	Preset.World ground,
 	int depth,
 	boolean features,
 	Palette palette,

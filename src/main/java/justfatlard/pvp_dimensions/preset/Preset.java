@@ -25,6 +25,8 @@ public final class Preset {
 	public enum World { OVERWORLD, NETHER, END }
 	public enum Shape { NATURAL, FLAT }
 	public enum Material { NATURAL, SINGLE, SWAP, LAYERS }
+	/** Whose ground an arena is made of: its own world's, or another's laid on its shape. */
+	public enum Ground { OWN, OVERWORLD, NETHER, END }
 	/** Divisions as slices of a pie, all meeting in the middle, or as a grid of cells. */
 	public enum DivisionShape { PIE, GRID }
 	public enum Bedrock { OFF, BOTTOM, BOTTOM_WALLS, SHELL }
@@ -276,6 +278,7 @@ public final class Preset {
 	public World world = World.OVERWORLD;
 	public Shape shape = Shape.NATURAL;
 	public String biome = "minecraft:plains";
+	public Ground ground = Ground.OWN;
 	public int depth = 24;
 	public Material material = Material.NATURAL;
 	public String single = "minecraft:stone";
@@ -427,6 +430,16 @@ public final class Preset {
 	 */
 	public boolean isolated() {
 		return traversal != Traversal.FREE || creative();
+	}
+
+	/** The world whose stone, fluid and surface blocks the ground is made of. */
+	public World groundWorld() {
+		return switch (ground) {
+			case OWN -> world;
+			case OVERWORLD -> World.OVERWORLD;
+			case NETHER -> World.NETHER;
+			case END -> World.END;
+		};
 	}
 
 	/** Natural Nether ground: a cave under a roof, found and stood on differently from open ground. */

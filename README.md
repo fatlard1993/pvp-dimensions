@@ -185,16 +185,20 @@ where the arena will put them.
 - **Ground**: generated, or **saved**.
 - **Size**: two to thirty-two chunks across. Small arenas find a fight fast; past sixteen the
   menu says so.
-- **World**: the overworld, the nether, or the end: its biomes, its sky, and the blocks its ground
-  is made of. Every block of the arena is the chosen **biome**: a desert arena is sand and cacti
-  from edge to edge.
+- **World**: the overworld, the nether, or the end: its shape, its biomes, its sky, and the blocks
+  its ground is made of. Every block of the arena is the chosen **biome**: a desert arena is sand
+  and cacti from edge to edge.
+- **Ground**: its own world's, or another's laid on this one's shape: that world's stone, fluid and
+  surface. End islands in overworld ground are grass over dirt over stone; overworld hills in
+  nether ground are netherrack with lava for seas. Swaps start from the ground's blocks, and team
+  bases are built from them.
 - **Shape**: **natural**, the world's own hills, caverns or islands from the game's noise,
   somewhere new every time; or **flat**, the biome's own ground laid dead level: grass on plains,
   sand on a desert, sulfur and cinnabar in sulfur caves, crimson nylium in a crimson forest, end
   stone in the end. **Biome features** puts the biome's trees, fungi, cacti and chorus on the flat
   too, or leaves it bare. Caves are not cut into it.
 - **Ground depth**: how far below its surface the ground goes before the void.
-- **Material**: as it grows; all one block; **swap** blocks, starting from the world's own
+- **Material**: as it grows; all one block; **swap** blocks, starting from the ground's own
   palette with every block becoming itself; or **layers**, each a block and a share of the depth.
 - **Bedrock**: none, a floor, a floor and walls, or a sealed shell.
 - **Villages and ruins**, off by default.

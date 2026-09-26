@@ -49,6 +49,7 @@ public final class Terrains {
 		return new Terrain(
 			kind,
 			biome,
+			preset.groundWorld(),
 			saved ? 0 : preset.depth,
 			preset.shape == Preset.Shape.NATURAL || preset.flatFeatures,
 			saved ? Terrain.Natural.INSTANCE : Terrain.Palette.of(preset),

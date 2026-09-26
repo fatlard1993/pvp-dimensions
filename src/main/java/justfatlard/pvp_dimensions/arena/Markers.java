@@ -64,7 +64,7 @@ public final class Markers {
 		BlockState emerald = Blocks.EMERALD_BLOCK.defaultBlockState();
 		BlockPos beacon = switch (preset.finishStyle) {
 			case GROUND -> new BlockPos(at[0], ground - 1, at[1]);
-			case TOWER -> TeamBases.raceTower(level, preset.world, new BlockPos(at[0], ground, at[1]), Builds.front(arena, at[0], at[1]), TOWER);
+			case TOWER -> TeamBases.raceTower(level, preset.groundWorld(), new BlockPos(at[0], ground, at[1]), Builds.front(arena, at[0], at[1]), TOWER);
 			case SKY -> new BlockPos(at[0], Math.min(ground + SKY, arena.wallTop - 4), at[1]);
 			case BURIED -> new BlockPos(at[0], Math.max(ground - BURIED, level.getMinY() + 3), at[1]);
 		};

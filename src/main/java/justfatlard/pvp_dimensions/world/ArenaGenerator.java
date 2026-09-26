@@ -1,12 +1,15 @@
 package justfatlard.pvp_dimensions.world;
 
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import justfatlard.pvp_dimensions.PvpDimensions;
+import justfatlard.pvp_dimensions.preset.Preset;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
@@ -54,6 +57,10 @@ import org.jspecify.annotations.Nullable;
  * the ground's shape, which is a level surface at {@link #FLAT_TOP}. Everything the game lays on
  * ground by biome, sand on a desert, sulfur and cinnabar in sulfur caves, lays itself on the flat
  * the same way, with no list here to keep up with the game's biomes.
+ *
+ * <p>Another world's ground is vanilla's as well: this dimension's shape with that world's stone,
+ * fluid and surface rule, so grass lays itself over end islands and netherrack over hills, by the
+ * same rules that lay them at home.
  */
 public final class ArenaGenerator extends ChunkGenerator {
 	public static final MapCodec<ArenaGenerator> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
@@ -66,18 +73,32 @@ public final class ArenaGenerator extends ChunkGenerator {
 
 	private final Holder<NoiseGeneratorSettings> settings;
 	private final NoiseBasedChunkGenerator noise;
-	private final Holder<NoiseGeneratorSettings> flatSettings;
-	private final NoiseBasedChunkGenerator flat;
 	private volatile @Nullable ResourceKey<Level> dimension;
 	private volatile @Nullable RandomState randomState;
-	private volatile @Nullable RandomState flatRandomState;
+	/** This dimension's shape with each world's ground, natural and flat; empty until the seed is known. */
+	private volatile Map<Preset.World, Grounded> grounds = Map.of();
+
+	private record Grounded(NoiseBasedChunkGenerator noise, RandomState noiseState, NoiseBasedChunkGenerator flat, RandomState flatState) {}
 
 	public ArenaGenerator(BiomeSource biomeSource, Holder<NoiseGeneratorSettings> settings) {
 		super(biomeSource);
 		this.settings = settings;
 		this.noise = new NoiseBasedChunkGenerator(biomeSource, settings);
-		this.flatSettings = Holder.direct(flattened(settings.value()));
-		this.flat = new NoiseBasedChunkGenerator(biomeSource, flatSettings);
+	}
+
+	private static ResourceKey<NoiseGeneratorSettings> settingsOf(Preset.World world) {
+		return switch (world) {
+			case OVERWORLD -> NoiseGeneratorSettings.OVERWORLD;
+			case NETHER -> NoiseGeneratorSettings.NETHER;
+			case END -> NoiseGeneratorSettings.END;
+		};
+	}
+
+	/** This shape, with another world's stone, fluid and way of laying a surface. */
+	private static NoiseGeneratorSettings grounded(NoiseGeneratorSettings shape, NoiseGeneratorSettings ground) {
+		return new NoiseGeneratorSettings(shape.noiseSettings(), ground.defaultBlock(), ground.defaultFluid(), shape.noiseRouter(),
+			ground.materialRule(), shape.spawnTarget(), shape.seaLevel(), shape.disableMobGeneration(), shape.aquifers(),
+			shape.useLegacyRandomSource(), shape.debugFunctions());
 	}
 
 	/** The same settings, with the ground's shape a level surface and no underground water. */
@@ -116,12 +137,22 @@ public final class ArenaGenerator extends ChunkGenerator {
 		MinecraftServer server = PvpDimensions.server();
 		if (server != null) {
 			RegistryAccess registries = server.registryAccess();
-			this.randomState = RandomState.create(registries.lookupOrThrow(Registries.NOISE), seed, settings.value());
-			this.flatRandomState = RandomState.create(registries.lookupOrThrow(Registries.NOISE), seed, flatSettings.value());
+			var noises = registries.lookupOrThrow(Registries.NOISE);
+			this.randomState = RandomState.create(noises, seed, settings.value());
+			Map<Preset.World, Grounded> built = new EnumMap<>(Preset.World.class);
+			for (Preset.World world : Preset.World.values()) {
+				registries.lookupOrThrow(Registries.NOISE_SETTINGS).get(settingsOf(world)).ifPresent(ground -> {
+					NoiseGeneratorSettings natural = grounded(settings.value(), ground.value());
+					NoiseGeneratorSettings level = flattened(natural);
+					built.put(world, new Grounded(
+						new NoiseBasedChunkGenerator(biomeSource, Holder.direct(natural)), RandomState.create(noises, seed, natural),
+						new NoiseBasedChunkGenerator(biomeSource, Holder.direct(level)), RandomState.create(noises, seed, level)));
+				});
+			}
+			this.grounds = Map.copyOf(built);
 		} else {
-			PvpDimensions.LOGGER.error("Arena generator built with no server to read noise from; arenas will be flat");
+			PvpDimensions.LOGGER.error("Arena generator built with no server to read noise from; arenas will be bare noise");
 			this.randomState = given;
-			this.flatRandomState = given;
 		}
 		return super.createState(structureSets, ours(given), seed);
 	}
@@ -146,21 +177,21 @@ public final class ArenaGenerator extends ChunkGenerator {
 			Set<Holder<Biome>> possibleBiomes) {
 		Footprint footprint = footprint(chunk);
 		if (footprint == null) return CompletableFuture.completedFuture(chunk);
+		Grounded ground = grounds.get(footprint.terrain().ground());
 		return switch (footprint.terrain().kind()) {
-			case NOISE -> noise.buildTerrain(chunk, blender, ours(given), structureManager, biomeManager, carverBiomeRegion, possibleBiomes)
+			case NOISE -> (ground != null ? ground.noise() : noise).buildTerrain(chunk, blender, ground != null ? ground.noiseState() : ours(given),
+					structureManager, biomeManager, carverBiomeRegion, possibleBiomes)
 				.thenApply(built -> {
 					Shaper.terrain(built, footprint);
 					return built;
 				});
-			case FLAT -> {
-				RandomState level = flatRandomState != null ? flatRandomState : ours(given);
-				yield flat.buildTerrain(chunk, blender, level, structureManager, biomeManager, carverBiomeRegion, possibleBiomes)
-					.thenApply(built -> {
-						Shaper.heal(built);
-						Shaper.terrain(built, footprint);
-						return built;
-					});
-			}
+			case FLAT -> (ground != null ? ground.flat() : noise).buildTerrain(chunk, blender, ground != null ? ground.flatState() : ours(given),
+					structureManager, biomeManager, carverBiomeRegion, possibleBiomes)
+				.thenApply(built -> {
+					Shaper.heal(built);
+					Shaper.terrain(built, footprint);
+					return built;
+				});
 			case EMPTY -> CompletableFuture.completedFuture(chunk);
 		};
 	}

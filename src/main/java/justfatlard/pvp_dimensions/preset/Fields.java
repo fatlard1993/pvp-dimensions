@@ -239,11 +239,15 @@ public final class Fields {
 				p.world = v;
 				p.biome = defaultBiome(v);
 				p.swaps.clear();
-			}).help("Its biomes, its sky and the blocks its ground is made of").when(Fields::generated));
+			}).help("Its shape, its biomes and its sky, and the blocks its ground is made of unless Ground says otherwise").when(Fields::generated));
 		fields.add(Field.Choice.ofEnum(ARENA, "shape", "Shape", Preset.Shape.class,
 			new String[] {"Natural", "Flat"}, p -> p.shape, (p, v) -> p.shape = v)
 			.help("Natural: the world's own hills, caverns or islands. Flat: level ground, laid by the biome").when(Fields::generated));
 		fields.add(new Field.Choice(ARENA, "biome", "Biome", p -> biomeOptions(p.world), p -> p.biome, (p, v) -> p.biome = v)
+			.when(Fields::generated));
+		fields.add(Field.Choice.ofEnum(ARENA, "ground", "Ground", Preset.Ground.class,
+			new String[] {"Its own world's", "Overworld", "Nether", "The End"}, p -> p.ground, (p, v) -> p.ground = v)
+			.help("Another world's stone, fluid and surface on this one's shape: grass over end islands, netherrack hills and lava seas")
 			.when(Fields::generated));
 		fields.add(new Field.Number(ARENA, "depth", "Ground depth", DEPTH, v -> v == 0 ? "All the way down" : v + " blocks",
 			p -> p.depth, (p, v) -> p.depth = v).help("How deep the ground goes under its surface")
@@ -255,7 +259,7 @@ public final class Fields {
 		fields.add(new Field.BlockRef(ARENA, "single", "Made of", false, p -> p.single, (p, v) -> p.single = v)
 			.when(p -> generated(p) && p.material == Preset.Material.SINGLE));
 		if (preset.material == Preset.Material.SWAP && generated(preset)) {
-			for (String from : Palettes.of(preset.world, preset.swaps)) {
+			for (String from : Palettes.of(preset.groundWorld(), preset.swaps)) {
 				fields.add(new Field.BlockRef(ARENA, "swap." + from.replace(':', '.'), blockName(from) + " becomes", true,
 					p -> p.swaps.getOrDefault(from, ""), (p, v) -> {
 						if (v.isEmpty() || v.equals(from)) p.swaps.remove(from);

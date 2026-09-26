@@ -156,7 +156,12 @@ public final class Summary {
 			case NETHER -> " nether";
 			case END -> " end";
 		};
-		String ground = (p.shape == Preset.Shape.FLAT ? "Flat" + world + " ground" : "Natural" + world + " ground")
+		String laid = p.groundWorld() == p.world ? "" : switch (p.groundWorld()) {
+			case OVERWORLD -> " of overworld blocks";
+			case NETHER -> " of nether blocks";
+			case END -> " of end blocks";
+		};
+		String ground = (p.shape == Preset.Shape.FLAT ? "Flat" + world + " ground" : "Natural" + world + " ground") + laid
 			+ " (" + Fields.biomeName(p.biome) + "), " + p.size + " chunks across";
 		if (p.divisions > 1) {
 			ground += ", cut into " + p.divisions + (p.divisionShape == Preset.DivisionShape.PIE && p.divisions > 2 ? " slices" : " parts");

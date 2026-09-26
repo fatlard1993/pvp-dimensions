@@ -442,6 +442,7 @@ public final class Presets {
 		json.addProperty("world", name(p.world));
 		json.addProperty("shape", name(p.shape));
 		json.addProperty("biome", p.biome);
+		json.addProperty("ground", name(p.ground));
 		json.addProperty("depth", p.depth);
 		json.addProperty("material", name(p.material));
 		json.addProperty("single", p.single);
@@ -657,6 +658,7 @@ public final class Presets {
 			p.world = world != null ? world : Preset.World.OVERWORLD;
 		}
 		string(json, "biome", v -> p.biome = v);
+		p.ground = choice(json, "ground", Preset.Ground.class, p.ground);
 		integer(json, "depth", v -> p.depth = Math.max(0, v));
 		p.material = choice(json, "material", Preset.Material.class, p.material);
 		string(json, "single", v -> p.single = v);

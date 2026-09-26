@@ -80,7 +80,7 @@ public final class TeamBases {
 
 	private static BlockPos build(ServerLevel level, Arena arena, BlockPos spot, int team, int players, int cap) {
 		Preset preset = arena.preset;
-		Builds.Palette palette = Builds.palette(preset.world, team >= 0 ? TeamColors.of(team) : null);
+		Builds.Palette palette = Builds.palette(preset.groundWorld(), team >= 0 ? TeamColors.of(team) : null);
 		int keep = keep(preset);
 		int keepHeight = preset.activeGoal() == Preset.Goal.DESTRUCTION ? preset.baseSize : 2;
 		Frame frame = new Frame(spot.getX(), spot.getY(), spot.getZ(), Builds.front(arena, spot.getX(), spot.getZ()));
