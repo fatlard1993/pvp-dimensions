@@ -22,6 +22,7 @@ import org.jspecify.annotations.Nullable;
  * @param ground    the world whose stone, fluid and surface the ground is made of, on this dimension's shape
  * @param depth     how far below its surface each column keeps its ground; 0 keeps all of it
  * @param features  whether trees, spikes, pools and the rest of the biome's features grow; a flat arena may go without
+ * @param floorY    where a bedrock floor is laid, the same height right across; {@link #WORLD_BOTTOM} for the bottom of the world
  * @param wallTop   the highest block a wall or the shell reaches
  * @param cols      a grid's columns; one, for slices
  * @param rows      a grid's rows; one, for slices
@@ -36,6 +37,7 @@ public record Terrain(
 	boolean features,
 	Palette palette,
 	Preset.Bedrock bedrock,
+	int floorY,
 	int ceilingY,
 	int wallTop,
 	int cols,
@@ -48,6 +50,7 @@ public record Terrain(
 	public enum Kind { NOISE, FLAT, EMPTY }
 
 	public static final BlockState BEDROCK = Blocks.BEDROCK.defaultBlockState();
+	public static final int WORLD_BOTTOM = Integer.MIN_VALUE;
 
 
 	public boolean divided() {

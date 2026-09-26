@@ -54,6 +54,7 @@ public final class Terrains {
 			preset.shape == Preset.Shape.NATURAL || preset.flatFeatures,
 			saved ? Terrain.Natural.INSTANCE : Terrain.Palette.of(preset),
 			saved ? Preset.Bedrock.OFF : preset.bedrock,
+			preset.roofed() || preset.depth == 0 ? Terrain.WORLD_BOTTOM : arena.surfaceY - preset.depth + 1,
 			arena.wallTop,
 			arena.wallTop,
 			grid[0],

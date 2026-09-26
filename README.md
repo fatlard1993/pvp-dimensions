@@ -200,7 +200,10 @@ where the arena will put them.
 - **Ground depth**: how far below its surface the ground goes before the void.
 - **Material**: as it grows; all one block; **swap** blocks, starting from the ground's own
   palette with every block becoming itself; or **layers**, each a block and a share of the depth.
-- **Bedrock**: none, a floor, a floor and walls, or a sealed shell.
+- **Bedrock**: none, a floor, a floor and walls, or a sealed shell. The floor is one flat layer
+  right across the arena, the ground depth below its surface, or at the bottom of the world when
+  the ground goes all the way down; nothing is left under it, and in the end it stretches under
+  the gaps between islands too.
 - **Villages and ruins**, off by default.
 - **Team bases**: a building for each team at the middle of its ground, built when the fight
   starts and sized for the team that will hold it: a **camp**, fenced and open round a campfire; a

@@ -27,14 +27,16 @@ public final class Shaper {
 		Terrain terrain = footprint.terrain();
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 		int minY = chunk.getMinY();
+		boolean floored = terrain.bedrock() != Preset.Bedrock.OFF;
+		int floor = Math.max(minY, terrain.floorY());
 		for (int localX = 0; localX < 16; localX++) {
 			for (int localZ = 0; localZ < 16; localZ++) {
 				int x = chunk.getPos().getMinBlockX() + localX;
 				int z = chunk.getPos().getMinBlockZ() + localZ;
 				int surface = chunk.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, localX, localZ) - 1;
 				boolean hasGround = surface >= minY;
-				int bottom = terrain.cutsDepth() && terrain.depth() > 0 && hasGround
-					? Math.max(minY, surface - terrain.depth() + 1) : minY;
+				int bottom = floored ? floor
+					: terrain.cutsDepth() && terrain.depth() > 0 && hasGround ? Math.max(minY, surface - terrain.depth() + 1) : minY;
 
 				for (int y = minY; y < bottom; y++) set(chunk, pos.set(x, y, z), AIR);
 
@@ -48,9 +50,34 @@ public final class Shaper {
 					}
 				}
 
-				if (hasGround && terrain.bedrock() != Preset.Bedrock.OFF) set(chunk, pos.set(x, bottom, z), Terrain.BEDROCK);
-				column(chunk, footprint, x, z, hasGround ? bottom : minY, pos);
+				if (floored) {
+					set(chunk, pos.set(x, floor, z), Terrain.BEDROCK);
+					smoothFloor(chunk, x, z, floor, pos);
+				}
+				column(chunk, footprint, x, z, floored || hasGround ? bottom : minY, pos);
 			}
+		}
+	}
+
+	/** How far above the bottom of the world the game scatters its ragged bedrock. */
+	private static final int RAGGED = 5;
+
+	/**
+	 * The game's own bedrock, scattered just above the bottom of the world, filled in with the
+	 * ground over it, so a floor laid there is one flat layer like any other.
+	 */
+	private static void smoothFloor(ChunkAccess chunk, int x, int z, int floor, BlockPos.MutableBlockPos pos) {
+		for (int y = floor + 1; y <= floor + RAGGED && y <= chunk.getMaxY(); y++) {
+			if (get(chunk, x, y, z) != Terrain.BEDROCK) continue;
+			BlockState above = AIR;
+			for (int up = y + 1; up <= floor + RAGGED + 1 && up <= chunk.getMaxY(); up++) {
+				BlockState state = get(chunk, x, up, z);
+				if (state != Terrain.BEDROCK) {
+					above = state;
+					break;
+				}
+			}
+			set(chunk, pos.set(x, y, z), above);
 		}
 	}
 
