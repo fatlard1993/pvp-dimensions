@@ -353,6 +353,9 @@ public final class Fields {
 		fields.add(Field.Choice.ofEnum(TIMELINE, "mob_rarity", "How many", Preset.Rarity.class,
 			new String[] {"A few", "Some", "Lots", "A swarm"}, p -> p.mobRarity, (p, v) -> p.mobRarity = v)
 			.when(p -> p.activeMobs() != Preset.MobTime.OFF));
+		fields.add(new Field.Toggle(TIMELINE, "zombies_break", "Zombies break through", p -> p.zombiesBreak, (p, v) -> p.zombiesBreak = v)
+			.help("A zombie that can't get to a player bangs on what's in the way till it breaks, doors and trapdoors first. Never chests, a wall still standing, or what a creeper couldn't break")
+			.when(Preset::mobsCome));
 		if (preset.activeMobs() != Preset.MobTime.OFF) {
 			fields.add(new Field.Grid(TIMELINE, "mob_kinds", "Each kind", Fields::mobCells,
 				(p, kind) -> p.setMobLevel(kind, Preset.MobLevel.values()[(p.mobLevel(kind).ordinal() + 1) % Preset.MobLevel.values().length]),

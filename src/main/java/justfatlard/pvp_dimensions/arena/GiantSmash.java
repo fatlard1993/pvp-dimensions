@@ -3,7 +3,6 @@ package justfatlard.pvp_dimensions.arena;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
-import justfatlard.pvp_dimensions.world.Footprint;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
@@ -24,9 +23,7 @@ import org.jspecify.annotations.Nullable;
  * where the target stands, which cracks for a second, then smashes it. Everyone on the spot is
  * hurt and thrown, and the ground there breaks, and whatever was built on it.
  *
- * <p>What the smash won't break: anything holding something (chests, pinatas, a Dead Heads head,
- * beds), anything a creeper couldn't break either, a wall still standing, a flag chest or a base
- * cube, or anything outside its own arena.
+ * <p>The smash breaks only what {@link Mobs#mayBreak} allows.
  */
 public final class GiantSmash extends Goal {
 	private static final double WALK = 0.6;
@@ -37,7 +34,6 @@ public final class GiantSmash extends Goal {
 	/** How far from the spot the ground breaks, and how far the blow lands. */
 	private static final double CRATER = 2.5;
 	private static final double BLOW = 3.5;
-	private static final float HARDEST = 20;
 	private static final float CENTRE_DAMAGE = 16;
 	private static final float EDGE_DAMAGE = 6;
 
@@ -115,21 +111,10 @@ public final class GiantSmash extends Goal {
 					double distance = dx * dx + dz * dz + sink * sink;
 					if (distance > CRATER * CRATER * (0.7 + giant.getRandom().nextDouble() * 0.5)) continue;
 					BlockPos pos = centre.offset(dx, dy, dz);
-					if (breakable(level, pos)) crater.add(pos);
+					if (Mobs.mayBreak(level, pos)) crater.add(pos);
 				}
 			}
 		}
-	}
-
-	private boolean breakable(ServerLevel level, BlockPos pos) {
-		BlockState state = level.getBlockState(pos);
-		if (state.isAir() || !state.getFluidState().isEmpty() || state.hasBlockEntity()) return false;
-		if (state.getDestroySpeed(level, pos) < 0 || state.getBlock().getExplosionResistance() > HARDEST) return false;
-		Arena arena = Arenas.at(level, pos.getX(), pos.getZ());
-		if (arena == null || Goals.protectedBlock(arena, pos, null)) return false;
-		Footprint footprint = arena.footprint();
-		BlockState wall = arena.wallsDown ? null : footprint.terrain().wallAt(footprint, pos.getX(), pos.getZ());
-		return wall == null || state != wall;
 	}
 
 	/** The ground under the spot cracking as the giant winds up: a warning, and a second to get out. */
@@ -176,7 +161,7 @@ public final class GiantSmash extends Goal {
 		}
 
 		for (BlockPos pos : crater) {
-			if (breakable(level, pos)) level.destroyBlock(pos, false, giant);
+			if (Mobs.mayBreak(level, pos)) level.destroyBlock(pos, false, giant);
 		}
 		crater.clear();
 		cooldown = COOLDOWN;

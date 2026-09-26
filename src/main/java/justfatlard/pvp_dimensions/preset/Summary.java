@@ -208,14 +208,15 @@ public final class Summary {
 	}
 
 	private static @Nullable String mobs(Preset p) {
-		if (p.mobStyle == Preset.MobStyle.WAVES) {
-			return "Mobs in " + p.waves.size() + (p.waves.size() == 1 ? " wave" : " waves") + ", " + p.waveBreak + " seconds apart";
-		}
-		return switch (p.activeMobs()) {
-			case OFF -> null;
-			case NIGHT -> "Mobs at night";
-			case ALWAYS -> "Mobs day and night";
-		};
+		String when = p.mobStyle == Preset.MobStyle.WAVES
+			? "Mobs in " + p.waves.size() + (p.waves.size() == 1 ? " wave" : " waves") + ", " + p.waveBreak + " seconds apart"
+			: switch (p.activeMobs()) {
+				case OFF -> null;
+				case NIGHT -> "Mobs at night";
+				case ALWAYS -> "Mobs day and night";
+			};
+		if (when == null || !p.zombiesBreak) return when;
+		return when + "; zombies break through doors and walls to get at you";
 	}
 
 	private static @Nullable String weather(Preset p) {

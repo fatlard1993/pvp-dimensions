@@ -34,6 +34,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -269,12 +270,34 @@ public final class Mobs {
 		}
 	}
 
+	private static final float HARDEST = 20;
+
+	/**
+	 * Whether one of the arena's mobs may break this block, a giant's smash or a zombie's fists:
+	 * not anything holding something (chests, pinatas, a Dead Heads head, beds), anything a creeper
+	 * couldn't break either, a wall still standing, a flag chest or a base cube, or anything outside
+	 * its own arena.
+	 */
+	public static boolean mayBreak(ServerLevel level, BlockPos pos) {
+		BlockState state = level.getBlockState(pos);
+		if (state.isAir() || !state.getFluidState().isEmpty() || state.hasBlockEntity()) return false;
+		if (state.getDestroySpeed(level, pos) < 0 || state.getBlock().getExplosionResistance() > HARDEST) return false;
+		Arena arena = Arenas.at(level, pos.getX(), pos.getZ());
+		if (arena == null || Goals.protectedBlock(arena, pos, null)) return false;
+		Footprint footprint = arena.footprint();
+		BlockState wall = arena.wallsDown ? null : footprint.terrain().wallAt(footprint, pos.getX(), pos.getZ());
+		return wall == null || state != wall;
+	}
+
 	/**
 	 * One of the arena's own loaded, freshly spawned or back from disk: a giant is given a mind,
-	 * which the game leaves it without and which doesn't keep across a save.
+	 * which the game leaves it without and which doesn't keep across a save, and a zombie fists
+	 * for where its arena lets it break through.
 	 */
 	public static void loaded(Entity entity) {
-		if (!(entity instanceof Giant giant) || !giant.entityTags().contains(OURS)) return;
+		if (!entity.entityTags().contains(OURS)) return;
+		if (entity instanceof Zombie zombie) ((MobAccessor) zombie).pvpDimensions$goals().addGoal(1, new ZombieBreaks(zombie));
+		if (!(entity instanceof Giant giant)) return;
 		MobAccessor mind = (MobAccessor) giant;
 		mind.pvpDimensions$goals().addGoal(1, new GiantSmash(giant));
 		mind.pvpDimensions$goals().addGoal(2, new WaterAvoidingRandomStrollGoal(giant, 0.5));

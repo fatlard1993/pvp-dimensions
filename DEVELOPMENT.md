@@ -72,6 +72,7 @@ made in `createState` from the level's seed, passing it in place of the blank on
 | `arena/Moments.java` | The moments worth a cheer: kill bursts, long shots, assists, avenging, captures, the hill, waves, big game, surviving |
 | `preset/Sharing.java` | Exporting and importing presets, and the mods a preset needs |
 | `arena/GiantSmash.java` | The giant's one attack: a marked spot, cracking, then the smash that breaks it |
+| `arena/ZombieBreaks.java` | A stuck zombie banging through what's in its way, doors and trapdoors first, where the preset allows |
 | `arena/Waves.java` | Mobs in waves: sending each, counting what is left, what comes after the last |
 | `preset/Loot.java` | The templates behind each item list's random fill |
 | `arena/Pinatas.java`, `arena/PinataHook.java` | Pinatas, the hook loaded only when Pinata is |

@@ -259,6 +259,9 @@ Everything that happens at a time, drawn as a strip across the match at the top 
   it. The smash doesn't break chests or anything else holding something (a pinata, a Dead Heads
   head), blocks a creeper couldn't break either, a wall still standing, a flag chest or a base
   cube.
+- **Zombies break through**, where mobs come: a zombie that can't get to a player bangs on what's
+  in its way until it breaks, a door or trapdoor first, then the block ahead, or the one under it
+  when the player is below. Harder blocks take longer. It spares what the giant's smash spares.
 - **Weather**, in an overworld arena: as outside, clear, rain or thunder, **then** something else
   after so many minutes, if you like: clear skies clouding over into a storm halfway through. Each
   arena has its own, eased in and out over a few seconds. The rain is real where it falls: it

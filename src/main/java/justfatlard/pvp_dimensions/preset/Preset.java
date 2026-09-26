@@ -256,6 +256,8 @@ public final class Preset {
 	public AfterWaves afterWaves = AfterWaves.REPEAT_LAST;
 	/** How often a kind turns up unless {@link #mobLevels} says otherwise: off, in a new preset. */
 	public MobLevel mobDefault = MobLevel.OFF;
+	/** Zombies stuck short of a player bang on what is in the way till it breaks, doors and trapdoors first. */
+	public boolean zombiesBreak = false;
 	/** How often each kind turns up, by id, for the kinds not at {@link #mobDefault}. */
 	public Map<String, MobLevel> mobLevels = new java.util.TreeMap<>();
 

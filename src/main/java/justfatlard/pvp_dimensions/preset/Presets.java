@@ -407,6 +407,7 @@ public final class Presets {
 		json.addProperty("mobs", name(p.mobs));
 		json.addProperty("mob_rarity", name(p.mobRarity));
 		json.addProperty("mob_style", name(p.mobStyle));
+		json.addProperty("zombies_break", p.zombiesBreak);
 		JsonArray waves = new JsonArray();
 		for (Preset.Wave wave : p.waves) {
 			JsonArray mobs = new JsonArray();
@@ -603,6 +604,7 @@ public final class Presets {
 		p.mobs = choice(json, "mobs", Preset.MobTime.class, p.mobs);
 		p.mobRarity = choice(json, "mob_rarity", Preset.Rarity.class, p.mobRarity);
 		p.mobStyle = choice(json, "mob_style", Preset.MobStyle.class, p.mobStyle);
+		bool(json, "zombies_break", v -> p.zombiesBreak = v);
 		if (json.has("waves") && json.get("waves").isJsonArray()) {
 			p.waves = new ArrayList<>();
 			for (JsonElement element : json.getAsJsonArray("waves")) {
