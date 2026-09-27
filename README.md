@@ -202,6 +202,9 @@ where the arena will put them.
 - **Ground depth**: how far below its surface the ground goes before the void.
 - **Material**: as it grows; all one block; **swap** blocks, starting from the ground's own
   palette with every block becoming itself; or **layers**, each a block and a share of the depth.
+  Any block setting is chosen with **Pick**: type part of a name and click the block, or take the
+  one in your hand; **Add a block** picks one to swap out and goes straight on to what it becomes,
+  and **✕** puts a swap back to unchanged.
 - **Bedrock**: none, a floor, a floor and walls, or a sealed shell. The floor is one flat layer
   right across the arena, the ground depth below its surface, or at the bottom of the world when
   the ground goes all the way down; nothing is left under it, and in the end it stretches under

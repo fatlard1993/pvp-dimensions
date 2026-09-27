@@ -27,12 +27,14 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
+import org.jspecify.annotations.Nullable;
 import static justfatlard.pvp_dimensions.ui.Ui.*;
 
 /**
  * A preset, one section at a time: a tab for each, and a row for each setting with the control
  * that changes it. Every change is saved as it is made. Kits and item lists are edited by
- * holding the items, which closes this and opens again when they are done.
+ * holding the items, which closes this and opens again when they are done. A block is picked
+ * from all of them in {@link BlockPicker}, which stands in for the rows until one is chosen.
  */
 public final class EditorScreen {
 	private EditorScreen() {}
@@ -45,13 +47,29 @@ public final class EditorScreen {
 	private static final int ROWS = 6;
 	private static final int CONTROL = 150;
 
-	private record Editing(String preset, Field.Section section, int scroll, boolean deleting) {}
+	private record Editing(String preset, Field.Section section, int scroll, boolean deleting, @Nullable Pick pick) {
+		Editing(String preset, Field.Section section, int scroll, boolean deleting) {
+			this(preset, section, scroll, deleting, null);
+		}
+
+		Editing picking(@Nullable Pick pick) {
+			return new Editing(preset, section, scroll, false, pick);
+		}
+	}
+
+	/** A block being picked for the setting {@code key}, and how far the search has got. */
+	private record Pick(String key, String label, String query, int page) {}
 
 	private static final Map<UUID, Editing> editing = new ConcurrentHashMap<>();
+	/** The screen each editor is showing, for changing it in place while a search is typed. */
+	private static final Map<UUID, String> screens = new ConcurrentHashMap<>();
 
 	static void register(ScreenApi screens) {
 		screens.onActionFallback(TYPE, EditorScreen::pressed);
-		screens.onClose(TYPE, player -> editing.remove(player.getUUID()));
+		screens.onClose(TYPE, player -> {
+			editing.remove(player.getUUID());
+			EditorScreen.screens.remove(player.getUUID());
+		});
 	}
 
 	static void forget(UUID player) {
@@ -93,6 +111,23 @@ public final class EditorScreen {
 			under.add(tab);
 		}
 		y += ((tabs.size() + perRow - 1) / perRow) * (BUTTON + 2) + 2;
+
+		if (state.pick() != null) {
+			Pick pick = state.pick();
+			Field field = Fields.find(preset, pick.key());
+			String unset = field instanceof Field.BlockRef block && block.allowsNone() ? block.unsetWords() : null;
+			List<ComponentBuilder> picker = new ArrayList<>();
+			y += BlockPicker.layout(picker, PAD, y, inner, pick.label(), pick.query(), pick.page(), unset) + PAD;
+			ScreenBuilder screen = new ScreenBuilder(TYPE).title(preset.name).pauseGame(false).size(WIDTH, y);
+			screen.panel("dialog", 0, 0, WIDTH, y, panel());
+			screen.component(icon("title_icon", PAD, 3, preset.icon, 0.75F));
+			screen.component(text("title", PAD + 16, 7, clip(preset.name, 36)));
+			for (ComponentBuilder component : under) screen.component(component.prop(ComponentType.PROP_ENABLED, "false"));
+			for (ComponentBuilder component : picker) screen.component(component);
+			screens.put(player.getUUID(), screen.screenId());
+			PandoricalApi.screens().open(player, screen.build());
+			return;
+		}
 
 		List<ComponentBuilder> rows = new ArrayList<>();
 		int rowY = 0;
@@ -138,6 +173,7 @@ public final class EditorScreen {
 			ComponentType.PROP_SHOW_SCROLLBAR, String.valueOf(count > ROWS),
 			ComponentType.PROP_SCROLL_OFFSET, String.valueOf(Math.max(0, Math.min(state.scroll(), Math.max(0, count - ROWS)))),
 			ComponentType.PROP_BACKGROUND, "#00000000"), defs);
+		screens.put(player.getUUID(), screen.screenId());
 		PandoricalApi.screens().open(player, screen.build());
 	}
 
@@ -240,9 +276,10 @@ public final class EditorScreen {
 			case Field.BlockRef block -> {
 				String id = block.get(preset);
 				if (id != null && !id.isEmpty()) rows.add(icon("i:" + key, x + 2, y + 2, itemOf(id), 1F));
-				rows.add(faint("v:" + key, x + 22, y + 6, clip(block.display(preset), 12)));
-				rows.add(button("held:" + key, x + CONTROL - 50, y, 50, BUTTON, "Held", "Set it to the block in your hand"
-					+ (block.allowsNone() ? "; hold nothing to leave it unchanged" : "")));
+				boolean clearable = block.allowsNone() && id != null && !id.isEmpty();
+				rows.add(faint("v:" + key, x + 22, y + 6, clip(block.display(preset), clearable ? 12 : 15)));
+				rows.add(button("pickfor:" + key, x + CONTROL - (clearable ? 52 : 36), y, 36, BUTTON, "Pick", "Choose from every block"));
+				if (clearable) rows.add(button("unset:" + key, x + CONTROL - 14, y, 14, BUTTON, "✕", "Back to: " + block.unsetWords()));
 			}
 			case Field.Items items -> {
 				List<ItemStack> stacks = items.stacks(preset);
@@ -296,6 +333,10 @@ public final class EditorScreen {
 		}
 		Preset preset = Presets.get(state.preset());
 		if (preset == null) return;
+		if (state.pick() != null) {
+			picking(player, data, id, state, preset);
+			return;
+		}
 
 		switch (id) {
 			case "back" -> {
@@ -367,6 +408,13 @@ public final class EditorScreen {
 				return;
 			}
 			case "held" -> problem = held(player, preset, field);
+			case "pickfor" -> {
+				show(player, state.picking(new Pick(key, field.label.isEmpty() ? "A block" : field.label, "", 0)));
+				return;
+			}
+			case "unset" -> {
+				if (field instanceof Field.BlockRef block && block.allowsNone()) problem = block.set(preset, "");
+			}
 			case "items" -> {
 				editing.remove(player.getUUID());
 				ItemSessions.start(player, state.preset(), key);
@@ -382,7 +430,10 @@ public final class EditorScreen {
 				if (field instanceof Field.Grid grid) grid.press(preset, cell);
 			}
 			case "act" -> {
-				if (key.equals("swap.add")) problem = held(player, preset, field);
+				if (key.equals("swap.add")) {
+					show(player, state.picking(new Pick(key, "A block to swap out", "", 0)));
+					return;
+				}
 				else if (field instanceof Field.Action action) action.run(preset);
 			}
 			default -> {
@@ -392,6 +443,78 @@ public final class EditorScreen {
 		if (problem != null) Say.bar(player, problem);
 		else Presets.save(state.preset(), preset);
 		show(player, editing.getOrDefault(player.getUUID(), state));
+	}
+
+	/**
+	 * The picker's buttons. Typing and paging change the grid in place; choosing a block sets it and
+	 * goes back to the rows, except a new block to swap out, which goes straight on to what it
+	 * becomes.
+	 */
+	private static void picking(ServerPlayer player, Map<String, String> data, String id, Editing state, Preset preset) {
+		Pick pick = state.pick();
+		switch (id) {
+			case BlockPicker.SEARCH -> {
+				Pick typed = new Pick(pick.key(), pick.label(), data.getOrDefault("text", ""), 0);
+				editing.put(player.getUUID(), state.picking(typed));
+				refresh(player, typed);
+				return;
+			}
+			case "pick_prev", "pick_next" -> {
+				int pages = BlockPicker.pages(BlockPicker.matches(pick.query()));
+				int page = Math.max(0, Math.min(pages - 1, pick.page() + (id.equals("pick_next") ? 1 : -1)));
+				Pick turned = new Pick(pick.key(), pick.label(), pick.query(), page);
+				editing.put(player.getUUID(), state.picking(turned));
+				refresh(player, turned);
+				return;
+			}
+			case "pick_cancel" -> {
+				show(player, state.picking(null));
+				return;
+			}
+			default -> { }
+		}
+		Field field = Fields.find(preset, pick.key());
+		if (field == null) {
+			show(player, state.picking(null));
+			return;
+		}
+		String block = null;
+		String problem = null;
+		if (id.equals("pick_none") && field instanceof Field.BlockRef ref) {
+			problem = ref.set(preset, "");
+		} else if (id.equals("pick_held")) {
+			ItemStack stack = player.getMainHandItem();
+			if (stack.getItem() instanceof BlockItem blockItem) block = BuiltInRegistries.BLOCK.getKey(blockItem.getBlock()).toString();
+			else problem = "Hold a block, or pick one here";
+		} else if (id.startsWith("pick:")) {
+			try {
+				BlockPicker.Block chosen = BlockPicker.at(pick.query(), pick.page(), Integer.parseInt(id.substring(5)));
+				if (chosen != null) block = chosen.id();
+			} catch (NumberFormatException ignored) {
+			}
+			if (block == null) return;
+		} else {
+			return;
+		}
+		if (problem != null) {
+			Say.bar(player, problem);
+			return;
+		}
+		if (block != null && pick.key().equals("swap.add")) {
+			preset.swaps.putIfAbsent(block, block);
+			Presets.save(state.preset(), preset);
+			show(player, state.picking(new Pick("swap." + block.replace(':', '.'), Fields.blockName(block) + " becomes", "", 0)));
+			return;
+		}
+		if (block != null) problem = field.set(preset, block);
+		if (problem != null) Say.bar(player, problem);
+		else Presets.save(state.preset(), preset);
+		show(player, state.picking(null));
+	}
+
+	private static void refresh(ServerPlayer player, Pick pick) {
+		String screen = screens.get(player.getUUID());
+		if (screen != null) PandoricalApi.screens().update(player, screen, BlockPicker.refresh(pick.query(), pick.page()));
 	}
 
 	/** Set from the hand: the picture from any item, a block setting from a block. */

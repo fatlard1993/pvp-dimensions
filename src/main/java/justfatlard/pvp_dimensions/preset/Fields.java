@@ -266,7 +266,7 @@ public final class Fields {
 						else p.swaps.put(from, v);
 					}));
 			}
-			fields.add(new Field.Action(ARENA, "swap.add", "Another block", "Add held", p -> {}));
+			fields.add(new Field.Action(ARENA, "swap.add", "Another block", "Add a block", p -> {}));
 		}
 		if (preset.material == Preset.Material.LAYERS && generated(preset)) {
 			for (int i = 0; i < preset.layers.size(); i++) {

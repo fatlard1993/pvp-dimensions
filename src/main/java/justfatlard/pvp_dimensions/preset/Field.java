@@ -298,6 +298,7 @@ public abstract sealed class Field {
 		private final Function<Preset, String> get;
 		private final BiConsumer<Preset, String> put;
 		private final boolean allowNone;
+		private String unset = "Unchanged";
 
 		public BlockRef(Section section, String key, String label, boolean allowNone, Function<Preset, String> get, BiConsumer<Preset, String> put) {
 			super(section, key, label);
@@ -314,10 +315,20 @@ public abstract sealed class Field {
 			return allowNone;
 		}
 
+		/** What it reads as when nothing is chosen, where that means something other than unchanged. */
+		public BlockRef unset(String words) {
+			this.unset = words;
+			return this;
+		}
+
+		public String unsetWords() {
+			return unset;
+		}
+
 		@Override
 		public String display(Preset preset) {
 			String id = get(preset);
-			if (id == null || id.isEmpty()) return "Unchanged";
+			if (id == null || id.isEmpty()) return unset;
 			Identifier parsed = Identifier.tryParse(id);
 			if (parsed == null) return id;
 			return BuiltInRegistries.BLOCK.getOptional(parsed).map(block -> block.getName().getString()).orElse(id);
