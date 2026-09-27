@@ -255,9 +255,11 @@ Everything that happens at a time, drawn as a strip across the match at the top 
   starts off, and **All off** and **All normal** set them all at once.
 - In waves: each **wave** is a row of spawn eggs; a click adds a kind and steps up how many come
   for each player fighting, from half a mob to five. Waves are sent all at once around the
-  players. **Between waves** is the break once one is cleared; **next wave comes** can also give a
-  wave only so many minutes. The last few of a wave glow. **After the last** wave it comes again,
-  the waves start over, or they stop. **Add a wave** starts it at half again the one before.
+  players. **First wave after** is how long the fight runs before the first, from at once to
+  five minutes, time to gear up or build; **Between waves** is the break once one is cleared;
+  **next wave comes** can also give a wave only so many minutes. The last few of a wave glow.
+  **After the last** wave it comes again, the waves start over, or they stop. **Add a wave**
+  starts it at half again the one before.
 - **The kinds**, steadily or in waves, are the game's own and a few made from them: baby zombies,
   husks, drowned and zombified piglins, their eggs drawn small; chicken jockeys, spider jockeys,
   skeleton and zombie horsemen and husks on camels, the rider in the corner of the egg; the

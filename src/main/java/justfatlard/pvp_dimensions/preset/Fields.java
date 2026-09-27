@@ -584,11 +584,16 @@ public final class Fields {
 
 	private enum CapsCount { TEAM, MATCH }
 
+	private static final int[] WAVE_DELAYS = {0, 5, 10, 15, 30, 45, 60, 90, 120, 180, 300};
 	private static final int[] WAVE_BREAKS = {5, 10, 15, 20, 30, 45, 60, 90, 120};
 	private static final int[] WAVE_LIMITS = {0, 1, 2, 3, 5, 10};
 
 	/** The timing, then each wave's kinds and how many of each, then room for another wave. */
 	private static void waveFields(List<Field> fields, Preset preset) {
+		fields.add(new Field.Number(TIMELINE, "wave_delay", "First wave after", WAVE_DELAYS,
+			v -> v == 0 ? "Right away" : v < 60 ? v + " seconds" : duration(v / 60) + (v % 60 == 0 ? "" : " " + v % 60 + "s"),
+			p -> p.waveDelay, (p, v) -> p.waveDelay = v)
+			.help("From the fight starting: time to find your feet, gear up or build before the first comes"));
 		fields.add(new Field.Number(TIMELINE, "wave_break", "Between waves", WAVE_BREAKS, v -> v + " seconds",
 			p -> p.waveBreak, (p, v) -> p.waveBreak = v));
 		fields.add(new Field.Number(TIMELINE, "wave_limit", "Next wave comes", WAVE_LIMITS,

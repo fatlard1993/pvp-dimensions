@@ -251,6 +251,8 @@ public final class Preset {
 		Wave.of(new WaveMob("minecraft:zombie", 20)),
 		Wave.of(new WaveMob("minecraft:zombie", 20), new WaveMob("minecraft:skeleton", 10)),
 		Wave.of(new WaveMob("minecraft:zombie", 20), new WaveMob("minecraft:skeleton", 20), new WaveMob("minecraft:creeper", 10))));
+	/** Seconds from the fight starting to the first wave. */
+	public int waveDelay = 10;
 	/** Seconds between one wave cleared and the next coming. */
 	public int waveBreak = 15;
 	/** Minutes a wave is given before the next comes anyway; 0 waits for it to be cleared. */

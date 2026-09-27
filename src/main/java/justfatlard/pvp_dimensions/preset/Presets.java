@@ -422,6 +422,7 @@ public final class Presets {
 			waves.add(entry);
 		}
 		json.add("waves", waves);
+		json.addProperty("wave_delay", p.waveDelay);
 		json.addProperty("wave_break", p.waveBreak);
 		json.addProperty("wave_limit", p.waveLimit);
 		json.addProperty("after_waves", name(p.afterWaves));
@@ -622,6 +623,7 @@ public final class Presets {
 				p.waves.add(wave);
 			}
 		}
+		integer(json, "wave_delay", v -> p.waveDelay = Math.max(0, v));
 		integer(json, "wave_break", v -> p.waveBreak = Math.max(1, v));
 		integer(json, "wave_limit", v -> p.waveLimit = Math.max(0, v));
 		p.afterWaves = choice(json, "after_waves", Preset.AfterWaves.class, p.afterWaves);

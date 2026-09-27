@@ -214,7 +214,9 @@ public final class Summary {
 
 	private static @Nullable String mobs(Preset p) {
 		String when = p.mobStyle == Preset.MobStyle.WAVES
-			? "Mobs in " + p.waves.size() + (p.waves.size() == 1 ? " wave" : " waves") + ", " + p.waveBreak + " seconds apart"
+			? "Mobs in " + p.waves.size() + (p.waves.size() == 1 ? " wave" : " waves")
+				+ (p.waveDelay == 0 ? ", the first at once" : ", the first after " + p.waveDelay + " seconds")
+				+ (p.waves.size() > 1 ? ", then " + p.waveBreak + " seconds apart" : "")
 			: switch (p.activeMobs()) {
 				case OFF -> null;
 				case NIGHT -> "Mobs at night";

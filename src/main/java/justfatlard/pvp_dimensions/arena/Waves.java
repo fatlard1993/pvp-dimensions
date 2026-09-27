@@ -37,8 +37,6 @@ public final class Waves {
 	private Waves() {}
 
 	private static final RandomSource RANDOM = RandomSource.create();
-	/** Before the first wave, a moment to get your bearings. */
-	private static final long FIRST_BREAK_MILLIS = 10_000L;
 	/** A wave is never more than this many, however many players or per player. */
 	private static final int MOST = 150;
 	/** At this many left, the rest glow. */
@@ -54,7 +52,7 @@ public final class Waves {
 		arena.waveIndex = -1;
 		arena.waveNumber = 0;
 		arena.wavesOver = false;
-		arena.nextWaveAt = now + FIRST_BREAK_MILLIS;
+		arena.nextWaveAt = now + arena.preset.waveDelay * 1000L;
 	}
 
 	public static void tick(MinecraftServer server, ServerLevel level, Arena arena, long now, int ticks) {
