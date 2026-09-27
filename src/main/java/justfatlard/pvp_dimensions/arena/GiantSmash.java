@@ -23,6 +23,10 @@ import org.jspecify.annotations.Nullable;
  * where the target stands, which cracks for a second, then smashes it. Everyone on the spot is
  * hurt and thrown, and the ground there breaks, and whatever was built on it.
  *
+ * <p>Something in its way, a wall, a hill, a stand of trees, gets the same: a giant that has got no
+ * closer to its target for a couple of seconds, and can't reach it from where it stands, winds up
+ * against what is in front of it, as wide and tall as itself, and smashes a way through.
+ *
  * <p>The smash breaks only what {@link Mobs#mayBreak} allows.
  */
 public final class GiantSmash extends Goal {
@@ -36,12 +40,21 @@ public final class GiantSmash extends Goal {
 	private static final double BLOW = 3.5;
 	private static final float CENTRE_DAMAGE = 16;
 	private static final float EDGE_DAMAGE = 6;
+	/** Ticks without getting a block closer before a giant stops walking into a wall and breaks it. */
+	private static final int STUCK = 40;
+	/** How deep a way through each smash clears. */
+	private static final int THROUGH = 3;
 
 	private final Giant giant;
 	private int windUp;
 	private int cooldown;
 	private @Nullable Vec3 spot;
 	private final List<BlockPos> crater = new ArrayList<>();
+	/** Whether the smash winding up is at something in the way rather than at the ground under a target. */
+	private boolean clearing;
+	private @Nullable LivingEntity chasing;
+	private double closest;
+	private long closestAt;
 
 	public GiantSmash(Giant giant) {
 		this.giant = giant;
@@ -64,6 +77,8 @@ public final class GiantSmash extends Goal {
 		if (windUp > 0 && giant.level() instanceof ServerLevel level) uncrack(level);
 		windUp = 0;
 		spot = null;
+		clearing = false;
+		chasing = null;
 		giant.getNavigation().stop();
 	}
 
@@ -95,9 +110,61 @@ public final class GiantSmash extends Goal {
 			windUp = WIND_UP;
 			pickCrater(level, BlockPos.containing(spot));
 			level.playSound(null, giant.getX(), giant.getY(), giant.getZ(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 2F, 0.5F);
+		} else if (cooldown == 0 && stuck(level, target, across) && pickWay(level, target)) {
+			giant.getNavigation().stop();
+			clearing = true;
+			windUp = WIND_UP;
+			level.playSound(null, giant.getX(), giant.getY(), giant.getZ(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 2F, 0.5F);
 		} else if (giant.tickCount % 10 == 0 || giant.getNavigation().isDone()) {
 			giant.getNavigation().moveTo(target, WALK);
 		}
+	}
+
+	/** Whether it has got no closer to this target for a while: walking into something, or round and round it. */
+	private boolean stuck(ServerLevel level, LivingEntity target, double across) {
+		long now = level.getGameTime();
+		if (target != chasing || across < closest - 1) {
+			chasing = target;
+			closest = across;
+			closestAt = now;
+			return false;
+		}
+		return now - closestAt >= STUCK;
+	}
+
+	/**
+	 * The blocks between the giant and its target, just ahead of it: as wide and as tall as it is,
+	 * {@link #THROUGH} deep. False when there is nothing there it may break.
+	 */
+	private boolean pickWay(ServerLevel level, LivingEntity target) {
+		crater.clear();
+		double towardX = target.getX() - giant.getX();
+		double towardZ = target.getZ() - giant.getZ();
+		double length = Math.hypot(towardX, towardZ);
+		if (length < 0.01) return false;
+		towardX /= length;
+		towardZ /= length;
+		double half = giant.getBbWidth() / 2;
+		double side = half + 0.5;
+		int bottom = (int) Math.floor(giant.getY());
+		int top = (int) Math.ceil(giant.getY() + giant.getBbHeight());
+		int reach = (int) Math.ceil(half + THROUGH + side);
+		for (int dx = -reach; dx <= reach; dx++) {
+			for (int dz = -reach; dz <= reach; dz++) {
+				double ox = Math.floor(giant.getX()) + dx + 0.5 - giant.getX();
+				double oz = Math.floor(giant.getZ()) + dz + 0.5 - giant.getZ();
+				double ahead = ox * towardX + oz * towardZ;
+				double across = Math.abs(ox * -towardZ + oz * towardX);
+				if (ahead < half - 0.5 || ahead > half + THROUGH || across > side) continue;
+				for (int y = bottom; y <= top; y++) {
+					BlockPos pos = new BlockPos((int) Math.floor(giant.getX()) + dx, y, (int) Math.floor(giant.getZ()) + dz);
+					if (Mobs.mayBreak(level, pos)) crater.add(pos);
+				}
+			}
+		}
+		if (crater.isEmpty()) return false;
+		spot = new Vec3(giant.getX() + towardX * (half + THROUGH / 2.0), giant.getY(), giant.getZ() + towardZ * (half + THROUGH / 2.0));
+		return true;
 	}
 
 	/** The blocks the smash will take: a ragged bowl round the spot, shallow under it, up to head height and a bit over. */
@@ -122,7 +189,7 @@ public final class GiantSmash extends Goal {
 		int stage = tick * 10 / WIND_UP;
 		for (int i = 0; i < crater.size(); i++) {
 			BlockPos pos = crater.get(i);
-			if (pos.getY() < spot.y) level.destroyBlockProgress(crackId(i), pos, stage);
+			if (clearing || pos.getY() < spot.y) level.destroyBlockProgress(crackId(i), pos, stage);
 		}
 		if (tick % 4 == 0) {
 			BlockState ground = level.getBlockState(BlockPos.containing(spot).below());
@@ -138,7 +205,7 @@ public final class GiantSmash extends Goal {
 
 	/** The game shows one crack per id, so each block of the crater gets its own, well clear of any entity's. */
 	private int crackId(int index) {
-		return -(giant.getId() * 64 + index + 1);
+		return -(giant.getId() * 1024 + index + 1);
 	}
 
 	private void smash(ServerLevel level, Vec3 at) {
@@ -166,5 +233,8 @@ public final class GiantSmash extends Goal {
 		crater.clear();
 		cooldown = COOLDOWN;
 		spot = null;
+		// A fresh couple of seconds to walk into the gap before it counts as stuck again.
+		clearing = false;
+		closestAt = level.getGameTime();
 	}
 }

@@ -282,7 +282,8 @@ Everything that happens at a time, drawn as a strip across the match at the top 
   the middle, and thrown, and the ground breaks in a ragged crater, with whatever was built on
   it. The smash doesn't break chests or anything else holding something (a pinata, a Dead Heads
   head), blocks a creeper couldn't break either, a wall still standing, a flag chest or a base
-  cube.
+  cube. Nor does it let a wall or a hill stop it: a giant that has got no closer for a couple of
+  seconds smashes what is in front of it, as wide and tall as itself, and walks on through.
 - **Zombies break through**, where mobs come: a zombie that can't get to a player bangs on what's
   in its way until it breaks, a door or trapdoor first, then the block ahead, or the one under it
   when the player is below. Harder blocks take longer. It spares what the giant's smash spares.
