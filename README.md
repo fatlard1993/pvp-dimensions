@@ -10,8 +10,10 @@ runs out everybody is sent back to where they came from.
 `/pvp` opens the menu. It shows the arena you are in, the arenas running (with **Join** and, for
 their host, **End**), and a tile for every preset you may start. Pick a tile and choose:
 
-- **Invite all** or **Invite none**. Everyone online gets a **[Join]** button in chat once the
-  arena is ready. With none, the lit frame and `/pvp invite` are the only ways in.
+- **Invite all** or **Invite none**. Everyone online is asked once the arena is ready: a notice
+  with **Join** in Pandorical's tray, or a **[Join]** button in chat without Pandorical. The
+  invitation is taken back once they are in, when the arena ends, or when it starts and takes no
+  late arrivals. With none, the lit frame and `/pvp invite` are the only ways in.
 - **Light frame**: the empty obsidian frame nearest you, within a dozen blocks, lights up and
   leads into the arena for as long as it runs. It goes dark again when the arena ends; the
   obsidian stays. Anyone who walks through it is in.

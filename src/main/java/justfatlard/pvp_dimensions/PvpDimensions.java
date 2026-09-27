@@ -4,6 +4,7 @@ import justfatlard.pandorical.api.ActionMenuApi;
 import justfatlard.pandorical.api.PandoricalApi;
 import justfatlard.pvp_dimensions.arena.Arena;
 import justfatlard.pvp_dimensions.arena.Arenas;
+import justfatlard.pvp_dimensions.arena.Asks;
 import justfatlard.pvp_dimensions.arena.Combat;
 import justfatlard.pvp_dimensions.arena.DeathCompasses;
 import justfatlard.pvp_dimensions.arena.Goals;
@@ -105,6 +106,7 @@ public class PvpDimensions implements ModInitializer {
 			if (!alive) Combat.respawned(fresh);
 		});
 		DeathCompasses.register();
+		Asks.register();
 		ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
 			if (entity instanceof ServerPlayer player) Combat.died(player, source);
 			else Combat.mobDied(entity);

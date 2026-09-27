@@ -98,6 +98,7 @@ public final class Travel {
 		Optional<Visit.Experience> experience = preset.isolated() ? Optional.of(Visit.Experience.of(player)) : Optional.empty();
 		Optional<List<AddedSlots.Held>> added = preset.isolated() ? Optional.of(AddedSlots.take(player)) : Optional.empty();
 		Visit.set(player, new Visit(arena.id, home, stash, experience, Optional.empty(), Optional.of(player.gameMode().getName()), added));
+		Asks.arrived(player, arena);
 		if (preset.isolated()) {
 			player.getInventory().clearContent();
 			Visit.Experience.clear(player);

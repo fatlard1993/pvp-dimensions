@@ -226,8 +226,14 @@ public final class Spies {
 		}
 		calls.put(arena.id, new Call(accused.getUUID(), accused.getGameProfile().name(),
 			System.currentTimeMillis() + CALL_MILLIS, new HashSet<>(Set.of(caller.getUUID()))));
-		Arenas.tellInside(server, arena, caller.getGameProfile().name() + " says it is "
-			+ accused.getGameProfile().name() + ". Say /pvp agree to take the blame with them.");
+		String callerName = caller.getGameProfile().name();
+		String accusedName = accused.getGameProfile().name();
+		Arenas.tellInside(server, arena, callerName + " says it is " + accusedName + ".");
+		for (Arena.Member voter : arena.members.values()) {
+			if (!voter.inside || voter.out || voter.watching || voter.id.equals(caller.getUUID()) || voter.id.equals(accused.getUUID())) continue;
+			ServerPlayer player = server.getPlayerList().getPlayer(voter.id);
+			if (player != null) Asks.accusation(player, arena, callerName, accusedName, (int) (CALL_MILLIS / 1000));
+		}
 	}
 
 	/** Agree to the name up. Enough of the room agreeing is what opens the window. */
@@ -245,6 +251,7 @@ public final class Spies {
 			Say.to(voter, "You have said so already");
 			return;
 		}
+		Asks.backed(voter, arena);
 		int standing = standing(arena);
 		int needed = standing / 2 + 1;
 		if (call.agreed().size() < needed) {
@@ -253,6 +260,7 @@ public final class Spies {
 			return;
 		}
 		calls.remove(arena.id);
+		Asks.settled(arena);
 		begin(server, arena, call);
 	}
 
@@ -353,6 +361,7 @@ public final class Spies {
 		Call call = calls.get(arena.id);
 		if (call != null && now >= call.closesAt()) {
 			calls.remove(arena.id);
+			Asks.settled(arena);
 			Arenas.tellInside(server, arena, "Nobody else would say it was " + call.accusedName());
 		}
 		Hunt hunt = hunts.get(arena.id);
@@ -442,7 +451,7 @@ public final class Spies {
 	public static void clear(Arena arena) {
 		seats.remove(arena.id);
 		rounds.remove(arena.id);
-		calls.remove(arena.id);
+		if (calls.remove(arena.id) != null) Asks.settled(arena);
 		hunts.remove(arena.id);
 	}
 }

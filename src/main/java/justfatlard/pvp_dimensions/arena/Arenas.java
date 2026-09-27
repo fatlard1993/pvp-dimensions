@@ -30,7 +30,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.resources.ResourceKey;
@@ -450,6 +449,7 @@ public final class Arenas {
 		long now = System.currentTimeMillis();
 		arena.phase = Arena.Phase.LIVE;
 		arena.liveAt = now;
+		if (arena.preset.lateJoin == Preset.LateJoin.DENY) Asks.closed(server, arena);
 		arena.endsAt = arena.preset.lifeMinutes > 0 ? now + arena.preset.lifeMinutes * 60_000L : 0;
 		if (arena.lobbyStanding) Lobby.remove(level, arena);
 		for (Arena.Member member : arena.inside()) {
@@ -479,12 +479,7 @@ public final class Arenas {
 		vault(server).touch();
 		ServerPlayer player = server.getPlayerList().getPlayer(who);
 		if (player == null || !arena.open()) return;
-		player.sendSystemMessage(inviteLine(arena, from != null ? from.getGameProfile().name() : arena.hostName));
-	}
-
-	private static MutableComponent inviteLine(Arena arena, String from) {
-		return Say.line(from + " invites you to " + arena.title() + " ")
-			.append(Say.button("Join", "/pvp join " + arena.id));
+		Asks.invite(player, arena, from != null ? from.getGameProfile().name() : arena.hostName);
 	}
 
 	/** Ready: whoever was invited hears it, with a button to go. */
@@ -492,7 +487,7 @@ public final class Arenas {
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
 			boolean waitingToGo = waiting.getOrDefault(arena.id, Set.of()).contains(player.getUUID());
 			if (waitingToGo || Visit.of(player) != null) continue;
-			if (arena.openToAll || arena.invited.contains(player.getUUID())) player.sendSystemMessage(inviteLine(arena, arena.hostName));
+			if (arena.openToAll || arena.invited.contains(player.getUUID())) Asks.invite(player, arena, arena.hostName);
 		}
 	}
 
@@ -726,6 +721,7 @@ public final class Arenas {
 		tellInside(server, arena, arena.title() + " is over: " + why + "." + (scores.isEmpty() ? "" : " " + scores));
 		arena.phase = Arena.Phase.ENDED;
 		waiting.remove(arena.id);
+		Asks.closed(server, arena);
 		Fees.settle(arena);
 
 		for (Arena.Member member : List.copyOf(arena.members.values())) {
