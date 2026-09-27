@@ -190,6 +190,9 @@ public final class Scoreboard {
 				title = arena.title();
 			}
 		}
+		if (viewer.zombie && viewer.inside) {
+			lines.add(0, new Line("zombie", viewer.id, 0xFF3F8F3F, "You're a zombie", "hunt the living", 1, true));
+		}
 		String extra = lives(arena, viewer);
 		if (extra != null) footer = footer == null ? extra : footer + " · " + extra;
 		// The series rides under whatever the goal was already saying, because it is the one

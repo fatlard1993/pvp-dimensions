@@ -328,7 +328,8 @@ What you carry, at four stops.
   empty it, the server's own time unless the preset says otherwise, down to nobody at all, for an
   arena where what the dead drop is the loot. Against the mobs,
   **the fallen rise as zombies**: whoever is out, out of lives or dead where nobody comes back,
-  comes back on the mobs' side instead of watching. The mobs leave them be; they hunt the players
+  comes back on the mobs' side instead of watching, told so by a title across the screen, a
+  zombie's groan everyone nearby hears, and a line on the scoreboard. The mobs leave them be; they hunt the players
   still standing, who can fight them back, whatever the rule on players fighting, and so do the
   iron and snow golems the players build. A zombie wears a
   zombie's head and rags it can't take off, carries the preset's **zombie kit** (a stone sword to

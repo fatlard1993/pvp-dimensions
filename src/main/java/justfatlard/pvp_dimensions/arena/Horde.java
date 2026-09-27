@@ -2,10 +2,15 @@ package justfatlard.pvp_dimensions.arena;
 
 import justfatlard.pvp_dimensions.Say;
 import justfatlard.pvp_dimensions.mixin.MobAccessor;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
+import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
+import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -23,6 +28,7 @@ import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.block.LevelEvent;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -63,6 +69,7 @@ public final class Horde {
 		player.removeAllEffects();
 		Teams.horde(player, arena);
 		player.containerMenu.broadcastChanges();
+		told(player, first);
 		if (first) {
 			Say.to(player, "You've risen with the horde. The mobs are with you now: hunt down whoever is still standing");
 			Arenas.tellInside(player.level().getServer(), arena, member.name + " has risen with the horde!");
@@ -121,6 +128,20 @@ public final class Horde {
 		if (!built || !(entity instanceof Mob golem)) return;
 		((MobAccessor) golem).pvpDimensions$targets().addGoal(3,
 			new NearestAttackableTargetGoal<>(golem, Player.class, 10, true, false, (target, level) -> is(target)));
+	}
+
+	/**
+	 * Said so it can't be missed: the head and rags are hard to see in first person, and a chat line
+	 * scrolls away mid-fight. A title across the screen, the groan of a villager turning, heard by
+	 * everyone nearby too, and a line on the scoreboard for as long as it lasts.
+	 */
+	private static void told(ServerPlayer player, boolean first) {
+		player.connection.send(new ClientboundSetTitlesAnimationPacket(5, 50, 15));
+		player.connection.send(new ClientboundSetSubtitleTextPacket(Component.literal(first
+			? "The mobs are with you now. Hunt whoever is still standing"
+			: "Up again with the horde").withStyle(ChatFormatting.GRAY)));
+		player.connection.send(new ClientboundSetTitleTextPacket(Component.literal("You're a zombie").withStyle(ChatFormatting.DARK_GREEN)));
+		player.level().levelEvent(null, LevelEvent.SOUND_ZOMBIE_INFECTED, player.blockPosition(), 0);
 	}
 
 	/** Human again, on the way out: the tag off, and the horde's things taken back. */
