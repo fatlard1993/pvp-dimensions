@@ -584,7 +584,7 @@ public final class Arenas {
 		Mobs.tick(server, level, arena, now, lastMobs);
 		Waves.tick(server, level, arena, now, ticks);
 		if (ticks % 40 == 0) Mobs.turnOnPlayers(server, level, arena);
-		Goals.tick(server, level, arena, now);
+		Goals.tick(server, level, arena, now, ticks / 10);
 		if (arena.phase != Arena.Phase.LIVE) return;
 		if (arena.endsAt > 0 && now >= arena.endsAt && arena.closesAt == 0) {
 			// The answer was being thrown away: timeUp says whether it found a winner, and a

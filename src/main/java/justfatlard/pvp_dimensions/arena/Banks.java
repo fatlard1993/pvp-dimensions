@@ -73,8 +73,8 @@ public final class Banks {
 	}
 
 	/** Every bank counted once a second, and a team at the preset's target wins. */
-	public static void tick(MinecraftServer server, ServerLevel level, Arena arena, int ticks) {
-		if (ticks % 2 != 0) return;
+	public static void tick(MinecraftServer server, ServerLevel level, Arena arena, int pass) {
+		if (pass % 2 != 0) return;
 		Preset preset = arena.preset;
 		for (int team = 0; team < preset.teams && team < arena.bases.size(); team++) {
 			BlockPos bank = arena.bases.get(team);

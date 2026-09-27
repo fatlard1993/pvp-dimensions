@@ -66,7 +66,6 @@ public final class Goals {
 	private static final Map<String, Map<Integer, Integer>> covered = new HashMap<>();
 	/** Each arena's teams' share of the ground, in percent, as last counted. */
 	private static final Map<String, Map<Integer, Integer>> coveredPercent = new HashMap<>();
-	private static int ticks;
 
 	// --- The start ---
 
@@ -598,7 +597,12 @@ public final class Goals {
 
 	// --- Every tick ---
 
-	public static void tick(MinecraftServer server, ServerLevel level, Arena arena, long now) {
+	/**
+	 * @param pass how many times the arenas have been looked at, the same for every arena on a
+	 *             pass: a count kept here and bumped per call went up once for each arena, so with
+	 *             two running, one of them only ever saw odd numbers and never counted its banks
+	 */
+	public static void tick(MinecraftServer server, ServerLevel level, Arena arena, long now, int pass) {
 		if (arena.closesAt > 0) {
 			// The fork a series puts in the one place a won game used to have: another round, or
 			// the end. Rounds.over already counts the round just won, so a best of three that has
@@ -609,13 +613,12 @@ public final class Goals {
 			}
 			return;
 		}
-		ticks++;
 		if (arena.preset.activeGoal() == Preset.Goal.SPY) Spies.tick(server, arena, now);
 		switch (arena.preset.activeGoal()) {
 			case CTF -> flags(server, level, arena);
 			case DESTRUCTION -> bases(server, level, arena);
 			case TAKEOVER -> {
-				if (ticks % 10 == 0) takeover(server, level, arena);
+				if (pass % 10 == 0) takeover(server, level, arena);
 			}
 			case MOBS -> {
 				if (!outable(arena.preset) || now - arena.liveAt < 5_000L) break;
@@ -634,7 +637,7 @@ public final class Goals {
 				outOfLives(server, arena, now);
 			}
 			case BANK -> {
-				Banks.tick(server, level, arena, ticks);
+				Banks.tick(server, level, arena, pass);
 				outOfLives(server, arena, now);
 			}
 			case RACE -> {
