@@ -4,7 +4,12 @@ import justfatlard.pvp_dimensions.world.Footprint;
 import net.minecraft.network.protocol.game.ClientboundInitializeBorderPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.ExperienceOrb;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.level.border.WorldBorder;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -68,5 +73,47 @@ public final class Borders {
 		Vec3 spot = Spawns.standAt(level, arena, (int) Math.floor(inX), (int) Math.floor(inZ));
 		if (spot == null) spot = Spawns.near(level, arena, (int) Math.floor(inX), (int) Math.floor(inZ), 8);
 		player.teleportTo(level, spot.x, spot.y, spot.z, java.util.Set.of(), player.getYRot(), player.getXRot(), false);
+	}
+
+	/** How far past the edge anything else is looked for: whatever has slipped out since the last look. */
+	private static final double STRAYED = 48;
+
+	/**
+	 * The border holds players only, so whatever else the fight throws about is fetched back: a
+	 * pinata's loot flung off the edge, a giant knocked over it, anything that dropped through a
+	 * gap in the ground towards the void. Set down just inside, on the ground, and still.
+	 *
+	 * <p>Moved by position rather than a teleport, which {@link Gateways#maySnap} would refuse for
+	 * something standing outside every arena.
+	 */
+	public static void keepIn(ServerLevel level, Arena arena) {
+		Footprint footprint = arena.footprint();
+		double half = size(arena, System.currentTimeMillis()) / 2;
+		double minX = footprint.centerX() - half;
+		double maxX = footprint.centerX() + half;
+		double minZ = footprint.centerZ() - half;
+		double maxZ = footprint.centerZ() + half;
+		AABB around = new AABB(minX - STRAYED, level.getMinY() - 64, minZ - STRAYED, maxX + STRAYED, level.getMaxY(), maxZ + STRAYED);
+		for (Entity entity : level.getEntities((Entity) null, around, Borders::fetched)) {
+			double x = entity.getX();
+			double z = entity.getZ();
+			boolean out = x < minX - SLACK || x > maxX + SLACK || z < minZ - SLACK || z > maxZ + SLACK;
+			if (!out && entity.getY() >= level.getMinY()) continue;
+			double inX = Math.max(minX + 2, Math.min(maxX - 2, x));
+			double inZ = Math.max(minZ + 2, Math.min(maxZ - 2, z));
+			Vec3 spot = Spawns.standAt(level, arena, (int) Math.floor(inX), (int) Math.floor(inZ));
+			if (spot == null) spot = Spawns.near(level, arena, (int) Math.floor(inX), (int) Math.floor(inZ), 8);
+			entity.setPos(spot.x, spot.y, spot.z);
+			entity.setDeltaMovement(Vec3.ZERO);
+			entity.resetFallDistance();
+			entity.needsSync = true;
+			if (entity instanceof Mob mob) mob.getNavigation().stop();
+		}
+	}
+
+	/** Loot, experience and anything with a mind; a rider comes back with its mount. */
+	private static boolean fetched(Entity entity) {
+		if (entity.isPassenger()) return false;
+		return entity instanceof ItemEntity || entity instanceof ExperienceOrb || entity instanceof Mob;
 	}
 }

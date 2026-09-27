@@ -234,6 +234,8 @@ Saved terrain is kept with the world, in `pvp-dimensions/terrain/`.
 Everything that happens at a time, drawn as a strip across the match at the top of the tab.
 
 - **Border closes to**: the border draws in over the arena's life.
+  The border holds everything, not just players: loot flung past it, a mob knocked over it, or
+  anything dropping through the ground toward the void is set back down just inside.
 - **Walls fall after**: a divided arena's walls come down part way through the fight, all at once
   from the top like a curtain, in the dust and noise of the wall breaking. **Walls hold till
   then**, if you like: nobody can break or blow through one before it falls.

@@ -578,6 +578,7 @@ public final class Arenas {
 			if (player == null || player.level() != level || member.watching) continue;
 			Borders.enforce(level, arena, player);
 		}
+		Borders.keepIn(level, arena);
 		if (!arena.wallsDown && arena.terrain().divided() && arena.preset.wallsFall > 0
 				&& now >= arena.liveAt + arena.preset.wallsFall * 60_000L) {
 			wallsFall(server, level, arena);
