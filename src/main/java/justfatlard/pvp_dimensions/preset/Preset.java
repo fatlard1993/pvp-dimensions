@@ -5,6 +5,7 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import justfatlard.pvp_dimensions.world.Maze;
 
 /**
  * Everything an arena is made from. Admins save these; users start from them; an arena keeps its
@@ -23,7 +24,8 @@ public final class Preset {
 	public enum NameTags { SHOWN, TEAMMATES, HIDDEN }
 	public enum Source { GENERATE, SAVED }
 	public enum World { OVERWORLD, NETHER, END }
-	public enum Shape { NATURAL, FLAT }
+	public enum Shape { NATURAL, FLAT, MAZE }
+	public enum MazeRoof { NONE, GLASS, SOLID }
 	public enum Material { NATURAL, SINGLE, SWAP, LAYERS }
 	/** Whose ground an arena is made of: its own world's, or another's laid on its shape. */
 	public enum Ground { OWN, OVERWORLD, NETHER, END }
@@ -279,6 +281,18 @@ public final class Preset {
 	public int size = 6;
 	public World world = World.OVERWORLD;
 	public Shape shape = Shape.NATURAL;
+	public Maze.Layout mazeLayout = Maze.Layout.SQUARE;
+	/** Blocks across a path, and a wall's thickness and height. */
+	public int mazePath = 3;
+	public int mazeWall = 1;
+	public int mazeHeight = 4;
+	/** Of the dead ends, the share knocked through, in percent: none leaves one way between any two places. */
+	public int mazeLoops = 10;
+	/** Empty for the ground's own: stone bricks, nether bricks, purpur. */
+	public String mazeBlock = "";
+	public MazeRoof mazeRoof = MazeRoof.NONE;
+	/** Whether the maze's walls and roof can't be broken or blown through. */
+	public boolean mazeHolds = true;
 	public String biome = "minecraft:plains";
 	public Ground ground = Ground.OWN;
 	public int depth = 24;
@@ -432,6 +446,21 @@ public final class Preset {
 	 */
 	public boolean isolated() {
 		return traversal != Traversal.FREE || creative();
+	}
+
+	/** Level ground: flat, or a maze laid on flat. */
+	public boolean levelGround() {
+		return shape != Shape.NATURAL;
+	}
+
+	/** What the maze is walled with: the chosen block, or the ground's own. */
+	public String mazeWallBlock() {
+		if (!mazeBlock.isEmpty()) return mazeBlock;
+		return switch (groundWorld()) {
+			case OVERWORLD -> "minecraft:stone_bricks";
+			case NETHER -> "minecraft:nether_bricks";
+			case END -> "minecraft:purpur_block";
+		};
 	}
 
 	/** The world whose stone, fluid and surface blocks the ground is made of. */

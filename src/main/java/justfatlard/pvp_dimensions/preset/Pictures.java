@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import justfatlard.pvp_dimensions.world.Divisions;
+import justfatlard.pvp_dimensions.world.Maze;
 
 /**
  * The editor's two pictures, drawn from a preset before any arena exists: the arena from above,
@@ -47,12 +48,21 @@ public final class Pictures {
 			partWall[part] = palette.add(teamWalls ? 0xFF000000 | team : PLAIN_WALL);
 		}
 		byte[] cells = new byte[MAP * MAP];
+		// A maze of the preset's kind drawn at the map's scale: not the one an arena will get, which is
+		// new every time, but its shape, its paths' width against the arena's, and how it loops.
+		java.util.BitSet maze = null;
+		int mazeWall = 0;
+		if (p.shape == Preset.Shape.MAZE && p.source != Preset.Source.SAVED) {
+			int path = Math.max(1, Math.round(p.mazePath * MAP / (p.size * 16f)));
+			maze = Maze.carve(p.mazeLayout, MAP, path, 1, p.mazeLoops, 1);
+			mazeWall = palette.add(darker(PLAIN_WALL));
+		}
 		boolean bedrockWalls = p.bedrock == Preset.Bedrock.BOTTOM_WALLS || p.bedrock == Preset.Bedrock.SHELL;
 		int bedrock = palette.add(BEDROCK);
 		for (int z = 0; z < MAP; z++) {
 			for (int x = 0; x < MAP; x++) {
 				int part = divisions.part(MAP, x, z);
-				int colour = divisions.wall(MAP, x, z) ? partWall[part] : partGround[part];
+				int colour = divisions.wall(MAP, x, z) ? partWall[part] : maze != null && maze.get(z * MAP + x) ? mazeWall : partGround[part];
 				if (bedrockWalls && (x == 0 || z == 0 || x == MAP - 1 || z == MAP - 1)) colour = bedrock;
 				cells[z * MAP + x] = (byte) colour;
 			}
@@ -61,6 +71,7 @@ public final class Pictures {
 		List<Field.Picture.Key> key = new ArrayList<>();
 		int blocks = p.size * 16;
 		key.add(new Field.Picture.Key(p.size + " chunks across", 0xFF404040));
+		if (maze != null) key.add(new Field.Picture.Key((p.mazeLayout == Maze.Layout.ROUND ? "a round maze" : "a maze") + ", a new one each time", darker(PLAIN_WALL)));
 		if (divisions.parts() > 1) {
 			key.add(new Field.Picture.Key(divisions.slices() > 0 ? divisions.parts() + " slices, equal ground"
 				: divisions.rows() > 1 ? divisions.cols() + " by " + divisions.rows() : divisions.parts() + " parts",

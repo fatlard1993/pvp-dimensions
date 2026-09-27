@@ -55,8 +55,17 @@ public final class Shaper {
 					smoothFloor(chunk, x, z, floor, pos);
 				}
 				column(chunk, footprint, x, z, floored || hasGround ? bottom : minY, pos);
+				if (terrain.maze() != null) maze(chunk, terrain.maze(), x, z, pos);
 			}
 		}
+	}
+
+	/** The maze's wall standing in this column, if one does, and its roof over it. */
+	private static void maze(ChunkAccess chunk, Maze maze, int x, int z, BlockPos.MutableBlockPos pos) {
+		if (maze.wall(x, z)) {
+			for (int y = maze.baseY() + 1; y <= Math.min(maze.topY(), chunk.getMaxY()); y++) set(chunk, pos.set(x, y, z), maze.block());
+		}
+		if (maze.roof() != null && maze.roofY() <= chunk.getMaxY()) set(chunk, pos.set(x, maze.roofY(), z), maze.roof());
 	}
 
 	/** How far above the bottom of the world the game scatters its ragged bedrock. */
@@ -148,6 +157,8 @@ public final class Shaper {
 			for (int localZ = 0; localZ < 16; localZ++) {
 				int x = chunk.getPos().getMinBlockX() + localX;
 				int z = chunk.getPos().getMinBlockZ() + localZ;
+				// Again after trees, which grow across a maze's paths and into its walls.
+				if (terrain.maze() != null) maze(chunk, terrain.maze(), x, z, pos);
 				if (terrain.wallAt(footprint, x, z) == null) continue;
 				column(chunk, footprint, x, z, lowestSolid(chunk, x, z), pos);
 			}

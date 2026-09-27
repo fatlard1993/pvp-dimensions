@@ -304,7 +304,7 @@ public final class Arenas {
 		if (meta != null) {
 			surfaceY = meta.surfaceY();
 			highestY = meta.highestY();
-		} else if (preset.shape == Preset.Shape.FLAT) {
+		} else if (preset.levelGround()) {
 			surfaceY = ArenaGenerator.FLAT_TOP;
 			highestY = surfaceY;
 		} else if (preset.roofed()) {

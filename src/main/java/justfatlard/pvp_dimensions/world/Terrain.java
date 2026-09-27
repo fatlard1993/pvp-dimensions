@@ -28,6 +28,7 @@ import org.jspecify.annotations.Nullable;
  * @param rows      a grid's rows; one, for slices
  * @param slices    how many pie slices the arena is cut into from its middle; 0 for a grid
  * @param cutsDepth false where there is no one surface to measure down from, the nether's roof
+ * @param maze      the walls stood on flat ground, or null for no maze
  */
 public record Terrain(
 	Kind kind,
@@ -45,7 +46,8 @@ public record Terrain(
 	int slices,
 	List<BlockState> cellWalls,
 	boolean structures,
-	boolean cutsDepth
+	boolean cutsDepth,
+	@Nullable Maze maze
 ) {
 	public enum Kind { NOISE, FLAT, EMPTY }
 

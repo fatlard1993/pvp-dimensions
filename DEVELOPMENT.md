@@ -44,6 +44,7 @@ made in `createState` from the level's seed, passing it in place of the blank on
 | `preset/Kit.java`, `preset/ItemList.java` | Item lists laid out by slot, and plain |
 | `world/ArenaGenerator.java`, `world/ArenaBiomes.java` | Ground only inside arenas |
 | `world/Shaper.java`, `world/Terrain.java` | Depth, material, bedrock, divisions, applied while a chunk generates |
+| `world/Maze.java` | A maze carved from the middle, square or in rings, as the walls on flat ground a column at a time |
 | `world/Divisions.java` | How walls cut a square up, grid or pie slices of equal ground, for the arena and the editor's map alike |
 | `world/SavedTerrains.java` | Saving an arena block for block, a chunk a file, and pasting it back |
 | `arena/Arenas.java` | Starting, generating, the waiting room, going live, the tick, ending |

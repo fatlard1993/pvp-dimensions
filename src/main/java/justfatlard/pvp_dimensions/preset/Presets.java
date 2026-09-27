@@ -442,6 +442,14 @@ public final class Presets {
 		json.addProperty("size", p.size);
 		json.addProperty("world", name(p.world));
 		json.addProperty("shape", name(p.shape));
+		json.addProperty("maze_layout", name(p.mazeLayout));
+		json.addProperty("maze_path", p.mazePath);
+		json.addProperty("maze_wall", p.mazeWall);
+		json.addProperty("maze_height", p.mazeHeight);
+		json.addProperty("maze_loops", p.mazeLoops);
+		json.addProperty("maze_block", p.mazeBlock);
+		json.addProperty("maze_roof", name(p.mazeRoof));
+		json.addProperty("maze_holds", p.mazeHolds);
 		json.addProperty("biome", p.biome);
 		json.addProperty("ground", name(p.ground));
 		json.addProperty("depth", p.depth);
@@ -659,6 +667,14 @@ public final class Presets {
 			Preset.World world = parse(Preset.World.class, old);
 			p.world = world != null ? world : Preset.World.OVERWORLD;
 		}
+		p.mazeLayout = choice(json, "maze_layout", justfatlard.pvp_dimensions.world.Maze.Layout.class, p.mazeLayout);
+		integer(json, "maze_path", v -> p.mazePath = Math.max(1, Math.min(16, v)));
+		integer(json, "maze_wall", v -> p.mazeWall = Math.max(1, Math.min(8, v)));
+		integer(json, "maze_height", v -> p.mazeHeight = Math.max(1, Math.min(64, v)));
+		integer(json, "maze_loops", v -> p.mazeLoops = Math.max(0, Math.min(100, v)));
+		string(json, "maze_block", v -> p.mazeBlock = v);
+		p.mazeRoof = choice(json, "maze_roof", Preset.MazeRoof.class, p.mazeRoof);
+		bool(json, "maze_holds", v -> p.mazeHolds = v);
 		string(json, "biome", v -> p.biome = v);
 		p.ground = choice(json, "ground", Preset.Ground.class, p.ground);
 		integer(json, "depth", v -> p.depth = Math.max(0, v));

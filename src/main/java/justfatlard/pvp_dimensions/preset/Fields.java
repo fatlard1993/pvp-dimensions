@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Predicate;
 import justfatlard.pvp_dimensions.PvpDimensions;
+import justfatlard.pvp_dimensions.world.Maze;
 import justfatlard.pvp_dimensions.world.SavedTerrains;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.registries.Registries;
@@ -241,8 +242,10 @@ public final class Fields {
 				p.swaps.clear();
 			}).help("Its shape, its biomes and its sky, and the blocks its ground is made of unless Ground says otherwise").when(Fields::generated));
 		fields.add(Field.Choice.ofEnum(ARENA, "shape", "Shape", Preset.Shape.class,
-			new String[] {"Natural", "Flat"}, p -> p.shape, (p, v) -> p.shape = v)
-			.help("Natural: the world's own hills, caverns or islands. Flat: level ground, laid by the biome").when(Fields::generated));
+			new String[] {"Natural", "Flat", "Maze"}, p -> p.shape, (p, v) -> p.shape = v)
+			.help("Natural: the world's own hills, caverns or islands. Flat: level ground, laid by the biome. Maze: flat, walled into a maze")
+			.when(Fields::generated));
+		mazeFields(fields);
 		fields.add(new Field.Choice(ARENA, "biome", "Biome", p -> biomeOptions(p.world), p -> p.biome, (p, v) -> p.biome = v)
 			.when(Fields::generated));
 		fields.add(Field.Choice.ofEnum(ARENA, "ground", "Ground", Preset.Ground.class,
@@ -293,7 +296,7 @@ public final class Fields {
 			.when(Fields::generated));
 		fields.add(new Field.Toggle(ARENA, "flat_features", "Biome features", p -> p.flatFeatures, (p, v) -> p.flatFeatures = v)
 			.help("Trees, cacti, spikes and pools: whatever the biome grows. Off leaves the flat bare")
-			.when(p -> generated(p) && p.shape == Preset.Shape.FLAT));
+			.when(p -> generated(p) && p.levelGround()));
 		fields.add(new Field.Toggle(ARENA, "structures", "Villages and ruins", p -> p.structures, (p, v) -> p.structures = v)
 			.when(p -> generated(p) && p.shape == Preset.Shape.NATURAL));
 		fields.add(Field.Choice.ofEnum(ARENA, "team_bases", "Team bases", Preset.BaseStyle.class,
@@ -583,6 +586,39 @@ public final class Fields {
 	}
 
 	private enum CapsCount { TEAM, MATCH }
+
+	private static final int[] MAZE_PATHS = {1, 2, 3, 4, 5, 6, 8};
+	private static final int[] MAZE_WALLS = {1, 2, 3, 4};
+	private static final int[] MAZE_HEIGHTS = {2, 3, 4, 5, 6, 8, 12, 16};
+	private static final int[] MAZE_LOOPS = {0, 10, 25, 50, 100};
+
+	private static void mazeFields(List<Field> fields) {
+		java.util.function.Predicate<Preset> maze = p -> generated(p) && p.shape == Preset.Shape.MAZE;
+		fields.add(Field.Choice.ofEnum(ARENA, "maze_layout", "Maze", Maze.Layout.class,
+			new String[] {"Square", "Round"}, p -> p.mazeLayout, (p, v) -> p.mazeLayout = v)
+			.help("Square: a grid of paths. Round: rings about a room in the middle, the paths curving round").when(maze));
+		fields.add(new Field.Number(ARENA, "maze_path", "Paths", MAZE_PATHS, v -> v + (v == 1 ? " block wide" : " blocks wide"),
+			p -> p.mazePath, (p, v) -> p.mazePath = v).help("A round maze's paths are at least two wide").when(maze));
+		fields.add(new Field.Number(ARENA, "maze_wall", "Walls", MAZE_WALLS, v -> v + (v == 1 ? " block thick" : " blocks thick"),
+			p -> p.mazeWall, (p, v) -> p.mazeWall = v).when(maze));
+		fields.add(new Field.Number(ARENA, "maze_height", "Wall height", MAZE_HEIGHTS, v -> v + " blocks",
+			p -> p.mazeHeight, (p, v) -> p.mazeHeight = v).help("Two can be jumped with a block; higher can't be seen over").when(maze));
+		fields.add(new Field.Number(ARENA, "maze_loops", "Ways round", MAZE_LOOPS, v -> switch (v) {
+				case 0 -> "Only one";
+				case 10 -> "A few loops";
+				case 25 -> "Some loops";
+				case 50 -> "Many loops";
+				default -> "No dead ends";
+			}, p -> p.mazeLoops, (p, v) -> p.mazeLoops = v)
+			.help("Only one: a single way between any two places. More loops, more ways to get round someone").when(maze));
+		fields.add(new Field.BlockRef(ARENA, "maze_block", "Walls of", true, p -> p.mazeBlock, (p, v) -> p.mazeBlock = v)
+			.unset("The ground's own").help("Stone bricks, nether bricks or purpur unless you pick").when(maze));
+		fields.add(Field.Choice.ofEnum(ARENA, "maze_roof", "Roof", Preset.MazeRoof.class,
+			new String[] {"Open sky", "Glass", "Solid"}, p -> p.mazeRoof, (p, v) -> p.mazeRoof = v)
+			.help("Solid makes it dark inside").when(maze));
+		fields.add(new Field.Toggle(ARENA, "maze_holds", "Walls hold", p -> p.mazeHolds, (p, v) -> p.mazeHolds = v)
+			.help("Nobody can break or blow through the maze. Off, and a pickaxe is a shortcut").when(maze));
+	}
 
 	private static final int[] WAVE_DELAYS = {0, 5, 10, 15, 30, 45, 60, 90, 120, 180, 300};
 	private static final int[] WAVE_BREAKS = {5, 10, 15, 20, 30, 45, 60, 90, 120};

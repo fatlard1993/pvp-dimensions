@@ -198,7 +198,15 @@ where the arena will put them.
   somewhere new every time; or **flat**, the biome's own ground laid dead level: grass on plains,
   sand on a desert, sulfur and cinnabar in sulfur caves, crimson nylium in a crimson forest, end
   stone in the end. **Biome features** puts the biome's trees, fungi, cacti and chorus on the flat
-  too, or leaves it bare. Caves are not cut into it.
+  too, or leaves it bare. Caves are not cut into it. Or a **maze**: the flat, walled into one.
+- **The maze**, square (a grid of paths) or **round** (rings about a room in the middle). **Paths**
+  one to eight blocks wide (a round one's at least two), **walls** one to four thick and two to
+  sixteen **high**, and **ways round**: only one, where a single path joins any two places, through
+  a few, some and many loops to no dead ends at all. **Walls of** the ground's own brick unless you
+  pick a block; a **roof** of glass, or a solid one for a dark maze; and **walls hold**, so nothing
+  breaks or blows through, or off, so a pickaxe is a shortcut. Every arena gets a new maze; the
+  editor's map shows its kind. Players and mobs are set down on its paths, and the way out is in
+  the room in the middle.
 - **Ground depth**: how far below its surface the ground goes before the void.
 - **Material**: as it grows; all one block; **swap** blocks, starting from the ground's own
   palette with every block becoming itself; or **layers**, each a block and a share of the depth.

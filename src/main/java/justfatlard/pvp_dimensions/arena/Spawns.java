@@ -2,6 +2,7 @@ package justfatlard.pvp_dimensions.arena;
 
 import justfatlard.pvp_dimensions.preset.Preset;
 import justfatlard.pvp_dimensions.world.Footprint;
+import justfatlard.pvp_dimensions.world.Maze;
 import justfatlard.pvp_dimensions.world.Terrain;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -112,11 +113,15 @@ public final class Spawns {
 		if (!level.hasChunk(x >> 4, z >> 4)) return null;
 		Terrain terrain = footprint.terrain();
 		if (terrain.wallAt(footprint, x, z) != null || nearWall(footprint, terrain, x, z)) return null;
+		Maze maze = terrain.maze();
+		if (maze != null && maze.wall(x, z)) return null;
 
 		boolean underRoof = arena.preset.roofed() && arena.preset.source == Preset.Source.GENERATE;
 		int top = underRoof
 			? arena.wallTop - 4
 			: Math.min(arena.wallTop - 2, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z));
+		// In a maze, on its floor: never on a roof, and the walls round a path are no pit.
+		if (maze != null) top = Math.min(top, maze.topY() - 1);
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, top, z);
 		for (int y = top; y > level.getMinY(); y--) {
 			pos.setY(y);
@@ -125,7 +130,7 @@ public final class Spawns {
 			BlockState head = level.getBlockState(pos.above());
 			BlockState ground = level.getBlockState(pos.below());
 			if (roomy(feet) && roomy(head) && floor(ground)) {
-				if (open && !underRoof && !openAround(level, x, y, z)) return null;
+				if (open && !underRoof && maze == null && !openAround(level, x, y, z)) return null;
 				return new Vec3(x + 0.5, y, z + 0.5);
 			}
 		}

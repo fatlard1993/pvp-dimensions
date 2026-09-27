@@ -161,7 +161,16 @@ public final class Summary {
 			case NETHER -> " of nether blocks";
 			case END -> " of end blocks";
 		};
-		String ground = (p.shape == Preset.Shape.FLAT ? "Flat" + world + " ground" : "Natural" + world + " ground") + laid
+		String shape = switch (p.shape) {
+			case NATURAL -> "Natural" + world + " ground";
+			case FLAT -> "Flat" + world + " ground";
+			case MAZE -> (p.mazeLayout == justfatlard.pvp_dimensions.world.Maze.Layout.ROUND ? "A round" : "A") + world + " maze"
+				+ ", paths " + Math.max(p.mazeLayout == justfatlard.pvp_dimensions.world.Maze.Layout.ROUND ? 2 : 1, p.mazePath) + " wide"
+				+ " between walls " + p.mazeHeight + " high" + (p.mazeLoops == 0 ? ", one way through" : p.mazeLoops >= 100 ? ", no dead ends" : "")
+				+ (p.mazeRoof == Preset.MazeRoof.NONE ? "" : p.mazeRoof == Preset.MazeRoof.GLASS ? " under glass" : ", roofed over")
+				+ (p.mazeHolds ? "" : " that can be broken through");
+		};
+		String ground = shape + laid
 			+ " (" + Fields.biomeName(p.biome) + "), " + p.size + " chunks across";
 		if (p.divisions > 1) {
 			ground += ", cut into " + p.divisions + (p.divisionShape == Preset.DivisionShape.PIE && p.divisions > 2 ? " slices" : " parts");

@@ -14,6 +14,7 @@ import justfatlard.pvp_dimensions.preset.ItemList;
 import justfatlard.pvp_dimensions.preset.Preset;
 import justfatlard.pvp_dimensions.preset.TeamColors;
 import justfatlard.pvp_dimensions.world.Footprint;
+import justfatlard.pvp_dimensions.world.Maze;
 import justfatlard.pvp_dimensions.world.Terrain;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -254,7 +255,7 @@ public final class Goals {
 	public static boolean protectedBlock(Arena arena, BlockPos pos, @Nullable ServerPlayer breaker) {
 		Preset.Goal goal = arena.preset.activeGoal();
 		boolean admin = breaker != null && breaker.isCreative() && justfatlard.pvp_dimensions.Access.admin(breaker);
-		if (Markers.part(arena, pos) || TeamChests.kept(arena, pos) || wallHolds(arena, pos)) return !admin;
+		if (Markers.part(arena, pos) || TeamChests.kept(arena, pos) || wallHolds(arena, pos) || mazeHolds(arena, pos)) return !admin;
 		if (goal == Preset.Goal.CTF || goal == Preset.Goal.BANK) {
 			for (BlockPos base : arena.bases) {
 				if (pos.equals(base) || pos.equals(base.east())) return breaker == null || !breaker.isCreative();
@@ -394,6 +395,15 @@ public final class Goals {
 		Footprint footprint = arena.footprint();
 		BlockState wall = footprint.terrain().wallAt(footprint, pos.getX(), pos.getZ());
 		return wall != null && wall != Terrain.BEDROCK;
+	}
+
+	/** A maze's wall or roof, where the preset says the maze holds. */
+	public static boolean mazeHolds(Arena arena, BlockPos pos) {
+		if (!arena.preset.mazeHolds) return false;
+		Maze maze = arena.footprint().terrain().maze();
+		if (maze == null) return false;
+		if (maze.roof() != null && pos.getY() == maze.roofY()) return true;
+		return pos.getY() > maze.baseY() && pos.getY() <= maze.topY() && maze.wall(pos.getX(), pos.getZ());
 	}
 
 	/** Each team's share of the ground in its colour, in percent, as last counted. */

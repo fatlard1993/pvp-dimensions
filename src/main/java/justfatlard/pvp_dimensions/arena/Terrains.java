@@ -8,6 +8,7 @@ import justfatlard.pvp_dimensions.preset.Preset;
 import justfatlard.pvp_dimensions.world.ArenaBiomes;
 import justfatlard.pvp_dimensions.world.ArenaGenerator;
 import justfatlard.pvp_dimensions.world.Divisions;
+import justfatlard.pvp_dimensions.world.Maze;
 import justfatlard.pvp_dimensions.world.SavedTerrains;
 import justfatlard.pvp_dimensions.world.Terrain;
 import net.minecraft.core.Holder;
@@ -28,7 +29,7 @@ public final class Terrains {
 	public static Terrain of(Arena arena) {
 		Preset preset = arena.preset;
 		boolean saved = preset.source == Preset.Source.SAVED;
-		Terrain.Kind kind = saved ? Terrain.Kind.EMPTY : preset.shape == Preset.Shape.FLAT ? Terrain.Kind.FLAT : Terrain.Kind.NOISE;
+		Terrain.Kind kind = saved ? Terrain.Kind.EMPTY : preset.levelGround() ? Terrain.Kind.FLAT : Terrain.Kind.NOISE;
 
 		String biomeId = saved ? SavedTerrains.biomeOf(preset.saved) : preset.biome;
 		Holder<Biome> biome = biome(arena, biomeId);
@@ -62,7 +63,26 @@ public final class Terrains {
 			slices,
 			List.copyOf(cellWalls),
 			!saved && preset.structures,
-			!preset.roofed());
+			!preset.roofed(),
+			saved || preset.shape != Preset.Shape.MAZE ? null : maze(arena, preset));
+	}
+
+	/**
+	 * The arena's maze, the same every time it is asked for: seeded from the arena itself, so the
+	 * walls a restart rebuilds from are the walls that were there before it.
+	 */
+	private static Maze maze(Arena arena, Preset preset) {
+		int width = arena.chunks * 16;
+		long seed = arena.createdAt * 31 + arena.plot;
+		BlockState block = Terrain.block(preset.mazeWallBlock(), Blocks.STONE_BRICKS.defaultBlockState());
+		BlockState roof = switch (preset.mazeRoof) {
+			case NONE -> null;
+			case GLASS -> Blocks.GLASS.defaultBlockState();
+			case SOLID -> block;
+		};
+		return new Maze(arena.minChunkX * 16, arena.minChunkZ * 16, width,
+			Maze.carve(preset.mazeLayout, width, preset.mazePath, preset.mazeWall, preset.mazeLoops, seed),
+			block, ArenaGenerator.FLAT_TOP, preset.mazeHeight, roof);
 	}
 
 	/**

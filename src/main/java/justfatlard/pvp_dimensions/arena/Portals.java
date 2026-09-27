@@ -147,7 +147,11 @@ public final class Portals {
 
 	// --- Exits ---
 
-	/** One way out in the middle, or one in each division when walls would cut the middle off. */
+	/**
+	 * One way out in the middle, or one in each division when walls would cut the middle off. Near
+	 * the middle rather than on it, where there is room; right on it in a maze, whose middle is the
+	 * one open room, and anywhere else the frame would clear its space through the maze's walls.
+	 */
 	public static void buildExits(ServerLevel level, Arena arena) {
 		Footprint footprint = arena.footprint();
 		Terrain terrain = footprint.terrain();
@@ -155,7 +159,8 @@ public final class Portals {
 		if (terrain.divided()) {
 			for (int cell = 0; cell < terrain.parts(); cell++) spots.add(terrain.partCenter(footprint, cell));
 		} else {
-			spots.add(new int[] {footprint.minX() + footprint.width() / 2 + 6, footprint.minZ() + footprint.width() / 2});
+			int off = terrain.maze() != null ? 0 : 6;
+			spots.add(new int[] {footprint.minX() + footprint.width() / 2 + off, footprint.minZ() + footprint.width() / 2});
 		}
 		for (int[] spot : spots) {
 			Vec3 ground = Spawns.near(level, arena, spot[0], spot[1], 6);
@@ -168,9 +173,12 @@ public final class Portals {
 	private static void buildExit(ServerLevel level, Arena arena, BlockPos base) {
 		BlockState obsidian = Blocks.OBSIDIAN.defaultBlockState();
 		BlockState portal = Blocks.NETHER_PORTAL.defaultBlockState().setValue(NetherPortalBlock.AXIS, Direction.Axis.X);
+		// Room cleared up to a maze's roof and no further, or the frame would leave a hole in it.
+		var maze = arena.footprint().terrain().maze();
+		int headroom = maze != null && maze.roof() != null ? Math.min(4, maze.roofY() - base.getY() - 1) : 4;
 		for (int dx = -2; dx <= 3; dx++) {
 			for (int dz = -1; dz <= 1; dz++) {
-				for (int dy = 0; dy <= 4; dy++) level.setBlock(base.offset(dx, dy, dz), Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
+				for (int dy = 0; dy <= headroom; dy++) level.setBlock(base.offset(dx, dy, dz), Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
 				BlockPos ground = base.offset(dx, -1, dz);
 				if (!Spawns.solid(level.getBlockState(ground))) level.setBlock(ground, obsidian, Block.UPDATE_CLIENTS);
 			}
