@@ -125,10 +125,11 @@ whoever leads the goal wins it.
   rising over it to show where.
 - **The ball games** are played with a sulfur cube with a block inside. Hit it to kick it where
   you are looking, or walk into it to dribble; it can't be hurt, bucketed, sheared, lit or led
-  away. **The ball** is the block it swallowed, and plays the way that block does: planks bounce,
-  hay goes far, ice slides, iron hardly moves, honeycomb stops dead, magma burns whoever touches
-  it. A ball nobody has touched for half a minute, out of everyone's reach, comes back to the
-  middle.
+  away, and it stops against whoever it runs into. **The ball** is the block it swallowed, and
+  plays the way that block does: dirt is the everyday ball, hay goes far, ice slides, iron hardly
+  moves, honeycomb stops dead, magma burns whoever touches it, and planks are wild, bouncing most
+  of the way across an arena from one kick. A ball nobody has touched for half a minute, out of
+  everyone's reach, comes back to the middle.
 - **Soccer** (teams): each team has a goal at its own end, that can't be broken. **The goals**
   are **nets on the ground**, white posts and a net of the team's colour, or **lines to push it
   over**, counting it anywhere past the line. A goal counts for whoever touched the ball last, an

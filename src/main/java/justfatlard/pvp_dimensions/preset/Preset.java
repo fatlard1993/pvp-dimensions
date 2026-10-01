@@ -242,7 +242,7 @@ public final class Preset {
 	 * The block the ball has swallowed. A sulfur cube takes on the feel of what it holds, so this
 	 * is how the ball plays: planks bounce, ice slides, iron hardly moves.
 	 */
-	public String ballBlock = "minecraft:oak_planks";
+	public String ballBlock = "minecraft:dirt";
 	public GoalShape goalShape = GoalShape.NET;
 	/** Minutes with the ball that win keep-away; nought for whoever had it longest when time is up. */
 	public int keepTarget = 3;

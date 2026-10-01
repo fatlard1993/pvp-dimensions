@@ -1017,7 +1017,6 @@ public final class Fields {
 	 */
 	private static List<Field.Choice.Option> ballOptions(Preset preset) {
 		List<Field.Choice.Option> options = new ArrayList<>();
-		options.add(new Field.Choice.Option("minecraft:oak_planks", "Bouncy: oak planks"));
 		options.add(new Field.Choice.Option("minecraft:dirt", "Lively: dirt"));
 		options.add(new Field.Choice.Option("minecraft:hay_block", "Long kicks: hay bale"));
 		options.add(new Field.Choice.Option("minecraft:stone", "High hops: stone"));
@@ -1026,6 +1025,9 @@ public final class Fields {
 		options.add(new Field.Choice.Option("minecraft:iron_block", "Heavy: iron"));
 		options.add(new Field.Choice.Option("minecraft:honeycomb_block", "Stops dead: honeycomb"));
 		options.add(new Field.Choice.Option("minecraft:magma_block", "Scorching: magma"));
+		// Last because it is wild: three times the kick of the rest and hardly any drag, so it
+		// bounces most of the way across an arena from one touch.
+		options.add(new Field.Choice.Option("minecraft:oak_planks", "Wild: oak planks"));
 		return options;
 	}
 

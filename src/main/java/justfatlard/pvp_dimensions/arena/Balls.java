@@ -43,6 +43,8 @@ public final class Balls {
 	/** How long a ball nobody touches is left where it is: on a goal's roof, say, out of reach. */
 	private static final long IDLE_MILLIS = 30_000L;
 	private static final double NEAR_HOME = 4;
+	/** What is left of a ball's speed when it runs into somebody: a body stops a ball. */
+	private static final double TRAPPED = 0.2;
 
 	public static final class Ball {
 		final SulfurCube cube;
@@ -146,11 +148,11 @@ public final class Balls {
 		return Spawns.near(level, arena, (int) Math.floor(footprint.centerX()), (int) Math.floor(footprint.centerZ()), 2);
 	}
 
-	/** The block the preset asks for, if a sulfur cube will swallow it; planks if not. */
+	/** The block the preset asks for, if a sulfur cube will swallow it; dirt if not. */
 	static ItemStack swallowed(String block) {
 		Identifier id = Identifier.tryParse(block);
 		ItemStack stack = id == null ? ItemStack.EMPTY : BuiltInRegistries.ITEM.getOptional(id).map(ItemStack::new).orElse(ItemStack.EMPTY);
-		return stack.is(ItemTags.SULFUR_CUBE_SWALLOWABLE) ? stack : new ItemStack(Items.OAK_PLANKS);
+		return stack.is(ItemTags.SULFUR_CUBE_SWALLOWABLE) ? stack : new ItemStack(Items.DIRT);
 	}
 
 	private static @Nullable UUID owner(SulfurCube cube) {
@@ -187,10 +189,26 @@ public final class Balls {
 		Arena.Member member = arena.member(player.getUUID());
 		if (ball == null || member == null || member.watching || member.out) return;
 		MinecraftServer server = player.level().getServer();
-		if (!kicked) Dodgeball.struck(server, arena, ball, player);
+		if (!kicked) {
+			Dodgeball.struck(server, arena, ball, player);
+			trap(cube, player);
+		}
 		if (kicked) Golf.stroke(server, arena, ball, player, member);
 		ball.lastTouch = player.getUUID();
 		ball.touchedAt = System.currentTimeMillis();
+	}
+
+	/**
+	 * A ball coming at somebody stops against them. The game only nudges a mob that runs into a
+	 * player, so without this a fast ball goes straight through whoever stands in its way. Only a
+	 * ball moving towards them: one just kicked is moving away from its kicker.
+	 */
+	private static void trap(SulfurCube cube, ServerPlayer player) {
+		Vec3 going = cube.getDeltaMovement();
+		Vec3 toward = player.position().subtract(cube.position());
+		if (going.x * toward.x + going.z * toward.z <= 0) return;
+		cube.setDeltaMovement(going.x * TRAPPED, Math.min(going.y, 0), going.z * TRAPPED);
+		cube.needsSync = true;
 	}
 
 	/** Whether walking into a ball shoves it: not in golf, where every move of it is a stroke. */
