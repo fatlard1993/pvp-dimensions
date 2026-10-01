@@ -36,6 +36,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -160,6 +161,11 @@ public class PvpDimensions implements ModInitializer {
 			Say.bar(serverPlayer, "Ender chests are shut in here");
 			return InteractionResult.FAIL;
 		});
+
+		// A ball is a sulfur cube, which anyone could otherwise bucket, shear, leash, feed another
+		// block or light: each one ends the match or changes how the ball plays.
+		UseEntityCallback.EVENT.register((player, level, hand, entity, hit) ->
+			entity.entityTags().contains(justfatlard.pvp_dimensions.arena.Balls.TAG) ? InteractionResult.FAIL : InteractionResult.PASS);
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> PvpCommands.register(dispatcher));
 

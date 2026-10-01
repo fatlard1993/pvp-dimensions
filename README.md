@@ -46,9 +46,12 @@ editing a preset never changes a game already running. Presets live in
 setting flipped:
 
 - *Everyone for themselves*: **Deathmatch** (first to ten kills), **Last stand** (one life each,
-  a closing border, the last one standing), **King of the hill**, **Race**.
+  a closing border, the last one standing), **King of the hill**, **Race**, **Keep-away**,
+  **Hot potato**, **Golf** (five holes over natural ground).
 - *Side against side*: **Team battle** (a kit each to pick from, a wall that falls),
-  **Capture the flag**, **Base raid**, **Colour war**, **Banking**,
+  **Capture the flag**, **Base raid**, **Colour war**, **Banking**, **Soccer** (adventure, no
+  fighting, first to five goals), **Push the ball** (an iron ball over a line), **Dodgeball**
+  (three hay balls),
   **Fortify then fight** (five creative minutes to dig in, then survival and the walls come down).
 - *Together against the mobs*: **Hunt** (thirty of them), **Big game** (three giants),
   **Hold the line** (waves), **Infection** (waves, and the fallen rise as zombies).
@@ -120,6 +123,32 @@ whoever leads the goal wins it.
   **up a tower** by the ladder inside, **up in the sky**, twenty blocks over the ground with
   nothing under it but what you build, or **dug down to**, buried twelve blocks deep with sparks
   rising over it to show where.
+- **The ball games** are played with a sulfur cube with a block inside. Hit it to kick it where
+  you are looking, or walk into it to dribble; it can't be hurt, bucketed, sheared, lit or led
+  away. **The ball** is the block it swallowed, and plays the way that block does: planks bounce,
+  hay goes far, ice slides, iron hardly moves, honeycomb stops dead, magma burns whoever touches
+  it. A ball nobody has touched for half a minute, out of everyone's reach, comes back to the
+  middle.
+- **Soccer** (teams): each team has a goal at its own end, that can't be broken. **The goals**
+  are **nets on the ground**, white posts and a net of the team's colour, or **lines to push it
+  over**, counting it anywhere past the line. A goal counts for whoever touched the ball last, an
+  own goal for the other side, and the ball goes back to the middle. The first to a set number of
+  goals wins, or the most when time is up.
+- **Keep-away**: one ball, no goals. It is yours, or your team's, from the moment you touch it
+  until somebody else does, and every second it is yours counts. Whoever has it glows. The first
+  to a set time wins, or whoever kept it longest.
+- **Hot potato**: the ball has TNT inside and a fuse nobody can see until it starts to flash.
+  Whoever touched it last when it blows is caught: a life gone, or out. The blast throws people
+  back and breaks nothing. Then a new ball, and the last side not caught wins.
+- **Golf**: a ball each, and a new course of holes every time, each a pit with a flag and sparks
+  over it, played from where the last one was. Every kick of your own ball is a stroke; walking
+  into it doesn't move it. Anybody can kick anybody's ball, which costs its owner nothing. A ball
+  lost to lava or the void goes back to its tee, a stroke the worse. Fewest strokes over the
+  course wins, or when time is up, the furthest round and then the fewest strokes.
+- **Landing hits**: what counts is a blow landing, not the harm it does, so it plays with
+  fighting off. **What counts** is thrown things (a snowball fight), fists and blades (boxing),
+  either, or **a kicked ball** (dodgeball): a ball somebody kicked hitting you hard is their hit.
+  Teammates don't count. The first to a number of hits wins, or the most when time is up.
 - **Lives**, with any goal: each player's own or **one pool per team** (a free for all counts
   each player's own). A player out of lives watches as a spectator. With players fighting, the
   last player or team standing wins; side by side against the mobs, everyone out ends it. Lives

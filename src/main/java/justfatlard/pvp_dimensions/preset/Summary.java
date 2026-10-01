@@ -140,6 +140,14 @@ public final class Summary {
 			};
 			case SPY -> "to find the one who was not told where they are";
 			case HITS -> p.hitTarget > 0 ? "to land " + p.hitTarget + " hits" : "to land the most hits";
+			case SOCCER -> (p.goalTarget > 0 ? "to score " + p.goalTarget + (p.goalTarget == 1 ? " goal" : " goals") : "to score the most goals")
+				+ switch (p.goalShape) {
+					case NET -> "";
+					case LINE -> ", pushed over their line";
+				};
+			case KEEPAWAY -> p.keepTarget > 0 ? "to keep the ball for " + Fields.duration(p.keepTarget).toLowerCase(Locale.ROOT) : "to keep the ball longest";
+			case POTATO -> "to be the last not holding the ball when it blows";
+			case GOLF -> "to sink the ball in " + p.golfHoles + (p.golfHoles == 1 ? " hole" : " holes") + " in the fewest kicks";
 		};
 	}
 

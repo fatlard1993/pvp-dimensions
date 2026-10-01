@@ -85,6 +85,7 @@ public final class Mobs {
 	 */
 	public static boolean allowed(Entity entity, ServerLevel level) {
 		if (entity.getType().getCategory() != MobCategory.MONSTER) return true;
+		if (entity.entityTags().contains(Balls.TAG)) return Balls.keeps(entity, level);
 		if (entity.entityTags().contains(OURS) || entity.entityTags().contains(MOUNT)) return true;
 		AABB beside = entity.getBoundingBox().inflate(OFFSPRING_REACH);
 		if (level.getEntitiesOfClass(Mob.class, beside, mob -> mob != entity && mob.entityTags().contains(OURS)).isEmpty()) return false;

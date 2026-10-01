@@ -38,7 +38,7 @@ public final class Preset {
 	public enum Rarity { RARE, NORMAL, COMMON, SWARM }
 	/** How often one kind of mob turns up among the rest; any kind not given one is normal. */
 	public enum MobLevel { OFF, RARE, NORMAL, COMMON }
-	public enum Goal { TIME, KILLS, MOBS, CTF, TAKEOVER, DESTRUCTION, WAVES, HILL, BANK, RACE, SPY, HITS }
+	public enum Goal { TIME, KILLS, MOBS, CTF, TAKEOVER, DESTRUCTION, WAVES, HILL, BANK, RACE, SPY, HITS, SOCCER, KEEPAWAY, POTATO, GOLF }
 	/**
 	 * What lands a hit, where hits are what the arena is played for.
 	 *
@@ -47,7 +47,9 @@ public final class Preset {
 	 * fight, depending on what the kit hands out; melee is a boxing match; either is a fight where
 	 * both count and what you bring is your own business.
 	 */
-	public enum HitKind { THROWN, MELEE, ANY }
+	public enum HitKind { THROWN, MELEE, ANY, BALL }
+	/** What a team's goal is: a net on the ground, or a line to push the ball over. */
+	public enum GoalShape { NET, LINE }
 	public enum MobStyle { STEADY, WAVES }
 	public enum AfterWaves { REPEAT_LAST, START_OVER, STOP }
 	public enum Scope { PLAYER, TEAM, EVERYONE }
@@ -234,6 +236,20 @@ public final class Preset {
 	/** What counts as a hit: thrown makes it a snowball fight, melee makes it a boxing match. */
 	public HitKind hitKind = HitKind.THROWN;
 
+	/** Goals that win a soccer match; nought for the most goals when time is up. */
+	public int goalTarget = 5;
+	/**
+	 * The block the ball has swallowed. A sulfur cube takes on the feel of what it holds, so this
+	 * is how the ball plays: planks bounce, ice slides, iron hardly moves.
+	 */
+	public String ballBlock = "minecraft:oak_planks";
+	public GoalShape goalShape = GoalShape.NET;
+	/** Minutes with the ball that win keep-away; nought for whoever had it longest when time is up. */
+	public int keepTarget = 3;
+	public int golfHoles = 5;
+	/** Balls in play for dodgeball. */
+	public int ballCount = 3;
+
 	public ItemList entryFee = new ItemList();
 	/** Whether everyone is handed a compass pointed at the goal: the hill, the finish, the other team's base. */
 	public boolean goalCompass = false;
@@ -383,7 +399,24 @@ public final class Preset {
 
 	/** The goals that need sides to score for. */
 	public boolean teamGoal() {
-		return goal == Goal.CTF || goal == Goal.TAKEOVER || goal == Goal.DESTRUCTION || goal == Goal.BANK;
+		return goal == Goal.CTF || goal == Goal.TAKEOVER || goal == Goal.DESTRUCTION || goal == Goal.BANK || goal == Goal.SOCCER;
+	}
+
+	/** Whether the arena is played with a sulfur cube ball whose block the preset picks; hot potato's is always TNT. */
+	public boolean playsBall() {
+		Goal active = activeGoal();
+		return active == Goal.SOCCER || active == Goal.KEEPAWAY || active == Goal.GOLF || active == Goal.HITS && hitKind == HitKind.BALL;
+	}
+
+	/** How far from the middle a pitch's goals stand, as a share of the arena's width. */
+	public static final double GOAL_RING = 0.4;
+
+	/**
+	 * Where round the middle a team's ground lies: the teams spaced evenly, a quarter turn off the
+	 * axes, except on a pitch, where the goals are end to end along one.
+	 */
+	public double ringAngle(int team) {
+		return Math.PI * 2 * team / Math.max(1, teams) + (activeGoal() == Goal.SOCCER ? 0 : Math.PI / 4);
 	}
 
 	/** What the arena is actually played for: a team goal only counts with teams, a kill count only with fighting. */

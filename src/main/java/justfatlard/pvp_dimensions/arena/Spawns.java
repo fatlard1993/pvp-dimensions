@@ -59,7 +59,7 @@ public final class Spawns {
 				return near(level, arena, middle[0], middle[1], Math.max(4, width / (Math.max(terrain.cols(), (int) Math.ceil(Math.sqrt(cells))) * 4)));
 			}
 		}
-		double angle = Math.PI * 2 * team / arena.preset.teams + Math.PI / 4;
+		double angle = arena.preset.ringAngle(team);
 		double radius = width * 0.32;
 		int x = (int) (footprint.centerX() + Math.cos(angle) * radius);
 		int z = (int) (footprint.centerZ() + Math.sin(angle) * radius);

@@ -810,6 +810,8 @@ public final class Arenas {
 		return switch (arena.preset.activeGoal()) {
 			case BANK -> "Banks: " + Banks.tally(arena);
 			case CTF -> "Flags: " + Banks.tally(arena);
+			case SOCCER -> "Goals: " + Banks.tally(arena);
+			case KEEPAWAY -> arena.preset.teamsOn() ? "Kept: " + Banks.tally(arena) : "";
 			case HILL -> arena.preset.teamsOn() ? "Held: " + Banks.tally(arena) : "";
 			default -> "";
 		};

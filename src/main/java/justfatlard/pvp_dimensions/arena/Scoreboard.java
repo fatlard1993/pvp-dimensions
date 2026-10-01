@@ -71,6 +71,49 @@ public final class Scoreboard {
 				goal = preset.bankTarget > 0 ? preset.bankTarget + " wins" : "";
 				footer = Banks.values(preset, 3);
 			}
+			case SOCCER -> {
+				int target = preset.goalTarget;
+				int most = Math.max(1, arena.scores.values().stream().mapToInt(Integer::intValue).max().orElse(1));
+				for (int team = 0; team < preset.teams; team++) {
+					int goals = arena.scores.getOrDefault(team, 0);
+					lines.add(team(team, goals + (goals == 1 ? " goal" : " goals"), fraction(goals, target > 0 ? target : most), viewer.team == team));
+				}
+				title = "Soccer";
+				goal = target > 0 ? target + " wins" : "";
+				footer = Soccer.lastTouchWords(server, arena);
+			}
+			case KEEPAWAY -> {
+				int target = preset.keepTarget * 60;
+				String holder = KeepAway.holder(server, arena);
+				if (preset.teamsOn()) {
+					int most = Math.max(1, arena.scores.values().stream().mapToInt(Integer::intValue).max().orElse(1));
+					for (int team = 0; team < preset.teams; team++) {
+						int kept = arena.scores.getOrDefault(team, 0);
+						lines.add(team(team, KeepAway.clock(kept), fraction(kept, target > 0 ? target : most), viewer.team == team));
+					}
+				} else {
+					int most = Math.max(1, arena.members.values().stream().mapToInt(member -> member.held).max().orElse(1));
+					players(arena, viewer, member -> member.held, member -> KeepAway.clock(member.held),
+						member -> fraction(member.held, target > 0 ? target : most), member -> member == viewer, lines);
+				}
+				title = "Keep-away";
+				goal = target > 0 ? KeepAway.clock(target) + " wins" : "";
+				footer = holder == null ? "Nobody has the ball" : holder + " has the ball";
+			}
+			case POTATO -> {
+				players(arena, viewer, member -> member.out || member.watching ? 0 : 1, member -> member.out ? "caught" : "in",
+					member -> member.out ? 0f : 1f, member -> member == viewer, lines);
+				title = "Hot potato";
+				footer = arena.fighting().size() + " still in";
+			}
+			case GOLF -> {
+				int holes = Math.max(1, arena.bases.size());
+				players(arena, viewer, Golf::rank, member -> member.held + "/" + holes + ", " + member.points,
+					member -> fraction(member.held, holes), member -> member == viewer, lines);
+				title = "Golf";
+				goal = holes + (holes == 1 ? " hole" : " holes");
+				footer = "Holes sunk, then strokes";
+			}
 			case CTF -> {
 				List<String> carried = new ArrayList<>();
 				boolean[] away = new boolean[preset.teams];

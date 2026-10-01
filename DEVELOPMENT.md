@@ -59,6 +59,8 @@ made in `createState` from the level's seed, passing it in place of the blank on
 | `arena/Mobs.java`, `preset/MobKinds.java` | The arena's own hostile mobs, and the game's kept out; the kinds made from the game's own (babies, riders, angry neutrals, the giant) |
 | `arena/TeamBases.java`, `arena/Builds.java` | Each team's building, in four styles: the world's materials in the team's colour, ground levelled under it |
 | `arena/Markers.java`, `arena/Hill.java`, `arena/Race.java` | The beacon pad a goal is played on; king of the hill; the race and its start ring |
+| `arena/Balls.java`, `mixin/SulfurCubeMixin.java` | The sulfur cube balls the ball games are played with: finding them, who touched each last, fetching one back |
+| `arena/Soccer.java`, `arena/KeepAway.java`, `arena/HotPotato.java`, `arena/Golf.java`, `arena/Dodgeball.java` | The ball games: goals as nets or lines; the ball held; the fuse; the course; a ball as a hit |
 | `arena/Banks.java`, `arena/TeamChests.java` | Banking's scores; who may open a team's chest, lockpicks and all |
 | `arena/Fees.java` | What it costs to join, the pot, and handing it out or back |
 | `arena/Horde.java` | The fallen as zombies on the mobs' side |

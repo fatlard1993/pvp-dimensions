@@ -127,6 +127,7 @@ public final class Hits {
 	 */
 	public static boolean counts(Preset preset, Preset.HitKind kind) {
 		if (preset.activeGoal() != Preset.Goal.HITS) return false;
+		if (kind == Preset.HitKind.BALL || preset.hitKind == Preset.HitKind.BALL) return preset.hitKind == kind;
 		return preset.hitKind == Preset.HitKind.ANY || preset.hitKind == kind;
 	}
 }

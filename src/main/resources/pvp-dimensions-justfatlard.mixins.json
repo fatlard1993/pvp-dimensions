@@ -20,7 +20,8 @@
     "ServerPlayerMixin",
     "TeleportCommandMixin",
     "ProjectileHitMixin",
-    "MeleeHitMixin"
+    "MeleeHitMixin",
+    "SulfurCubeMixin"
   ],
   "injectors": {
     "defaultRequire": 1

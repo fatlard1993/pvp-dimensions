@@ -30,6 +30,7 @@ public final class Pictures {
 	private static final int SPAWN = 0xFFFFFFFF;
 	private static final int HILL = 0xFFF2C12E;
 	private static final int FINISH = 0xFF2ECC71;
+	private static final int BALL = 0xFFD9D04A;
 
 	public static Field.Picture.Canvas map(Preset p) {
 		Palette palette = new Palette();
@@ -84,7 +85,7 @@ public final class Pictures {
 			int reach = Math.clamp(Math.round(MAP * 7f / Math.max(32, blocks)), 2, 5);
 			if (teams > 0) {
 				for (int team = 0; team < teams; team++) {
-					int[] at = spot(divisions, team, teams, 0.3);
+					int[] at = spot(divisions, p, team, 0.3);
 					ring(cells, at, reach, palette.add(darker(0xFF000000 | TeamColors.of(team).team().rgb())));
 				}
 			} else {
@@ -95,12 +96,27 @@ public final class Pictures {
 		}
 		if (bases) {
 			int mark = palette.add(BASE);
-			for (int team = 0; team < teams; team++) dot(cells, spot(divisions, team, teams, 0.3), mark, 3);
+			for (int team = 0; team < teams; team++) dot(cells, spot(divisions, p, team, 0.3), mark, 3);
 			key.add(new Field.Picture.Key(switch (goal) {
 				case CTF -> "flag chests";
 				case BANK -> "banks";
 				default -> "bases";
 			}, BASE));
+		}
+		if (goal == Preset.Goal.SOCCER) {
+			for (int team = 0; team < teams; team++) {
+				dot(cells, spot(Divisions.NONE, p, team, Preset.GOAL_RING), palette.add(0xFF000000 | TeamColors.of(team).team().rgb()), 3);
+			}
+			dot(cells, new int[] {MAP / 2 - 1, MAP / 2 - 1}, palette.add(BALL), 2);
+			key.add(new Field.Picture.Key(switch (p.goalShape) {
+				case NET -> "each team's goal";
+				case LINE -> "each team's line";
+			} + ", and the ball", darker(BALL)));
+		} else if (goal == Preset.Goal.KEEPAWAY || goal == Preset.Goal.POTATO || goal == Preset.Goal.HITS && p.hitKind == Preset.HitKind.BALL) {
+			dot(cells, new int[] {MAP / 2 - 1, MAP / 2 - 1}, palette.add(BALL), 2);
+			key.add(new Field.Picture.Key(goal == Preset.Goal.HITS && p.ballCount > 1 ? "the balls" : "the ball", darker(BALL)));
+		} else if (goal == Preset.Goal.GOLF) {
+			key.add(new Field.Picture.Key(p.golfHoles + (p.golfHoles == 1 ? " hole" : " holes") + ", a new course every time", darker(BALL)));
 		}
 		if (goal == Preset.Goal.HILL || goal == Preset.Goal.RACE) {
 			boolean hill = goal == Preset.Goal.HILL;
@@ -112,7 +128,7 @@ public final class Pictures {
 			int mark = palette.add(SPAWN);
 			if (p.spawn == Preset.Spawn.CENTER || teams == 0) dot(cells, new int[] {MAP / 2 - 1, MAP / 2 - 1}, mark, 2);
 			else for (int team = 0; team < teams; team++) {
-				int[] at = spot(divisions, team, teams, 0.32);
+				int[] at = spot(divisions, p, team, 0.32);
 				dot(cells, new int[] {at[0], at[1] + 4}, mark, 2);
 			}
 			key.add(new Field.Picture.Key("spawns", 0xFF909090));
@@ -133,9 +149,9 @@ public final class Pictures {
 	}
 
 	/** Where a team's base or spawn goes: its part's middle, or its point on the ring round the middle. */
-	private static int[] spot(Divisions divisions, int team, int teams, double ring) {
+	private static int[] spot(Divisions divisions, Preset p, int team, double ring) {
 		if (divisions.parts() > 1) return divisions.center(MAP, team % divisions.parts());
-		double angle = Math.PI * 2 * team / Math.max(1, teams) + Math.PI / 4;
+		double angle = p.ringAngle(team);
 		return new int[] {(int) (MAP / 2.0 + Math.cos(angle) * MAP * ring), (int) (MAP / 2.0 + Math.sin(angle) * MAP * ring)};
 	}
 

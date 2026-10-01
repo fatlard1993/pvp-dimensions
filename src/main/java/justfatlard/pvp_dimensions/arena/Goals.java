@@ -97,6 +97,10 @@ public final class Goals {
 		if (goal == Preset.Goal.HILL) Hill.begin(level, arena, System.currentTimeMillis());
 		if (goal == Preset.Goal.RACE) Race.begin(level, arena);
 		if (goal == Preset.Goal.SPY) Spies.begin(server, arena);
+		if (goal == Preset.Goal.SOCCER) Soccer.begin(level, arena);
+		if (goal == Preset.Goal.KEEPAWAY) KeepAway.begin(level, arena, System.currentTimeMillis());
+		if (goal == Preset.Goal.POTATO) HotPotato.begin(level, arena, System.currentTimeMillis());
+		if (goal == Preset.Goal.GOLF) Golf.begin(level, arena);
 		if (preset.livesOn() && preset.pooledLives()) {
 			for (int team = 0; team < preset.teams; team++) arena.pools.put(team, preset.livesCount);
 		}
@@ -129,6 +133,16 @@ public final class Goals {
 			// every word of what anybody holds is on their own card.
 			case SPY -> "One of you was not told where you are. Ask each other about the place until you know who";
 			case HITS -> hitsBlurb(preset);
+			case SOCCER -> switch (preset.goalShape) {
+				case NET -> "Kick the ball into their goal";
+				case LINE -> "Push the ball over their line";
+			} + (preset.goalTarget > 0
+				? "; " + preset.goalTarget + (preset.goalTarget == 1 ? " goal wins" : " goals win") : "; the most goals when time is up wins");
+			case KEEPAWAY -> "The ball is yours until somebody else touches it. "
+				+ (preset.keepTarget > 0 ? "Keep it for " + Fields.duration(preset.keepTarget).toLowerCase() + " to win" : "Keep it longest to win");
+			case POTATO -> "The ball has a fuse. Whoever touched it last when it blows is caught";
+			case GOLF -> preset.golfHoles + (preset.golfHoles == 1 ? " hole" : " holes")
+				+ ", a ball each: every kick of your own is a stroke, and the fewest strokes wins. Follow the sparks";
 		};
 		if (how != null) Arenas.tellInside(server, arena, how);
 	}
@@ -139,6 +153,7 @@ public final class Goals {
 			case THROWN -> "Pelt each other";
 			case MELEE -> "Box each other";
 			case ANY -> "Land what you can on each other";
+			case BALL -> "Kick the balls at each other";
 		};
 		return preset.hitTarget > 0 ? verb + ": " + preset.hitTarget + " hits wins it"
 			: verb + ": the most hits when time is up wins";
@@ -159,7 +174,7 @@ public final class Goals {
 			x = middle[0];
 			z = middle[1];
 		} else {
-			double angle = Math.PI * 2 * team / arena.preset.teams + Math.PI / 4;
+			double angle = arena.preset.ringAngle(team);
 			x = (int) (footprint.centerX() + Math.cos(angle) * width * 0.3);
 			z = (int) (footprint.centerZ() + Math.sin(angle) * width * 0.3);
 		}
@@ -255,7 +270,8 @@ public final class Goals {
 	public static boolean protectedBlock(Arena arena, BlockPos pos, @Nullable ServerPlayer breaker) {
 		Preset.Goal goal = arena.preset.activeGoal();
 		boolean admin = breaker != null && breaker.isCreative() && justfatlard.pvp_dimensions.Access.admin(breaker);
-		if (Markers.part(arena, pos) || TeamChests.kept(arena, pos) || wallHolds(arena, pos) || mazeHolds(arena, pos)) return !admin;
+		if (Markers.part(arena, pos) || TeamChests.kept(arena, pos) || wallHolds(arena, pos) || mazeHolds(arena, pos) || Soccer.part(arena, pos)
+			|| Golf.part(arena, pos)) return !admin;
 		if (goal == Preset.Goal.CTF || goal == Preset.Goal.BANK) {
 			for (BlockPos base : arena.bases) {
 				if (pos.equals(base) || pos.equals(base.east())) return breaker == null || !breaker.isCreative();
@@ -592,6 +608,10 @@ public final class Goals {
 			}
 			case HILL -> Hill.status(arena, member) + livesLeft;
 			case BANK -> Banks.status(arena) + livesLeft;
+			case SOCCER -> Soccer.status(arena) + livesLeft;
+			case KEEPAWAY -> KeepAway.status(arena, member) + livesLeft;
+			case POTATO -> HotPotato.status(arena) + livesLeft;
+			case GOLF -> Golf.status(arena, member);
 			case RACE -> {
 				String race = justfatlard.pvp_dimensions.PvpDimensions.server() == null ? null
 					: Race.status(justfatlard.pvp_dimensions.PvpDimensions.server(), arena, member);
@@ -652,6 +672,20 @@ public final class Goals {
 			}
 			case RACE -> {
 				Race.tick(server, level, arena, now);
+				outOfLives(server, arena, now);
+			}
+			case SOCCER -> {
+				Soccer.tick(server, level, arena, now);
+				outOfLives(server, arena, now);
+			}
+			case KEEPAWAY -> {
+				KeepAway.tick(server, level, arena, now);
+				outOfLives(server, arena, now);
+			}
+			case POTATO -> HotPotato.tick(server, level, arena, now);
+			case GOLF -> Golf.tick(server, level, arena, now);
+			case HITS -> {
+				Dodgeball.tick(server, level, arena, now);
 				outOfLives(server, arena, now);
 			}
 			default -> outOfLives(server, arena, now);
@@ -762,8 +796,10 @@ public final class Goals {
 		Map<Integer, Integer> byTeam = new HashMap<>();
 		if (preset.activeGoal() == Preset.Goal.SPY) return Spies.timeUp(server, arena);
 		if (preset.activeGoal() == Preset.Goal.HITS) return Hits.timeUp(server, arena);
+		if (preset.activeGoal() == Preset.Goal.GOLF) return Golf.timeUp(server, arena);
+		if (preset.activeGoal() == Preset.Goal.KEEPAWAY && !preset.teamsOn()) return KeepAway.timeUp(server, arena);
 		switch (preset.activeGoal()) {
-			case CTF, BANK -> byTeam.putAll(arena.scores);
+			case CTF, BANK, SOCCER, KEEPAWAY -> byTeam.putAll(arena.scores);
 			case HILL -> {
 				if (preset.teamsOn()) {
 					byTeam.putAll(arena.scores);
@@ -937,5 +973,9 @@ public final class Goals {
 		Hill.forget(arena);
 		Moments.forget(arena);
 		Spies.clear(arena);
+		Balls.forget(arena);
+		KeepAway.forget(arena);
+		HotPotato.forget(arena);
+		Golf.forget(arena);
 	}
 }

@@ -51,6 +51,29 @@ public enum Kinds {
 		p.size = 5;
 	}),
 
+	KEEP_AWAY(Family.FREE_FOR_ALL, "Keep-away", "minecraft:white_wool", "The ball is yours till it's taken", p -> {
+		ballGame(p);
+		p.goal = Preset.Goal.KEEPAWAY;
+		p.keepTarget = 2;
+		p.ballBlock = "minecraft:white_wool";
+		p.size = 3;
+	}),
+	HOT_POTATO(Family.FREE_FOR_ALL, "Hot potato", "minecraft:flint_and_steel", "Don't be holding it when it blows", p -> {
+		ballGame(p);
+		p.goal = Preset.Goal.POTATO;
+		p.size = 3;
+		p.lifeMinutes = 15;
+	}),
+	GOLF(Family.FREE_FOR_ALL, "Golf", "minecraft:red_wool", "Five holes over the hills", p -> {
+		ballGame(p);
+		p.goal = Preset.Goal.GOLF;
+		p.golfHoles = 5;
+		p.ballBlock = "minecraft:dirt";
+		p.shape = Preset.Shape.NATURAL;
+		p.size = 6;
+		p.lifeMinutes = 20;
+	}),
+
 	// --- Side against side ---
 	TEAM_BATTLE(Family.TEAMS, "Team battle", "minecraft:shield", "Two teams, kits to pick, a wall", p -> {
 		teams(p);
@@ -93,6 +116,32 @@ public enum Kinds {
 		p.goalCompass = true;
 		p.lifeMinutes = 20;
 		p.size = 6;
+	}),
+	SOCCER(Family.TEAMS, "Soccer", "minecraft:sulfur_cube_bucket", "Kick the cube into their goal", p -> {
+		teams(p);
+		ballGame(p);
+		p.goal = Preset.Goal.SOCCER;
+		p.goalTarget = 5;
+		p.size = 4;
+	}),
+	PUSH_THE_BALL(Family.TEAMS, "Push the ball", "minecraft:iron_block", "An iron ball, shoved over their line", p -> {
+		teams(p);
+		ballGame(p);
+		p.goal = Preset.Goal.SOCCER;
+		p.goalShape = Preset.GoalShape.LINE;
+		p.goalTarget = 3;
+		p.ballBlock = "minecraft:iron_block";
+		p.size = 4;
+	}),
+	DODGEBALL(Family.TEAMS, "Dodgeball", "minecraft:hay_block", "Three balls, kicked at each other", p -> {
+		teams(p);
+		ballGame(p);
+		p.goal = Preset.Goal.HITS;
+		p.hitKind = Preset.HitKind.BALL;
+		p.hitTarget = 25;
+		p.ballCount = 3;
+		p.ballBlock = "minecraft:hay_block";
+		p.size = 3;
 	}),
 	FORTIFY(Family.TEAMS, "Fortify then fight", "minecraft:scaffolding", "Build five minutes, then fight", p -> {
 		teams(p);
@@ -230,6 +279,14 @@ public enum Kinds {
 		p.teams = 2;
 		p.spawn = Preset.Spawn.TEAM;
 		p.nameTags = Preset.NameTags.TEAMMATES;
+	}
+
+	/** Played with a ball, not weapons: nobody hurts anybody, nobody digs, and the ground is level. */
+	private static void ballGame(Preset p) {
+		p.pvp = false;
+		p.gameMode = Preset.GameRule.ADVENTURE;
+		p.shape = Preset.Shape.FLAT;
+		p.lifeMinutes = 10;
 	}
 
 	/** Three kits to pick between, picked again on every death. */

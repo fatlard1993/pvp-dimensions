@@ -39,6 +39,8 @@ public final class Fields {
 	private static final int[] KILL_TARGETS = {0, 3, 5, 10, 15, 20, 25, 30, 50, 100};
 	/** Hits, not kills: a snowball fight at twenty is over before anybody has found their feet. */
 	private static final int[] HIT_TARGETS = {0, 25, 50, 75, 100, 150, 200, 300};
+	private static final int[] GOAL_TARGETS = {0, 1, 3, 5, 7, 10, 15};
+	private static final int[] GOLF_HOLES = {1, 3, 5, 7, 9};
 	/** Odd numbers past one, so a series has a winner without needing a decider. */
 	private static final int[] ROUNDS = {1, 2, 3, 5, 7, 9};
 	private static final int[] MOB_TARGETS = {5, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200};
@@ -73,12 +75,35 @@ public final class Fields {
 		fields.add(new Field.Choice(GAME, "hit_kind", "What counts", Fields::hitKindOptions,
 			p -> p.hitKind.name().toLowerCase(Locale.ROOT),
 			(p, v) -> p.hitKind = Preset.HitKind.valueOf(v.toUpperCase(Locale.ROOT)))
-			.help("Thrown is a snowball fight, melee is a boxing match; neither needs pvp on")
+			.help("Thrown is a snowball fight, melee is a boxing match, a ball is dodgeball; none needs pvp on")
 			.when(p -> p.activeGoal() == Preset.Goal.HITS));
 		fields.add(new Field.Number(GAME, "hit_target", "Hits to win", HIT_TARGETS, v -> v == 0 ? "Most hits" : v + " hits",
 			p -> p.hitTarget, (p, v) -> p.hitTarget = v).help(
 				"Landing this many wins it; nought counts the most hits when time is up")
 			.when(p -> p.activeGoal() == Preset.Goal.HITS));
+		fields.add(new Field.Number(GAME, "goal_target", "Goals to win", GOAL_TARGETS, v -> v == 0 ? "Most goals" : v + (v == 1 ? " goal" : " goals"),
+			p -> p.goalTarget, (p, v) -> p.goalTarget = v).help(
+				"Scoring this many wins it; nought counts the most goals when time is up")
+			.when(p -> p.activeGoal() == Preset.Goal.SOCCER));
+		fields.add(Field.Choice.ofEnum(GAME, "goal_shape", "The goals", Preset.GoalShape.class,
+			new String[] {"Nets on the ground", "Lines to push it over"}, p -> p.goalShape, (p, v) -> p.goalShape = v)
+			.help("A line counts the ball pushed anywhere past it, so a heavy ball makes it a shoving match")
+			.when(p -> p.activeGoal() == Preset.Goal.SOCCER));
+		fields.add(new Field.Number(GAME, "keep_target", "Keep to win", HILL_TARGETS, v -> v == 0 ? "Longest at the end" : duration(v),
+			p -> p.keepTarget, (p, v) -> p.keepTarget = v)
+			.help("Every second the ball is yours counts, and it is yours until somebody else touches it")
+			.when(p -> p.activeGoal() == Preset.Goal.KEEPAWAY));
+		fields.add(new Field.Number(GAME, "golf_holes", "Holes", GOLF_HOLES, v -> v + (v == 1 ? " hole" : " holes"),
+			p -> p.golfHoles, (p, v) -> p.golfHoles = v)
+			.help("Everyone has a ball of their own; every kick of it is a stroke. A new course every time")
+			.when(p -> p.activeGoal() == Preset.Goal.GOLF));
+		fields.add(new Field.Number(GAME, "ball_count", "Balls", Field.Number.range(1, 5, 1), v -> v + (v == 1 ? " ball" : " balls"),
+			p -> p.ballCount, (p, v) -> p.ballCount = v)
+			.help("A ball kicked into somebody is a hit for whoever kicked it")
+			.when(p -> p.activeGoal() == Preset.Goal.HITS && p.hitKind == Preset.HitKind.BALL));
+		fields.add(new Field.Choice(GAME, "ball", "The ball", Fields::ballOptions, p -> p.ballBlock, (p, v) -> p.ballBlock = v)
+			.help("A sulfur cube with a block inside, which plays the way the block feels. Kick it, or walk it along")
+			.when(Preset::playsBall));
 		fields.add(new Field.Number(GAME, "kill_target", "Kills to win", KILL_TARGETS, v -> v == 0 ? "No target" : v + " kills",
 			p -> p.killTarget, (p, v) -> p.killTarget = v).help(
 				"The first player to reach it wins; with teams, the first team between them")
@@ -892,7 +917,15 @@ public final class Fields {
 				case THROWN -> "Snowball fight";
 				case MELEE -> "Boxing";
 				case ANY -> "Hits";
+				case BALL -> "Dodgeball";
 			};
+			case SOCCER -> switch (preset.goalShape) {
+				case NET -> "Soccer";
+				case LINE -> "Push the ball";
+			};
+			case KEEPAWAY -> "Keep-away";
+			case POTATO -> "Hot potato";
+			case GOLF -> "Golf";
 		};
 	}
 
@@ -918,11 +951,15 @@ public final class Fields {
 		// What the hits are made of is the kit's business and the hit kind's, so this needs
 		// nothing of the preset but a target.
 		options.add(new Field.Choice.Option("hits", "Landing hits"));
+		options.add(new Field.Choice.Option("keepaway", "Keep-away"));
+		options.add(new Field.Choice.Option("potato", "Hot potato"));
+		options.add(new Field.Choice.Option("golf", "Golf"));
 		if (preset.teamsOn()) {
 			options.add(new Field.Choice.Option("ctf", "Capture the flag"));
 			options.add(new Field.Choice.Option("takeover", "Colour takeover"));
 			options.add(new Field.Choice.Option("destruction", "Destroy their base"));
 			options.add(new Field.Choice.Option("bank", "Banking"));
+			options.add(new Field.Choice.Option("soccer", "Soccer"));
 		}
 		return options;
 	}
@@ -970,6 +1007,25 @@ public final class Fields {
 		options.add(new Field.Choice.Option("thrown", "Thrown: snowballs, eggs, poop"));
 		options.add(new Field.Choice.Option("melee", "Fists and blades: a boxing match"));
 		options.add(new Field.Choice.Option("any", "Either one"));
+		options.add(new Field.Choice.Option("ball", "A kicked ball: dodgeball"));
+		return options;
+	}
+
+	/**
+	 * What the ball can be made of: one block from each of the sulfur cube's kinds worth kicking,
+	 * named by how it plays. A ball that explodes, or one too heavy to shift, is left off.
+	 */
+	private static List<Field.Choice.Option> ballOptions(Preset preset) {
+		List<Field.Choice.Option> options = new ArrayList<>();
+		options.add(new Field.Choice.Option("minecraft:oak_planks", "Bouncy: oak planks"));
+		options.add(new Field.Choice.Option("minecraft:dirt", "Lively: dirt"));
+		options.add(new Field.Choice.Option("minecraft:hay_block", "Long kicks: hay bale"));
+		options.add(new Field.Choice.Option("minecraft:stone", "High hops: stone"));
+		options.add(new Field.Choice.Option("minecraft:white_wool", "Floaty: wool"));
+		options.add(new Field.Choice.Option("minecraft:packed_ice", "Slippery: packed ice"));
+		options.add(new Field.Choice.Option("minecraft:iron_block", "Heavy: iron"));
+		options.add(new Field.Choice.Option("minecraft:honeycomb_block", "Stops dead: honeycomb"));
+		options.add(new Field.Choice.Option("minecraft:magma_block", "Scorching: magma"));
 		return options;
 	}
 
