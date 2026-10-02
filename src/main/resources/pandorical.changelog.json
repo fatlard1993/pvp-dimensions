@@ -3,6 +3,9 @@
     "Arenas on demand. Pick a preset from a menu and a fresh piece of ground is made for the fight, floating alone in a dimension of its own, gone when the clock runs out."
   ],
   "versions": {
+    "1.4.1": [
+    	"Arena matches keep their own PvP rules whatever an op has trusted anyone with outside them."
+    ],
     "1.1.0": [
       "The arena is a menu: arenas, join, loadout, begin and leave are buttons, not things you type.",
       "A match ends on the score it was played for: banks filled, flags taken, the hill held.",

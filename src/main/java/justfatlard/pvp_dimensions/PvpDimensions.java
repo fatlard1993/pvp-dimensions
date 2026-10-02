@@ -170,6 +170,8 @@ public class PvpDimensions implements ModInitializer {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> PvpCommands.register(dispatcher));
 
 		PandoricalApi.portals().keepOutOfPairing(Portals::ours);
+		// An arena's own rules decide who fights whom in it, whatever an op has trusted anyone with.
+		PandoricalApi.trust().pvpDecidedElsewhere(level -> Places.isArena(level.dimension()));
 		// Taking from another team's chest is half of some games; nobody's lock gets in the way.
 		ChestUtils.refuseLocking((level, pos) -> Places.isArena(level.dimension()));
 		DeadHeads.lockTimeAt((level, pos) -> {
