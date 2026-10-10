@@ -36,18 +36,7 @@ public final class ChatMenus {
 			Say.to(player, line);
 		}
 
-		List<Arena> running = Arenas.running(player.level().getServer());
-		if (!running.isEmpty()) {
-			Say.to(player, Say.line("Running:"));
-			for (Arena arena : running) {
-				MutableComponent line = Component.literal("  ").append(Arenas.summary(arena)).append(" ");
-				if (mine == null && arena.open() && (arena.invitedOrOpen(player.getUUID()) || tier == Access.Tier.ADMIN)) {
-					line.append(Say.button("Join", "/pvp join " + arena.id));
-				}
-				if (tier == Access.Tier.ADMIN || arena.host.equals(player.getUUID())) line.append(" ").append(Say.button("End", "/pvp end " + arena.id));
-				Say.to(player, line);
-			}
-		}
+		running(player, tier, mine);
 
 		if (tier.atLeast(Access.Tier.USER)) {
 			MutableComponent line = Say.line("Start: ");
@@ -69,6 +58,27 @@ public final class ChatMenus {
 			line.append(Say.button("New", "/pvp preset new"));
 			Say.to(player, line);
 		}
+	}
+
+	/** The arenas running, to pick one to join. */
+	public static void join(ServerPlayer player) {
+		if (!running(player, Access.of(player), Arenas.of(player))) Say.to(player, "No arenas running");
+	}
+
+	/** The arenas running, each with its Join and End where this player may; false if there are none. */
+	private static boolean running(ServerPlayer player, Access.Tier tier, Arena mine) {
+		List<Arena> running = Arenas.running(player.level().getServer());
+		if (running.isEmpty()) return false;
+		Say.to(player, Say.line("Running:"));
+		for (Arena arena : running) {
+			MutableComponent line = Component.literal("  ").append(Arenas.summary(arena)).append(" ");
+			if (mine == null && arena.open() && (arena.invitedOrOpen(player.getUUID()) || tier == Access.Tier.ADMIN)) {
+				line.append(Say.button("Join", "/pvp join " + arena.id));
+			}
+			if (tier == Access.Tier.ADMIN || arena.host.equals(player.getUUID())) line.append(" ").append(Say.button("End", "/pvp end " + arena.id));
+			Say.to(player, line);
+		}
+		return true;
 	}
 
 	/** The kinds of match a new preset can start from, a family a line. */

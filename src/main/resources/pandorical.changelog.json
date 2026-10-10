@@ -3,6 +3,10 @@
     "Arenas on demand. Pick a preset from a menu and a fresh piece of ground is made for the fight, floating alone in a dimension of its own, gone when the clock runs out."
   ],
   "versions": {
+    "1.4.2": [
+      "Invite on the Arena menu picks who to bring in by face.",
+      "Join lists the arenas running to pick from, instead of putting you in the first one it finds."
+    ],
     "1.4.1": [
     	"Arena matches keep their own PvP rules whatever an op has trusted anyone with outside them."
     ],

@@ -200,12 +200,13 @@ public class PvpDimensions implements ModInitializer {
 		PandoricalApi.actionMenus().suggestMenu(MOD_ID + ":arena", "Arena", java.util.List.of(
 			ActionMenuApi.Button.runs("minecraft:iron_sword", "Arenas", "pvp"),
 			ActionMenuApi.Button.runs("minecraft:oak_door", "Join", "pvp join"),
+			ActionMenuApi.Button.runs("minecraft:player_head", "Invite", "pvp invite {players}"),
 			ActionMenuApi.Button.runs("minecraft:chest", "Loadout", "pvp loadout"),
 			ActionMenuApi.Button.runs("minecraft:bell", "Begin", "pvp begin"),
 			ActionMenuApi.Button.runs("minecraft:iron_door", "Leave", "pvp leave")));
 
 		PandoricalApi.commandHelp().describe("/pvp", "Open the arena menu.");
-		PandoricalApi.commandHelp().describe("/pvp join", "Join an arena that is waiting for players.");
+		PandoricalApi.commandHelp().describe("/pvp join", "Pick an arena that is running to join; with its name, go straight in.");
 		PandoricalApi.commandHelp().describe("/pvp leave", "Leave the arena you are in, giving up the match.");
 		PandoricalApi.commandHelp().describe("/pvp loadout", "Pick what you carry into the next round.");
 		PandoricalApi.commandHelp().describe("/pvp begin", "Start the match everyone is waiting in.");

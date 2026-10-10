@@ -69,7 +69,7 @@ public final class PvpCommands {
 					})))));
 
 		root.then(Commands.literal("join")
-			.executes(context -> run(context, player -> joinAny(player)))
+			.executes(context -> run(context, player -> Menus.join(player)))
 			.then(Commands.argument("arena", StringArgumentType.word()).suggests(PvpCommands::arenas)
 				.executes(context -> run(context, player -> {
 					Arena arena = arena(context, player);
@@ -210,16 +210,6 @@ public final class PvpCommands {
 		if (arena == null) return 0;
 		source.sendSuccess(() -> Say.line("Making " + arena.title() + "; it opens in a moment"), true);
 		return 1;
-	}
-
-	private static void joinAny(ServerPlayer player) {
-		for (Arena arena : Arenas.running(player.level().getServer())) {
-			if (arena.invitedOrOpen(player.getUUID())) {
-				Travel.join(player, arena);
-				return;
-			}
-		}
-		Say.to(player, "No arena you're invited to is running");
 	}
 
 	private static void leave(ServerPlayer player) {

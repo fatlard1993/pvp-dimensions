@@ -26,7 +26,7 @@
     "fabric-api": "${fabricApiVersion}",
     "minecraft": "${minecraftDependency}",
     "java": ">=25",
-    "pandorical": ">=15.12.0"
+    "pandorical": ">=15.17.0"
   },
   "suggests": {
     "pinata": "*"

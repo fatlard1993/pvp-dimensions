@@ -9,8 +9,14 @@ public final class Menus {
 	private Menus() {}
 
 	public static void open(ServerPlayer player) {
-		if (PandoricalApi.isAvailable(player)) MainScreen.show(player);
+		if (PandoricalApi.isAvailable(player)) MainScreen.showAll(player);
 		else ChatMenus.main(player);
+	}
+
+	/** The arenas running, to pick one to join. */
+	public static void join(ServerPlayer player) {
+		if (PandoricalApi.isAvailable(player)) MainScreen.showJoin(player);
+		else ChatMenus.join(player);
 	}
 
 	/** Where a new preset starts: the kinds of match. */

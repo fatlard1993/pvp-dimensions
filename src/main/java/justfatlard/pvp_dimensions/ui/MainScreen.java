@@ -29,7 +29,8 @@ import static justfatlard.pvp_dimensions.ui.Ui.*;
  * The menu: the arena you are in, the arenas running, and the presets to start one from, a tile
  * each. Picking a tile shows how it will start, who is invited and whether the frame beside you
  * is lit, and any settings its admin let users change for their own game, with one button to go.
- * An admin's New asks first what kind of match it's to be.
+ * An admin's New asks first what kind of match it's to be. Opened to join, it is only the first two:
+ * the arenas running, each with its Join.
  */
 public final class MainScreen {
 	private MainScreen() {}
@@ -55,18 +56,34 @@ public final class MainScreen {
 	private static final int ADJUST_ROWS = 2;
 	private static final int ADJUST_CONTROL = 134;
 	private static final Map<UUID, String> open = new ConcurrentHashMap<>();
+	/** Players looking at the running arenas alone, to pick one to join: kept through every rebuild. */
+	private static final java.util.Set<UUID> joining = ConcurrentHashMap.newKeySet();
 
 	static void register(ScreenApi screens) {
 		screens.onActionFallback(TYPE, MainScreen::pressed);
 		screens.onClose(TYPE, player -> {
 			open.remove(player.getUUID());
 			choosing.remove(player.getUUID());
+			joining.remove(player.getUUID());
 		});
 	}
 
 	static void forget(UUID player) {
 		open.remove(player);
 		choosing.remove(player);
+		joining.remove(player);
+	}
+
+	/** The whole menu. */
+	public static void showAll(ServerPlayer player) {
+		joining.remove(player.getUUID());
+		show(player);
+	}
+
+	/** The arenas running and nothing else, to pick one to join. */
+	public static void showJoin(ServerPlayer player) {
+		joining.add(player.getUUID());
+		show(player);
 	}
 
 	public static void show(ServerPlayer player) {
@@ -127,7 +144,7 @@ public final class MainScreen {
 		List<ComponentBuilder> adjustRows = new ArrayList<>();
 		int adjustY = 0;
 		int adjustCount = 0;
-		if (tier.atLeast(Access.Tier.USER)) {
+		if (!joining.contains(player.getUUID()) && tier.atLeast(Access.Tier.USER)) {
 			heading(under, over, "start", y, "minecraft:iron_sword", tier == Access.Tier.ADMIN ? "Start or edit a game" : "Start a game");
 			if (tier == Access.Tier.ADMIN) under.add(button("new", PAD + inner - 46, y - 2, 46, BUTTON, "New", "Make a new preset from a kind of match"));
 			y += 20;
