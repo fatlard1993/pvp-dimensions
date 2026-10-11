@@ -38,7 +38,7 @@ public final class Preset {
 	public enum Rarity { RARE, NORMAL, COMMON, SWARM }
 	/** How often one kind of mob turns up among the rest; any kind not given one is normal. */
 	public enum MobLevel { OFF, RARE, NORMAL, COMMON }
-	public enum Goal { TIME, KILLS, MOBS, CTF, TAKEOVER, DESTRUCTION, WAVES, HILL, BANK, RACE, SPY, HITS, SOCCER, KEEPAWAY, POTATO, GOLF }
+	public enum Goal { TIME, KILLS, MOBS, CTF, TAKEOVER, DESTRUCTION, WAVES, HILL, BANK, RACE, SPY, HITS, SOCCER, KEEPAWAY, POTATO, GOLF, POOL }
 	/**
 	 * What lands a hit, where hits are what the arena is played for.
 	 *
@@ -399,7 +399,8 @@ public final class Preset {
 
 	/** The goals that need sides to score for. */
 	public boolean teamGoal() {
-		return goal == Goal.CTF || goal == Goal.TAKEOVER || goal == Goal.DESTRUCTION || goal == Goal.BANK || goal == Goal.SOCCER;
+		return goal == Goal.CTF || goal == Goal.TAKEOVER || goal == Goal.DESTRUCTION || goal == Goal.BANK || goal == Goal.SOCCER
+			|| goal == Goal.POOL;
 	}
 
 	/** Whether the arena is played with a sulfur cube ball whose block the preset picks; hot potato's is always TNT. */

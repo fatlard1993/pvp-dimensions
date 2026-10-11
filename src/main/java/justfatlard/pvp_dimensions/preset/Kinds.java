@@ -124,6 +124,13 @@ public enum Kinds {
 		p.goalTarget = 5;
 		p.size = 4;
 	}),
+	POOL(Family.TEAMS, "Pool", "minecraft:coal_block", "Clear your colour, then sink the 8", p -> {
+		teams(p);
+		ballGame(p);
+		p.goal = Preset.Goal.POOL;
+		p.lifeMinutes = 20;
+		p.size = 3;
+	}),
 	PUSH_THE_BALL(Family.TEAMS, "Push the ball", "minecraft:iron_block", "An iron ball, shoved over their line", p -> {
 		teams(p);
 		ballGame(p);

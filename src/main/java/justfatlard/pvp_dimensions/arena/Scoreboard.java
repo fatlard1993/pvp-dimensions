@@ -106,6 +106,16 @@ public final class Scoreboard {
 				title = "Hot potato";
 				footer = arena.fighting().size() + " still in";
 			}
+			case POOL -> {
+				int per = Pool.perTeam(arena);
+				for (int team = 0; team < preset.teams; team++) {
+					int down = arena.scores.getOrDefault(team, 0);
+					lines.add(team(team, Math.min(down, per) + "/" + per + " down", fraction(down, per), viewer.team == team));
+				}
+				title = "Pool";
+				goal = "then the 8";
+				footer = Pool.whoseShot(server, arena);
+			}
 			case GOLF -> {
 				int holes = Math.max(1, arena.bases.size());
 				players(arena, viewer, Golf::rank, member -> member.held + "/" + holes + ", " + member.points,

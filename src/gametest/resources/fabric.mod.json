@@ -12,7 +12,8 @@
 			"justfatlard.pvp_dimensions.gametest.HitsSurvive",
 			"justfatlard.pvp_dimensions.gametest.SeriesCounts",
 			"justfatlard.pvp_dimensions.gametest.PresetFiles",
-			"justfatlard.pvp_dimensions.gametest.BallGamesSurvive"
+			"justfatlard.pvp_dimensions.gametest.BallGamesSurvive",
+			"justfatlard.pvp_dimensions.gametest.PoolPlays"
 		]
 	},
 	"depends": {

@@ -62,7 +62,7 @@ public final class Balls {
 
 	/** Whether this arena's goal is played with balls at all. */
 	static boolean played(Preset preset) {
-		return preset.playsBall() || preset.activeGoal() == Preset.Goal.POTATO;
+		return preset.playsBall() || preset.activeGoal() == Preset.Goal.POTATO || preset.activeGoal() == Preset.Goal.POOL;
 	}
 
 	/**
@@ -211,11 +211,14 @@ public final class Balls {
 		cube.needsSync = true;
 	}
 
-	/** Whether walking into a ball shoves it: not in golf, where every move of it is a stroke. */
+	/**
+	 * Whether walking into a ball shoves it: not in golf, where every move of it is a stroke, nor
+	 * on a pool table, where only the cue ball moves, and only by a shot.
+	 */
 	public static boolean pushable(SulfurCube cube) {
 		if (!cube.entityTags().contains(TAG) || !(cube.level() instanceof ServerLevel level)) return true;
 		Arena arena = Arenas.at(level, cube.getX(), cube.getZ());
-		return arena == null || arena.preset.activeGoal() != Preset.Goal.GOLF;
+		return arena == null || arena.preset.activeGoal() != Preset.Goal.GOLF && arena.preset.activeGoal() != Preset.Goal.POOL;
 	}
 
 	/** Who touched it last, if they are still in the fight. */

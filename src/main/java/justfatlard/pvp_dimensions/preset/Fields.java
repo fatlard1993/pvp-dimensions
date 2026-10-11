@@ -926,6 +926,7 @@ public final class Fields {
 			case KEEPAWAY -> "Keep-away";
 			case POTATO -> "Hot potato";
 			case GOLF -> "Golf";
+			case POOL -> "Pool";
 		};
 	}
 
@@ -960,6 +961,7 @@ public final class Fields {
 			options.add(new Field.Choice.Option("destruction", "Destroy their base"));
 			options.add(new Field.Choice.Option("bank", "Banking"));
 			options.add(new Field.Choice.Option("soccer", "Soccer"));
+			options.add(new Field.Choice.Option("pool", "Pool"));
 		}
 		return options;
 	}

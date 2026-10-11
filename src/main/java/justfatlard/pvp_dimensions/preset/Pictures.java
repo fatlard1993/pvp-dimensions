@@ -115,6 +115,9 @@ public final class Pictures {
 		} else if (goal == Preset.Goal.KEEPAWAY || goal == Preset.Goal.POTATO || goal == Preset.Goal.HITS && p.hitKind == Preset.HitKind.BALL) {
 			dot(cells, new int[] {MAP / 2 - 1, MAP / 2 - 1}, palette.add(BALL), 2);
 			key.add(new Field.Picture.Key(goal == Preset.Goal.HITS && p.ballCount > 1 ? "the balls" : "the ball", darker(BALL)));
+		} else if (goal == Preset.Goal.POOL) {
+			dot(cells, new int[] {MAP / 2 - 1, MAP / 2 - 1}, palette.add(BALL), 3);
+			key.add(new Field.Picture.Key("the pool table", darker(BALL)));
 		} else if (goal == Preset.Goal.GOLF) {
 			key.add(new Field.Picture.Key(p.golfHoles + (p.golfHoles == 1 ? " hole" : " holes") + ", a new course every time", darker(BALL)));
 		}

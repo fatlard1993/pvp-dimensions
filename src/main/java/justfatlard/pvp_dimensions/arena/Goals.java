@@ -101,6 +101,7 @@ public final class Goals {
 		if (goal == Preset.Goal.KEEPAWAY) KeepAway.begin(level, arena, System.currentTimeMillis());
 		if (goal == Preset.Goal.POTATO) HotPotato.begin(level, arena, System.currentTimeMillis());
 		if (goal == Preset.Goal.GOLF) Golf.begin(level, arena);
+		if (goal == Preset.Goal.POOL) Pool.begin(server, level, arena);
 		if (preset.livesOn() && preset.pooledLives()) {
 			for (int team = 0; team < preset.teams; team++) arena.pools.put(team, preset.livesCount);
 		}
@@ -143,6 +144,8 @@ public final class Goals {
 			case POTATO -> "The ball has a fuse. Whoever touched it last when it blows is caught";
 			case GOLF -> preset.golfHoles + (preset.golfHoles == 1 ? " hole" : " holes")
 				+ ", a ball each: every kick of your own is a stroke, and the fewest strokes wins. Follow the sparks";
+			case POOL -> "Take turns at the white ball, crouching for a soft shot. Clear your colour, then sink the 8-ball;"
+				+ " sink it any sooner and you lose";
 		};
 		if (how != null) Arenas.tellInside(server, arena, how);
 	}
@@ -271,7 +274,7 @@ public final class Goals {
 		Preset.Goal goal = arena.preset.activeGoal();
 		boolean admin = breaker != null && breaker.isCreative() && justfatlard.pvp_dimensions.Access.admin(breaker);
 		if (Markers.part(arena, pos) || TeamChests.kept(arena, pos) || wallHolds(arena, pos) || mazeHolds(arena, pos) || Soccer.part(arena, pos)
-			|| Golf.part(arena, pos)) return !admin;
+			|| Golf.part(arena, pos) || Pool.part(arena, pos)) return !admin;
 		if (goal == Preset.Goal.CTF || goal == Preset.Goal.BANK) {
 			for (BlockPos base : arena.bases) {
 				if (pos.equals(base) || pos.equals(base.east())) return breaker == null || !breaker.isCreative();
@@ -612,6 +615,8 @@ public final class Goals {
 			case KEEPAWAY -> KeepAway.status(arena, member) + livesLeft;
 			case POTATO -> HotPotato.status(arena) + livesLeft;
 			case GOLF -> Golf.status(arena, member);
+			case POOL -> justfatlard.pvp_dimensions.PvpDimensions.server() == null ? null
+				: Pool.status(justfatlard.pvp_dimensions.PvpDimensions.server(), arena);
 			case RACE -> {
 				String race = justfatlard.pvp_dimensions.PvpDimensions.server() == null ? null
 					: Race.status(justfatlard.pvp_dimensions.PvpDimensions.server(), arena, member);
@@ -684,6 +689,7 @@ public final class Goals {
 			}
 			case POTATO -> HotPotato.tick(server, level, arena, now);
 			case GOLF -> Golf.tick(server, level, arena, now);
+			case POOL -> Pool.tick(server, level, arena, now);
 			case HITS -> {
 				Dodgeball.tick(server, level, arena, now);
 				outOfLives(server, arena, now);
@@ -799,7 +805,7 @@ public final class Goals {
 		if (preset.activeGoal() == Preset.Goal.GOLF) return Golf.timeUp(server, arena);
 		if (preset.activeGoal() == Preset.Goal.KEEPAWAY && !preset.teamsOn()) return KeepAway.timeUp(server, arena);
 		switch (preset.activeGoal()) {
-			case CTF, BANK, SOCCER, KEEPAWAY -> byTeam.putAll(arena.scores);
+			case CTF, BANK, SOCCER, KEEPAWAY, POOL -> byTeam.putAll(arena.scores);
 			case HILL -> {
 				if (preset.teamsOn()) {
 					byTeam.putAll(arena.scores);
@@ -977,5 +983,6 @@ public final class Goals {
 		KeepAway.forget(arena);
 		HotPotato.forget(arena);
 		Golf.forget(arena);
+		Pool.forget(arena);
 	}
 }

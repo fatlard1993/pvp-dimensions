@@ -1,6 +1,7 @@
 package justfatlard.pvp_dimensions.mixin;
 
 import justfatlard.pvp_dimensions.arena.Balls;
+import justfatlard.pvp_dimensions.arena.Pool;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.monster.cubemob.SulfurCube;
 import net.minecraft.world.entity.player.Player;
@@ -17,15 +18,27 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * block inside, a blow it is immune to is turned straight into knockback and never reaches them.
  * The knockback names the hitter whatever the blow was, so this sees every kick.
  *
- * <p>Walking into a golf ball is refused, since there every move of it is a stroke. Otherwise
- * nothing is changed; this only watches.
+ * <p>Walking into a golf ball is refused, since there every move of it is a stroke. On a pool
+ * table a hit is refused too, on every ball but the white and from everyone but whoever's shot it
+ * is, and the shot that is let through is kept flat on the cloth. Otherwise nothing is changed;
+ * this only watches.
  */
 @Mixin(SulfurCube.class)
 public abstract class SulfurCubeMixin {
 
-	@Inject(method = "knockback", at = @At("HEAD"))
+	@Inject(method = "knockback", at = @At("HEAD"), cancellable = true)
 	private void pvpDimensions$kicked(double power, double xd, double zd, DamageSource source, float damage, boolean comesFromEffect, CallbackInfo callback) {
-		Balls.touched((SulfurCube) (Object) this, source.getEntity(), true);
+		SulfurCube self = (SulfurCube) (Object) this;
+		if (!Pool.mayStrike(self, source.getEntity())) {
+			callback.cancel();
+			return;
+		}
+		Balls.touched(self, source.getEntity(), true);
+	}
+
+	@Inject(method = "knockback", at = @At("TAIL"))
+	private void pvpDimensions$shot(double power, double xd, double zd, DamageSource source, float damage, boolean comesFromEffect, CallbackInfo callback) {
+		Pool.struck((SulfurCube) (Object) this, source.getEntity());
 	}
 
 	@Inject(method = "playerTouch", at = @At("HEAD"), cancellable = true)
