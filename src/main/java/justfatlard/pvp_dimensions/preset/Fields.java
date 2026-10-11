@@ -927,6 +927,7 @@ public final class Fields {
 			case POTATO -> "Hot potato";
 			case GOLF -> "Golf";
 			case POOL -> "Pool";
+			case BATTLESHIP -> "Battleship";
 		};
 	}
 
@@ -962,6 +963,7 @@ public final class Fields {
 			options.add(new Field.Choice.Option("bank", "Banking"));
 			options.add(new Field.Choice.Option("soccer", "Soccer"));
 			options.add(new Field.Choice.Option("pool", "Pool"));
+			if (preset.teams == 2) options.add(new Field.Choice.Option("battleship", "Battleship"));
 		}
 		return options;
 	}

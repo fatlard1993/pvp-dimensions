@@ -813,6 +813,7 @@ public final class Arenas {
 			case CTF -> "Flags: " + Banks.tally(arena);
 			case SOCCER -> "Goals: " + Banks.tally(arena);
 			case POOL -> "Balls down: " + Banks.tally(arena);
+			case BATTLESHIP -> "Hits: " + Banks.tally(arena);
 			case KEEPAWAY -> arena.preset.teamsOn() ? "Kept: " + Banks.tally(arena) : "";
 			case HILL -> arena.preset.teamsOn() ? "Held: " + Banks.tally(arena) : "";
 			default -> "";

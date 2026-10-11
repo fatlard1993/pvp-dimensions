@@ -153,6 +153,8 @@ public class PvpDimensions implements ModInitializer {
 				Say.bar(serverPlayer, "The horde doesn't open things");
 				return InteractionResult.FAIL;
 			}
+			InteractionResult shot = justfatlard.pvp_dimensions.arena.Battleship.use(serverPlayer, (ServerLevel) level, hit.getBlockPos(), hand);
+			if (shot != InteractionResult.PASS) return shot;
 			InteractionResult chest = TeamChests.use(serverPlayer, (ServerLevel) level, hit.getBlockPos());
 			if (chest != InteractionResult.PASS) return chest;
 			if (!level.getBlockState(hit.getBlockPos()).is(Blocks.ENDER_CHEST)) return InteractionResult.PASS;

@@ -147,6 +147,7 @@ public final class Summary {
 				};
 			case KEEPAWAY -> p.keepTarget > 0 ? "to keep the ball for " + Fields.duration(p.keepTarget).toLowerCase(Locale.ROOT) : "to keep the ball longest";
 			case POTATO -> "to be the last not holding the ball when it blows";
+			case BATTLESHIP -> "to sink the other team's fleet first, a square at a time";
 			case POOL -> "to clear their colour off the pool table, then sink the 8-ball";
 			case GOLF -> "to sink the ball in " + p.golfHoles + (p.golfHoles == 1 ? " hole" : " holes") + " in the fewest kicks";
 		};

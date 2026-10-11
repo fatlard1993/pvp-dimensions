@@ -106,6 +106,16 @@ public final class Scoreboard {
 				title = "Hot potato";
 				footer = arena.fighting().size() + " still in";
 			}
+			case BATTLESHIP -> {
+				int ships = Battleship.ships();
+				for (int team = 0; team < preset.teams; team++) {
+					int afloat = Battleship.afloat(arena, team);
+					lines.add(team(team, afloat + "/" + ships + " afloat", fraction(afloat, ships), viewer.team == team));
+				}
+				title = "Battleship";
+				goal = "sink theirs";
+				footer = Battleship.whoseTurn(arena);
+			}
 			case POOL -> {
 				int per = Pool.perTeam(arena);
 				for (int team = 0; team < preset.teams; team++) {

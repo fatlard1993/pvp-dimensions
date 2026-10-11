@@ -131,6 +131,13 @@ public enum Kinds {
 		p.lifeMinutes = 20;
 		p.size = 3;
 	}),
+	BATTLESHIP(Family.TEAMS, "Battleship", "minecraft:target", "Two hidden fleets, a square at a time", p -> {
+		teams(p);
+		ballGame(p);
+		p.goal = Preset.Goal.BATTLESHIP;
+		p.lifeMinutes = 20;
+		p.size = 3;
+	}),
 	PUSH_THE_BALL(Family.TEAMS, "Push the ball", "minecraft:iron_block", "An iron ball, shoved over their line", p -> {
 		teams(p);
 		ballGame(p);

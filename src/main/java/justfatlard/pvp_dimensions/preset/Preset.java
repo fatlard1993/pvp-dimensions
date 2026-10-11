@@ -38,7 +38,7 @@ public final class Preset {
 	public enum Rarity { RARE, NORMAL, COMMON, SWARM }
 	/** How often one kind of mob turns up among the rest; any kind not given one is normal. */
 	public enum MobLevel { OFF, RARE, NORMAL, COMMON }
-	public enum Goal { TIME, KILLS, MOBS, CTF, TAKEOVER, DESTRUCTION, WAVES, HILL, BANK, RACE, SPY, HITS, SOCCER, KEEPAWAY, POTATO, GOLF, POOL }
+	public enum Goal { TIME, KILLS, MOBS, CTF, TAKEOVER, DESTRUCTION, WAVES, HILL, BANK, RACE, SPY, HITS, SOCCER, KEEPAWAY, POTATO, GOLF, POOL, BATTLESHIP }
 	/**
 	 * What lands a hit, where hits are what the arena is played for.
 	 *
@@ -400,7 +400,7 @@ public final class Preset {
 	/** The goals that need sides to score for. */
 	public boolean teamGoal() {
 		return goal == Goal.CTF || goal == Goal.TAKEOVER || goal == Goal.DESTRUCTION || goal == Goal.BANK || goal == Goal.SOCCER
-			|| goal == Goal.POOL;
+			|| goal == Goal.POOL || goal == Goal.BATTLESHIP;
 	}
 
 	/** Whether the arena is played with a sulfur cube ball whose block the preset picks; hot potato's is always TNT. */
@@ -417,12 +417,15 @@ public final class Preset {
 	 * axes, except on a pitch, where the goals are end to end along one.
 	 */
 	public double ringAngle(int team) {
-		return Math.PI * 2 * team / Math.max(1, teams) + (activeGoal() == Goal.SOCCER ? 0 : Math.PI / 4);
+		Goal active = activeGoal();
+		return Math.PI * 2 * team / Math.max(1, teams) + (active == Goal.SOCCER || active == Goal.BATTLESHIP ? 0 : Math.PI / 4);
 	}
 
 	/** What the arena is actually played for: a team goal only counts with teams, a kill count only with fighting. */
 	public Goal activeGoal() {
 		if (teamGoal() && !teamsOn()) return Goal.TIME;
+		// Two fleets, each firing at the other: there is no third side to aim at.
+		if (goal == Goal.BATTLESHIP && teams != 2) return Goal.TIME;
 		if (goal == Goal.KILLS && !pvp) return Goal.TIME;
 		if (goal == Goal.WAVES && mobStyle != MobStyle.WAVES) return Goal.TIME;
 		return goal;

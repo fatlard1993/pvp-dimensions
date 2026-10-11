@@ -3,6 +3,9 @@
     "Arenas on demand. Pick a preset from a menu and a fresh piece of ground is made for the fight, floating alone in a dimension of its own, gone when the clock runs out."
   ],
   "versions": {
+    "1.6.0": [
+      "Battleship, for two teams: hidden fleets, and a board at each end to fire from. Right-click a square on your turn; sink their whole fleet first."
+    ],
     "1.5.0": [
       "Pool: a table, a rack in each team's colour and the 8-ball. Take turns at the white, crouch for a soft shot, clear your colour, then sink the 8."
     ],
