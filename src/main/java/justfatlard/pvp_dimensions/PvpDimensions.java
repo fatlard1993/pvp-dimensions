@@ -155,6 +155,8 @@ public class PvpDimensions implements ModInitializer {
 			}
 			InteractionResult shot = justfatlard.pvp_dimensions.arena.Battleship.use(serverPlayer, (ServerLevel) level, hit.getBlockPos(), hand);
 			if (shot != InteractionResult.PASS) return shot;
+			InteractionResult gallery = justfatlard.pvp_dimensions.arena.GuessWho.useBlock(serverPlayer, (ServerLevel) level, hit.getBlockPos(), hand);
+			if (gallery != InteractionResult.PASS) return gallery;
 			InteractionResult chest = TeamChests.use(serverPlayer, (ServerLevel) level, hit.getBlockPos());
 			if (chest != InteractionResult.PASS) return chest;
 			if (!level.getBlockState(hit.getBlockPos()).is(Blocks.ENDER_CHEST)) return InteractionResult.PASS;
@@ -168,6 +170,10 @@ public class PvpDimensions implements ModInitializer {
 		// block or light: each one ends the match or changes how the ball plays.
 		UseEntityCallback.EVENT.register((player, level, hand, entity, hit) ->
 			entity.entityTags().contains(justfatlard.pvp_dimensions.arena.Balls.TAG) ? InteractionResult.FAIL : InteractionResult.PASS);
+		// A suspect in a guessing game is never traded with, sheared or led off: only accused.
+		UseEntityCallback.EVENT.register((player, level, hand, entity, hit) ->
+			player instanceof ServerPlayer serverPlayer ? justfatlard.pvp_dimensions.arena.GuessWho.useEntity(serverPlayer, entity, hand)
+				: entity.entityTags().contains(justfatlard.pvp_dimensions.arena.GuessWho.TAG) ? InteractionResult.FAIL : InteractionResult.PASS);
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> PvpCommands.register(dispatcher));
 

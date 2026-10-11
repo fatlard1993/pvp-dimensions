@@ -106,6 +106,15 @@ public final class Scoreboard {
 				title = "Hot potato";
 				footer = arena.fighting().size() + " still in";
 			}
+			case GUESS_WHO -> {
+				for (int team = 0; team < preset.teams; team++) {
+					int standing = GuessWho.standing(arena, team);
+					lines.add(team(team, standing + " standing", fraction(standing, GuessWho.SUSPECT_COUNT), viewer.team == team));
+				}
+				title = "Guess who";
+				goal = GuessWho.whoseTurn(arena);
+				footer = GuessWho.secretWords(arena, viewer);
+			}
 			case BATTLESHIP -> {
 				int ships = Battleship.ships();
 				for (int team = 0; team < preset.teams; team++) {

@@ -3,6 +3,9 @@
     "Arenas on demand. Pick a preset from a menu and a fresh piece of ground is made for the fight, floating alone in a dimension of its own, gone when the clock runs out."
   ],
   "versions": {
+    "1.7.0": [
+      "Guess who, for two teams: a gallery of sixteen suspects at each end. Ask a yes-or-no question out loud, flip down who it rules out, ring your bell; right-click your suspect twice to accuse."
+    ],
     "1.6.0": [
       "Battleship, for two teams: hidden fleets, and a board at each end to fire from. Right-click a square on your turn; sink their whole fleet first."
     ],

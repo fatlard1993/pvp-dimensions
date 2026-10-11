@@ -14,7 +14,8 @@
 			"justfatlard.pvp_dimensions.gametest.PresetFiles",
 			"justfatlard.pvp_dimensions.gametest.BallGamesSurvive",
 			"justfatlard.pvp_dimensions.gametest.PoolPlays",
-			"justfatlard.pvp_dimensions.gametest.BattleshipPlays"
+			"justfatlard.pvp_dimensions.gametest.BattleshipPlays",
+			"justfatlard.pvp_dimensions.gametest.GuessWhoPlays"
 		]
 	},
 	"depends": {

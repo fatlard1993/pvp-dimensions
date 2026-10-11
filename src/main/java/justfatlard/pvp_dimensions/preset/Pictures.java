@@ -115,6 +115,11 @@ public final class Pictures {
 		} else if (goal == Preset.Goal.KEEPAWAY || goal == Preset.Goal.POTATO || goal == Preset.Goal.HITS && p.hitKind == Preset.HitKind.BALL) {
 			dot(cells, new int[] {MAP / 2 - 1, MAP / 2 - 1}, palette.add(BALL), 2);
 			key.add(new Field.Picture.Key(goal == Preset.Goal.HITS && p.ballCount > 1 ? "the balls" : "the ball", darker(BALL)));
+		} else if (goal == Preset.Goal.GUESS_WHO) {
+			for (int team = 0; team < teams; team++) {
+				dot(cells, spot(Divisions.NONE, p, team, Preset.GOAL_RING), palette.add(0xFF000000 | TeamColors.of(team).team().rgb()), 3);
+			}
+			key.add(new Field.Picture.Key("each team's gallery of suspects", darker(BALL)));
 		} else if (goal == Preset.Goal.BATTLESHIP) {
 			for (int team = 0; team < teams; team++) {
 				dot(cells, spot(Divisions.NONE, p, team, Preset.GOAL_RING), palette.add(0xFF000000 | TeamColors.of(team).team().rgb()), 3);

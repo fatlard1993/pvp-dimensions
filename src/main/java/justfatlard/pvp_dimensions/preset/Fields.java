@@ -928,6 +928,7 @@ public final class Fields {
 			case GOLF -> "Golf";
 			case POOL -> "Pool";
 			case BATTLESHIP -> "Battleship";
+			case GUESS_WHO -> "Guess who";
 		};
 	}
 
@@ -963,7 +964,10 @@ public final class Fields {
 			options.add(new Field.Choice.Option("bank", "Banking"));
 			options.add(new Field.Choice.Option("soccer", "Soccer"));
 			options.add(new Field.Choice.Option("pool", "Pool"));
-			if (preset.teams == 2) options.add(new Field.Choice.Option("battleship", "Battleship"));
+			if (preset.teams == 2) {
+				options.add(new Field.Choice.Option("battleship", "Battleship"));
+				options.add(new Field.Choice.Option("guess_who", "Guess who"));
+			}
 		}
 		return options;
 	}

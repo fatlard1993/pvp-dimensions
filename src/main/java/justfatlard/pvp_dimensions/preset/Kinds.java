@@ -131,6 +131,13 @@ public enum Kinds {
 		p.lifeMinutes = 20;
 		p.size = 3;
 	}),
+	GUESS_WHO(Family.TEAMS, "Guess who", "minecraft:name_tag", "Sixteen suspects, one yes-or-no at a time", p -> {
+		teams(p);
+		ballGame(p);
+		p.goal = Preset.Goal.GUESS_WHO;
+		p.lifeMinutes = 20;
+		p.size = 4;
+	}),
 	BATTLESHIP(Family.TEAMS, "Battleship", "minecraft:target", "Two hidden fleets, a square at a time", p -> {
 		teams(p);
 		ballGame(p);

@@ -103,6 +103,7 @@ public final class Goals {
 		if (goal == Preset.Goal.GOLF) Golf.begin(level, arena);
 		if (goal == Preset.Goal.POOL) Pool.begin(server, level, arena);
 		if (goal == Preset.Goal.BATTLESHIP) Battleship.begin(server, level, arena);
+		if (goal == Preset.Goal.GUESS_WHO) GuessWho.begin(server, level, arena);
 		if (preset.livesOn() && preset.pooledLives()) {
 			for (int team = 0; team < preset.teams; team++) arena.pools.put(team, preset.livesCount);
 		}
@@ -145,6 +146,8 @@ public final class Goals {
 			case POTATO -> "The ball has a fuse. Whoever touched it last when it blows is caught";
 			case GOLF -> preset.golfHoles + (preset.golfHoles == 1 ? " hole" : " holes")
 				+ ", a ball each: every kick of your own is a stroke, and the fewest strokes wins. Follow the sparks";
+			case GUESS_WHO -> "Each team has a suspect the other is after. On your turn, ask one yes-or-no question out loud,"
+				+ " flip down who it rules out, and ring your bell. Right-click a suspect twice to accuse: wrong, and you lose";
 			case BATTLESHIP -> "Each team's fleet is hidden. On your turn, right-click a square of the board at your end to fire at theirs;"
 				+ " sink every ship first to win";
 			case POOL -> "Take turns at the white ball, crouching for a soft shot. Clear your colour, then sink the 8-ball;"
@@ -278,7 +281,7 @@ public final class Goals {
 		boolean admin = breaker != null && breaker.isCreative() && justfatlard.pvp_dimensions.Access.admin(breaker);
 		if (Markers.part(arena, pos) || TeamChests.kept(arena, pos) || wallHolds(arena, pos) || mazeHolds(arena, pos) || Soccer.part(arena, pos)
 			|| Golf.part(arena, pos) || Pool.part(arena, pos)
-			|| Battleship.part(arena, pos)) return !admin;
+			|| Battleship.part(arena, pos) || GuessWho.part(arena, pos)) return !admin;
 		if (goal == Preset.Goal.CTF || goal == Preset.Goal.BANK) {
 			for (BlockPos base : arena.bases) {
 				if (pos.equals(base) || pos.equals(base.east())) return breaker == null || !breaker.isCreative();
@@ -620,6 +623,7 @@ public final class Goals {
 			case POTATO -> HotPotato.status(arena) + livesLeft;
 			case GOLF -> Golf.status(arena, member);
 			case BATTLESHIP -> Battleship.status(arena);
+			case GUESS_WHO -> GuessWho.status(arena, member);
 			case POOL -> justfatlard.pvp_dimensions.PvpDimensions.server() == null ? null
 				: Pool.status(justfatlard.pvp_dimensions.PvpDimensions.server(), arena);
 			case RACE -> {
@@ -696,6 +700,7 @@ public final class Goals {
 			case GOLF -> Golf.tick(server, level, arena, now);
 			case POOL -> Pool.tick(server, level, arena, now);
 			case BATTLESHIP -> Battleship.tick(server, level, arena, now);
+			case GUESS_WHO -> GuessWho.tick(server, level, arena, now);
 			case HITS -> {
 				Dodgeball.tick(server, level, arena, now);
 				outOfLives(server, arena, now);
@@ -991,5 +996,6 @@ public final class Goals {
 		Golf.forget(arena);
 		Pool.forget(arena);
 		Battleship.forget(arena);
+		GuessWho.forget(arena);
 	}
 }
