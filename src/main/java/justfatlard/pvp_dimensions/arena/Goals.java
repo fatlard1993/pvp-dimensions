@@ -104,6 +104,11 @@ public final class Goals {
 		if (goal == Preset.Goal.POOL) Pool.begin(server, level, arena);
 		if (goal == Preset.Goal.BATTLESHIP) Battleship.begin(server, level, arena);
 		if (goal == Preset.Goal.GUESS_WHO) GuessWho.begin(server, level, arena);
+		if (goal == Preset.Goal.BOWLING) Bowling.begin(server, level, arena);
+		if (goal == Preset.Goal.CONNECT_FOUR) ConnectFour.begin(server, level, arena);
+		if (goal == Preset.Goal.MASTERMIND) Mastermind.begin(server, level, arena);
+		if (goal == Preset.Goal.MEMORY) Memory.begin(server, level, arena);
+		if (goal == Preset.Goal.MINESWEEPER) Minesweeper.begin(server, level, arena);
 		if (preset.livesOn() && preset.pooledLives()) {
 			for (int team = 0; team < preset.teams; team++) arena.pools.put(team, preset.livesCount);
 		}
@@ -150,6 +155,16 @@ public final class Goals {
 				+ " flip down who it rules out, and ring your bell. Right-click a suspect twice to accuse: wrong, and you lose";
 			case BATTLESHIP -> "Each team's fleet is hidden. On your turn, right-click a square of the board at your end to fire at theirs;"
 				+ " sink every ship first to win";
+			case BOWLING -> "A lane each. Take your frame when it's yours: hit your ball down the lane, crouching for a soft one."
+				+ " Ten frames, scored as at any alley; the highest score wins";
+			case CONNECT_FOUR -> "On your turn, right-click a column of the frame in the middle to drop a piece. Four in a row takes a game;"
+				+ " first to " + ConnectFour.TO_WIN + " games wins";
+			case MASTERMIND -> "Crack your code of four colours: right-click the lit row to set it, crouching to go back, and ring your bell."
+				+ " Black pegs are right colour, right place; white, right colour, wrong place. First to " + Mastermind.TO_WIN + " codes wins";
+			case MEMORY -> "On your turn, right-click two cards to turn them over. A pair is yours, and you go again;"
+				+ " the most pairs wins";
+			case MINESWEEPER -> "Clear your field first. Right-click to uncover, crouch and right-click to flag;"
+				+ " a mine starts your field again";
 			case POOL -> "Take turns at the white ball, crouching for a soft shot. Clear your colour, then sink the 8-ball;"
 				+ " sink it any sooner and you lose";
 		};
@@ -281,7 +296,8 @@ public final class Goals {
 		boolean admin = breaker != null && breaker.isCreative() && justfatlard.pvp_dimensions.Access.admin(breaker);
 		if (Markers.part(arena, pos) || TeamChests.kept(arena, pos) || wallHolds(arena, pos) || mazeHolds(arena, pos) || Soccer.part(arena, pos)
 			|| Golf.part(arena, pos) || Pool.part(arena, pos)
-			|| Battleship.part(arena, pos) || GuessWho.part(arena, pos)) return !admin;
+			|| Battleship.part(arena, pos) || GuessWho.part(arena, pos) || Bowling.part(arena, pos) || ConnectFour.part(arena, pos)
+			|| Mastermind.part(arena, pos) || Memory.part(arena, pos) || Minesweeper.part(arena, pos)) return !admin;
 		if (goal == Preset.Goal.CTF || goal == Preset.Goal.BANK) {
 			for (BlockPos base : arena.bases) {
 				if (pos.equals(base) || pos.equals(base.east())) return breaker == null || !breaker.isCreative();
@@ -624,6 +640,11 @@ public final class Goals {
 			case GOLF -> Golf.status(arena, member);
 			case BATTLESHIP -> Battleship.status(arena);
 			case GUESS_WHO -> GuessWho.status(arena, member);
+			case BOWLING -> Bowling.status(arena, member);
+			case CONNECT_FOUR -> ConnectFour.status(arena);
+			case MASTERMIND -> Mastermind.status(arena, member);
+			case MEMORY -> Memory.status(arena);
+			case MINESWEEPER -> Minesweeper.status(arena, member);
 			case POOL -> justfatlard.pvp_dimensions.PvpDimensions.server() == null ? null
 				: Pool.status(justfatlard.pvp_dimensions.PvpDimensions.server(), arena);
 			case RACE -> {
@@ -701,6 +722,11 @@ public final class Goals {
 			case POOL -> Pool.tick(server, level, arena, now);
 			case BATTLESHIP -> Battleship.tick(server, level, arena, now);
 			case GUESS_WHO -> GuessWho.tick(server, level, arena, now);
+			case BOWLING -> Bowling.tick(server, level, arena, now);
+			case CONNECT_FOUR -> ConnectFour.tick(server, level, arena, now);
+			case MASTERMIND -> Mastermind.tick(server, level, arena, now);
+			case MEMORY -> Memory.tick(server, level, arena, now);
+			case MINESWEEPER -> Minesweeper.tick(server, level, arena, now);
 			case HITS -> {
 				Dodgeball.tick(server, level, arena, now);
 				outOfLives(server, arena, now);
@@ -816,7 +842,7 @@ public final class Goals {
 		if (preset.activeGoal() == Preset.Goal.GOLF) return Golf.timeUp(server, arena);
 		if (preset.activeGoal() == Preset.Goal.KEEPAWAY && !preset.teamsOn()) return KeepAway.timeUp(server, arena);
 		switch (preset.activeGoal()) {
-			case CTF, BANK, SOCCER, KEEPAWAY, POOL, BATTLESHIP -> byTeam.putAll(arena.scores);
+			case CTF, BANK, SOCCER, KEEPAWAY, POOL, BATTLESHIP, BOWLING, CONNECT_FOUR, MASTERMIND, MEMORY, MINESWEEPER -> byTeam.putAll(arena.scores);
 			case HILL -> {
 				if (preset.teamsOn()) {
 					byTeam.putAll(arena.scores);
@@ -996,6 +1022,11 @@ public final class Goals {
 		Golf.forget(arena);
 		Pool.forget(arena);
 		Battleship.forget(arena);
+		Bowling.forget(arena);
+		ConnectFour.forget(arena);
+		Mastermind.forget(arena);
+		Memory.forget(arena);
+		Minesweeper.forget(arena);
 		GuessWho.forget(arena);
 	}
 }

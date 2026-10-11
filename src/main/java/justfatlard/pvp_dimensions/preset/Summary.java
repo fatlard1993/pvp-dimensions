@@ -149,6 +149,11 @@ public final class Summary {
 			case POTATO -> "to be the last not holding the ball when it blows";
 			case GUESS_WHO -> "to find the other team's suspect first, a yes-or-no question at a time";
 			case BATTLESHIP -> "to sink the other team's fleet first, a square at a time";
+			case BOWLING -> "to bowl the highest score over ten frames";
+			case CONNECT_FOUR -> "to connect four in a row, " + justfatlard.pvp_dimensions.arena.ConnectFour.TO_WIN + " games first";
+			case MASTERMIND -> "to crack " + justfatlard.pvp_dimensions.arena.Mastermind.TO_WIN + " codes of four colours first";
+			case MEMORY -> "to find the most pairs among thirty-six cards";
+			case MINESWEEPER -> "to clear their minefield first";
 			case POOL -> "to clear their colour off the pool table, then sink the 8-ball";
 			case GOLF -> "to sink the ball in " + p.golfHoles + (p.golfHoles == 1 ? " hole" : " holes") + " in the fewest kicks";
 		};

@@ -133,11 +133,14 @@ public final class GuessWho {
 		final boolean[][] down = new boolean[2][SUSPECT_COUNT];
 		/** The mobs standing in each gallery, by place. */
 		final Mob[][] standing = new Mob[2][SUSPECT_COUNT];
-		int side;
-		long since = System.currentTimeMillis();
+		final Turns turn;
 		/** A suspect somebody has right-clicked once, waiting for the second click that accuses. */
 		final Map<UUID, Integer> accusing = new HashMap<>();
 		final Map<UUID, Long> accusedAt = new HashMap<>();
+
+		Game(int first) {
+			turn = new Turns(TURN_MILLIS, first);
+		}
 	}
 
 	private static final Map<String, Game> games = new HashMap<>();
@@ -147,11 +150,10 @@ public final class GuessWho {
 	static void begin(MinecraftServer server, ServerLevel level, Arena arena) {
 		arena.bases.clear();
 		for (int team = 0; team < 2; team++) arena.bases.add(gallerySpot(level, arena, team));
-		Game game = new Game();
+		Game game = new Game(DRAW.nextInt(2));
 		games.put(arena.id, game);
 		setUp(server, level, arena, game);
-		game.side = DRAW.nextInt(2);
-		turnTo(server, arena, game, game.side);
+		turnTo(server, arena, game, game.turn.side);
 	}
 
 	/** Both galleries built and stood full, and each team told its suspect. */
@@ -284,8 +286,8 @@ public final class GuessWho {
 				return InteractionResult.FAIL;
 			}
 			if (bell) {
-				if (game.side != team) {
-					Say.bar(player, "It's " + TeamColors.of(game.side).name() + "'s turn");
+				if (game.turn.side != team) {
+					Say.bar(player, "It's " + TeamColors.of(game.turn.side).name() + "'s turn");
 					return InteractionResult.FAIL;
 				}
 				Arenas.tellInside(player.level().getServer(), arena, member.name + " rings the bell: " + TeamColors.of(team).name() + "'s turn is over");
@@ -338,7 +340,7 @@ public final class GuessWho {
 			Say.bar(player, "Accuse from your own gallery");
 			return InteractionResult.FAIL;
 		}
-		if (game.side != member.team) {
+		if (game.turn.side != member.team) {
 			Say.bar(player, "Accuse on your own turn");
 			return InteractionResult.FAIL;
 		}
@@ -395,17 +397,18 @@ public final class GuessWho {
 
 	public static int side(Arena arena) {
 		Game game = games.get(arena.id);
-		return game == null ? -1 : game.side;
+		return game == null ? -1 : game.turn.side;
 	}
 
 	// --- Turns ---
 
 	/** The turn to this side, or past it to the other where it has nobody to play it. */
 	private static void turnTo(MinecraftServer server, Arena arena, Game game, int side) {
-		int to = present(arena, side) || !present(arena, 1 - side) ? side : 1 - side;
-		game.side = to;
-		game.since = System.currentTimeMillis();
-		if (!present(arena, to)) return;
+		if (game.turn.to(arena, side)) announce(server, arena, game);
+	}
+
+	private static void announce(MinecraftServer server, Arena arena, Game game) {
+		int to = game.turn.side;
 		Arenas.tellInside(server, arena, TeamColors.of(to).name() + " asks: one yes-or-no question, out loud. Flip down who it rules out, then ring your bell");
 		Component title = Component.literal("Your turn").withStyle(style -> style.withColor(TeamColors.of(to).team().textColor()));
 		Component subtitle = Component.literal("Ask a question, flip, ring the bell").withStyle(ChatFormatting.YELLOW);
@@ -419,11 +422,6 @@ public final class GuessWho {
 		}
 	}
 
-	private static boolean present(Arena arena, int team) {
-		for (Arena.Member member : arena.fighting()) if (member.team == team) return true;
-		return false;
-	}
-
 	// --- Every half second ---
 
 	static void tick(MinecraftServer server, ServerLevel level, Arena arena, long now) {
@@ -431,7 +429,7 @@ public final class GuessWho {
 		if (game == null) {
 			// Over a restart: nobody wrote down who anybody's suspect was. A new game, in the same galleries.
 			if (arena.bases.size() < 2) return;
-			game = new Game();
+			game = new Game(0);
 			games.put(arena.id, game);
 			setUp(server, level, arena, game);
 			Arenas.tellInside(server, arena, "The case went cold; new suspects are in, and nobody is flipped down");
@@ -445,12 +443,10 @@ public final class GuessWho {
 				if (mob instanceof AgeableMob young && SUSPECTS.get(place).baby() && young.getAge() > YOUNG / 2) young.setAge(YOUNG);
 			}
 		}
-		if (!present(arena, game.side) && present(arena, 1 - game.side)) {
-			turnTo(server, arena, game, 1 - game.side);
-		} else if (now - game.since >= TURN_MILLIS && present(arena, 1 - game.side)) {
-			Arenas.tellInside(server, arena, TeamColors.of(game.side).name() + " took too long; the turn passes");
-			turnTo(server, arena, game, 1 - game.side);
-		}
+		int was = game.turn.side;
+		Turns.Passed passed = game.turn.check(arena, now);
+		if (passed == Turns.Passed.TOO_LONG) Arenas.tellInside(server, arena, TeamColors.of(was).name() + " took too long; the turn passes");
+		if (passed != Turns.Passed.NO) announce(server, arena, game);
 	}
 
 	// --- Words ---
@@ -459,14 +455,14 @@ public final class GuessWho {
 	static @Nullable String status(Arena arena, Arena.@Nullable Member member) {
 		Game game = games.get(arena.id);
 		if (game == null) return null;
-		String turn = TeamColors.of(game.side).name() + " asks";
+		String turn = TeamColors.of(game.turn.side).name() + " asks";
 		if (member == null || member.team < 0 || member.team > 1) return turn;
 		return "Your suspect: " + SUSPECTS.get(game.secret[member.team]).name() + "  ·  " + turn;
 	}
 
 	static String whoseTurn(Arena arena) {
 		Game game = games.get(arena.id);
-		return game == null ? "The suspects are coming in" : TeamColors.of(game.side).name() + " asks";
+		return game == null ? "The suspects are coming in" : TeamColors.of(game.turn.side).name() + " asks";
 	}
 
 	static @Nullable String secretWords(Arena arena, Arena.Member viewer) {

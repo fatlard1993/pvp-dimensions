@@ -115,6 +115,54 @@ public final class Scoreboard {
 				goal = GuessWho.whoseTurn(arena);
 				footer = GuessWho.secretWords(arena, viewer);
 			}
+			case BOWLING -> {
+				int most = Math.max(1, arena.scores.values().stream().mapToInt(Integer::intValue).max().orElse(1));
+				for (int team = 0; team < preset.teams; team++) {
+					int score = arena.scores.getOrDefault(team, 0);
+					lines.add(team(team, score + ", " + Bowling.laneWords(arena, team), fraction(score, most), viewer.team == team));
+				}
+				title = "Bowling";
+				goal = "ten frames";
+				footer = Bowling.upWords(arena, viewer);
+			}
+			case CONNECT_FOUR -> {
+				for (int team = 0; team < preset.teams; team++) {
+					int won = arena.scores.getOrDefault(team, 0);
+					lines.add(team(team, won + (won == 1 ? " game" : " games"), fraction(won, ConnectFour.TO_WIN), viewer.team == team));
+				}
+				title = "Connect four";
+				goal = ConnectFour.TO_WIN + " wins";
+				footer = ConnectFour.whoseTurn(arena);
+			}
+			case MASTERMIND -> {
+				for (int team = 0; team < preset.teams; team++) {
+					int cracked = arena.scores.getOrDefault(team, 0);
+					int left = Mastermind.rowsLeft(arena, team);
+					lines.add(team(team, cracked + " · " + left + " left", fraction(cracked, Mastermind.TO_WIN), viewer.team == team));
+				}
+				title = "Code breaking";
+				goal = Mastermind.TO_WIN + " wins";
+				footer = "Black: in place · white: moved";
+			}
+			case MEMORY -> {
+				for (int team = 0; team < preset.teams; team++) {
+					int pairs = arena.scores.getOrDefault(team, 0);
+					lines.add(team(team, pairs + (pairs == 1 ? " pair" : " pairs"), fraction(pairs, Memory.PAIRS), viewer.team == team));
+				}
+				title = "Memory";
+				goal = Memory.left(arena) + " left";
+				footer = Memory.whoseTurn(arena);
+			}
+			case MINESWEEPER -> {
+				int all = Minesweeper.toClear();
+				for (int team = 0; team < preset.teams; team++) {
+					int open = arena.scores.getOrDefault(team, 0);
+					lines.add(team(team, open + "/" + all, fraction(open, all), viewer.team == team));
+				}
+				title = "Minesweeper";
+				goal = "clear it";
+				footer = Minesweeper.MINES + " mines each";
+			}
 			case BATTLESHIP -> {
 				int ships = Battleship.ships();
 				for (int team = 0; team < preset.teams; team++) {

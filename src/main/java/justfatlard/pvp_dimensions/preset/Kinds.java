@@ -145,6 +145,41 @@ public enum Kinds {
 		p.lifeMinutes = 20;
 		p.size = 3;
 	}),
+	BOWLING(Family.TEAMS, "Bowling", "minecraft:white_concrete_powder", "A lane a team, ten frames", p -> {
+		teams(p);
+		ballGame(p);
+		p.goal = Preset.Goal.BOWLING;
+		p.lifeMinutes = 20;
+		p.size = 3;
+	}),
+	CONNECT_FOUR(Family.TEAMS, "Connect four", "minecraft:red_concrete", "Four in a row, first to three games", p -> {
+		teams(p);
+		ballGame(p);
+		p.goal = Preset.Goal.CONNECT_FOUR;
+		p.lifeMinutes = 15;
+		p.size = 2;
+	}),
+	CODE_BREAKING(Family.TEAMS, "Code breaking", "minecraft:bell", "Crack four colours in ten tries", p -> {
+		teams(p);
+		ballGame(p);
+		p.goal = Preset.Goal.MASTERMIND;
+		p.lifeMinutes = 20;
+		p.size = 3;
+	}),
+	MEMORY(Family.TEAMS, "Memory", "minecraft:white_concrete", "Thirty-six cards, eighteen pairs", p -> {
+		teams(p);
+		ballGame(p);
+		p.goal = Preset.Goal.MEMORY;
+		p.lifeMinutes = 15;
+		p.size = 2;
+	}),
+	MINESWEEPER(Family.TEAMS, "Minesweeper", "minecraft:tnt", "Clear your field before they clear theirs", p -> {
+		teams(p);
+		ballGame(p);
+		p.goal = Preset.Goal.MINESWEEPER;
+		p.lifeMinutes = 15;
+		p.size = 3;
+	}),
 	PUSH_THE_BALL(Family.TEAMS, "Push the ball", "minecraft:iron_block", "An iron ball, shoved over their line", p -> {
 		teams(p);
 		ballGame(p);

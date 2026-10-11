@@ -72,8 +72,11 @@ public final class Battleship {
 		final Map<Integer, List<Ship>> fleets = new HashMap<>();
 		/** The squares each team has fired at, on its board of the other's waters. */
 		final Map<Integer, Set<Integer>> fired = new HashMap<>();
-		int side;
-		long since = System.currentTimeMillis();
+		final Turns turn;
+
+		Game(int first) {
+			turn = new Turns(TURN_MILLIS, first);
+		}
 	}
 
 	private static final Map<String, Game> games = new HashMap<>();
@@ -136,27 +139,14 @@ public final class Battleship {
 	static void begin(MinecraftServer server, ServerLevel level, Arena arena) {
 		arena.bases.clear();
 		for (int team = 0; team < 2; team++) {
-			BlockPos corner = boardSpot(level, arena, team);
+			BlockPos corner = Boards.atEnd(level, arena, team, SIZE, BEHIND);
 			arena.bases.add(corner);
 			build(level, corner, team);
 		}
-		Game game = new Game();
+		Game game = new Game(DRAW.nextInt(2));
 		deal(game, 2);
-		game.side = DRAW.nextInt(2);
 		games.put(arena.id, game);
-		turnTo(server, arena, game, game.side);
-	}
-
-	/** Each team's end of the ground, on its own spoke from the middle, as far out as leaves room behind. */
-	private static BlockPos boardSpot(ServerLevel level, Arena arena, int team) {
-		Footprint footprint = arena.footprint();
-		int width = footprint.width();
-		double radius = Math.max(SIZE, Math.min(width * Preset.GOAL_RING, width / 2.0 - SIZE / 2.0 - BEHIND));
-		double angle = arena.preset.ringAngle(team);
-		int x = (int) Math.floor(footprint.centerX() + Math.cos(angle) * radius);
-		int z = (int) Math.floor(footprint.centerZ() + Math.sin(angle) * radius);
-		int y = Builds.ground(level, arena, x, z);
-		return new BlockPos(x - SIZE / 2, y, z - SIZE / 2);
+		turnTo(server, arena, game, game.turn.side);
 	}
 
 	/**
@@ -173,19 +163,8 @@ public final class Battleship {
 			}
 		}
 		for (int i = 0; i < SIZE; i++) {
-			sign(level, corner.offset(-1, 0, i), String.valueOf((char) ('A' + i)), 12);
-			sign(level, corner.offset(i, 0, -1), Integer.toString(i + 1), 8);
-		}
-	}
-
-	private static void sign(ServerLevel level, BlockPos pos, String words, int rotation) {
-		level.setBlock(pos, Blocks.OAK_SIGN.defaultBlockState().setValue(StandingSignBlock.ROTATION, rotation), Block.UPDATE_ALL);
-		if (level.getBlockEntity(pos) instanceof SignBlockEntity sign) {
-			// Both faces, so a board read from either side of the sign reads.
-			for (SignTextSlot face : SignTextSlot.values()) {
-				sign.setText(sign.getText(face).asMutable().setLine(1, Component.literal(words).withStyle(ChatFormatting.BOLD)).asImmutable(), face);
-			}
-			sign.setWaxed(true);
+			Boards.sign(level, corner.offset(-1, 0, i), String.valueOf((char) ('A' + i)), 12);
+			Boards.sign(level, corner.offset(i, 0, -1), Integer.toString(i + 1), 8);
 		}
 	}
 
@@ -240,8 +219,8 @@ public final class Battleship {
 			Say.bar(player, "That's " + TeamColors.of(board).name() + "'s board; yours is at your own end");
 			return InteractionResult.FAIL;
 		}
-		if (game.side != member.team) {
-			Say.bar(player, "It's " + TeamColors.of(game.side).name() + "'s turn");
+		if (game.turn.side != member.team) {
+			Say.bar(player, "It's " + TeamColors.of(game.turn.side).name() + "'s turn");
 			return InteractionResult.FAIL;
 		}
 		if (game.fired.get(board).contains(cell)) {
@@ -255,7 +234,7 @@ public final class Battleship {
 	/** A team fires at a square of the other team's waters. */
 	public static void fire(MinecraftServer server, ServerLevel level, Arena arena, int team, int cell, String by) {
 		Game game = games.get(arena.id);
-		if (game == null || game.side != team || game.fired.get(team).contains(cell)) return;
+		if (game == null || game.turn.side != team || game.fired.get(team).contains(cell)) return;
 		int enemy = 1 - team;
 		game.fired.get(team).add(cell);
 		BlockPos corner = arena.bases.get(team);
@@ -281,7 +260,7 @@ public final class Battleship {
 			if (struck.sunk()) {
 				for (int part : struck.cells()) level.setBlock(posOf(corner, part), wool("black"), Block.UPDATE_ALL);
 				Arenas.tellInside(server, arena, shooter + ": a hit, and " + TeamColors.of(enemy).name() + "'s " + struck.name() + " is sunk!");
-				title(server, arena, "Sunk!", TeamColors.of(enemy).name() + "'s " + struck.name(), team);
+				Boards.title(server, arena, team, "Sunk!", TeamColors.of(enemy).name() + "'s " + struck.name());
 			} else {
 				level.setBlock(square, wool("red"), Block.UPDATE_ALL);
 				Arenas.tellInside(server, arena, shooter + ": a hit!");
@@ -294,28 +273,13 @@ public final class Battleship {
 		turnTo(server, arena, game, enemy);
 	}
 
-	private static void title(MinecraftServer server, Arena arena, String big, String small, int team) {
-		for (Arena.Member member : arena.inside()) {
-			ServerPlayer player = server.getPlayerList().getPlayer(member.id);
-			if (player == null) continue;
-			player.connection.send(new ClientboundSetTitlesAnimationPacket(5, 30, 10));
-			player.connection.send(new ClientboundSetSubtitleTextPacket(Component.literal(small).withStyle(ChatFormatting.YELLOW)));
-			player.connection.send(new ClientboundSetTitleTextPacket(Component.literal(big)
-				.withStyle(style -> style.withColor(TeamColors.of(team).team().textColor()))));
-		}
-	}
-
 	/** The turn to this side, or past it to the other where it has nobody to fire. */
 	private static void turnTo(MinecraftServer server, Arena arena, Game game, int side) {
-		int to = present(arena, side) || !present(arena, 1 - side) ? side : 1 - side;
-		game.side = to;
-		game.since = System.currentTimeMillis();
-		if (present(arena, to)) Arenas.tellInside(server, arena, TeamColors.of(to).name() + " to fire: right-click a square of your board");
+		if (game.turn.to(arena, side)) announce(server, arena, game);
 	}
 
-	private static boolean present(Arena arena, int team) {
-		for (Arena.Member member : arena.fighting()) if (member.team == team) return true;
-		return false;
+	private static void announce(MinecraftServer server, Arena arena, Game game) {
+		Arenas.tellInside(server, arena, TeamColors.of(game.turn.side).name() + " to fire: right-click a square of your board");
 	}
 
 	// --- Every half second ---
@@ -327,18 +291,17 @@ public final class Battleship {
 			if (arena.bases.size() < 2) return;
 			for (int team = 0; team < 2; team++) build(level, arena.bases.get(team), team);
 			arena.scores.clear();
-			game = new Game();
+			game = new Game(0);
 			deal(game, 2);
 			games.put(arena.id, game);
 			Arenas.tellInside(server, arena, "The fleets were lost in the fog; new ones are out, on clean boards");
 			turnTo(server, arena, game, 0);
 			return;
 		}
-		if (!present(arena, game.side) && present(arena, 1 - game.side)) turnTo(server, arena, game, 1 - game.side);
-		else if (now - game.since >= TURN_MILLIS && present(arena, 1 - game.side)) {
-			Arenas.tellInside(server, arena, TeamColors.of(game.side).name() + " took too long; the turn passes");
-			turnTo(server, arena, game, 1 - game.side);
-		}
+		int was = game.turn.side;
+		Turns.Passed passed = game.turn.check(arena, now);
+		if (passed == Turns.Passed.TOO_LONG) Arenas.tellInside(server, arena, TeamColors.of(was).name() + " took too long; the turn passes");
+		if (passed != Turns.Passed.NO) announce(server, arena, game);
 	}
 
 	// --- Words ---
@@ -350,7 +313,7 @@ public final class Battleship {
 
 	static String whoseTurn(Arena arena) {
 		Game game = games.get(arena.id);
-		return game == null ? "Ships putting out" : TeamColors.of(game.side).name() + " to fire";
+		return game == null ? "Ships putting out" : TeamColors.of(game.turn.side).name() + " to fire";
 	}
 
 	/** This team's ships still afloat, for the board. */

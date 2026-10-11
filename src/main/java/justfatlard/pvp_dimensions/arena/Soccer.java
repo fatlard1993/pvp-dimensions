@@ -1,5 +1,6 @@
 package justfatlard.pvp_dimensions.arena;
 
+import java.util.List;
 import justfatlard.pvp_dimensions.preset.Preset;
 import justfatlard.pvp_dimensions.preset.TeamColors;
 import justfatlard.pvp_dimensions.world.Footprint;
@@ -44,26 +45,55 @@ public final class Soccer {
 	private static final int DEPTH = 3;
 	/** Blocks kept between the back of a goal and the arena's edge. */
 	private static final int BEHIND = 9;
+	/** Blocks between the balls at a kick-off, where there is more than one. */
+	private static final double KICK_OFF_GAP = 4;
 
 	static void begin(ServerLevel level, Arena arena) {
 		arena.bases.clear();
 		for (int team = 0; team < arena.preset.teams; team++) arena.bases.add(goalSpot(level, arena, team));
 		for (int team = 0; team < arena.preset.teams; team++) build(level, arena, team);
-		Balls.Ball ball = ball(level, arena);
-		if (ball != null) Balls.place(ball, Balls.middle(level, arena));
+		List<Balls.Ball> balls = balls(level, arena);
+		for (int i = 0; i < balls.size(); i++) Balls.place(balls.get(i), kickOff(level, arena, i));
 	}
 
 	static void tick(MinecraftServer server, ServerLevel level, Arena arena, long now) {
 		if (arena.bases.size() < arena.preset.teams) return;
-		Balls.Ball ball = ball(level, arena);
-		if (ball == null) return;
-		int into = goalHolding(arena, ball);
-		if (into >= 0) scored(server, level, arena, into, ball);
-		else Balls.rescue(server, arena, ball, Balls.middle(level, arena), now);
+		List<Balls.Ball> balls = balls(level, arena);
+		for (int i = 0; i < balls.size(); i++) {
+			Balls.Ball ball = balls.get(i);
+			int into = goalHolding(arena, ball);
+			if (into >= 0) scored(server, level, arena, into, ball, kickOff(level, arena, i));
+			else Balls.rescue(server, arena, ball, kickOff(level, arena, i), now);
+			if (arena.closesAt > 0) return;
+		}
 	}
 
-	private static Balls.Ball ball(ServerLevel level, Arena arena) {
-		return Balls.single(level, arena, Balls.swallowed(arena.preset.ballBlock));
+	/** The balls in play, as many as the preset asks for, made where there are too few. */
+	private static List<Balls.Ball> balls(ServerLevel level, Arena arena) {
+		int wanted = Math.max(1, arena.preset.soccerBalls);
+		if (wanted == 1) {
+			Balls.Ball ball = Balls.single(level, arena, Balls.swallowed(arena.preset.ballBlock));
+			return ball == null ? List.of() : List.of(ball);
+		}
+		List<Balls.Ball> balls = Balls.of(level, arena);
+		while (balls.size() > wanted) Balls.remove(arena, balls.get(balls.size() - 1));
+		while (balls.size() < wanted) {
+			if (Balls.spawn(level, arena, kickOff(level, arena, balls.size()), Balls.swallowed(arena.preset.ballBlock), null) == null) break;
+		}
+		return List.copyOf(balls);
+	}
+
+	/**
+	 * Where a ball starts, and goes back to after a goal: the middle for the one ball, and for
+	 * more, each its own spot across the halfway line, so none starts in another.
+	 */
+	private static Vec3 kickOff(ServerLevel level, Arena arena, int i) {
+		Vec3 middle = Balls.middle(level, arena);
+		int count = Math.max(1, arena.preset.soccerBalls);
+		if (count == 1) return middle;
+		double across = arena.preset.ringAngle(0) + Math.PI / 2;
+		double off = (i - (count - 1) / 2.0) * KICK_OFF_GAP;
+		return Spawns.near(level, arena, (int) Math.floor(middle.x + Math.cos(across) * off), (int) Math.floor(middle.z + Math.sin(across) * off), 1);
 	}
 
 	// --- Where a goal is ---
@@ -174,7 +204,7 @@ public final class Soccer {
 
 	// --- Scoring ---
 
-	private static void scored(MinecraftServer server, ServerLevel level, Arena arena, int into, Balls.Ball ball) {
+	private static void scored(MinecraftServer server, ServerLevel level, Arena arena, int into, Balls.Ball ball, Vec3 home) {
 		Arena.Member toucher = Balls.lastTouch(arena, ball);
 		boolean own = toucher != null && toucher.team == into;
 		int by = toucher != null && !own && toucher.team >= 0 ? toucher.team : arena.preset.teams == 2 ? 1 - into : -1;
@@ -182,7 +212,7 @@ public final class Soccer {
 		Vec3 at = ball.cube.position();
 		level.sendParticles(ParticleTypes.FIREWORK, at.x, at.y + 1, at.z, 60, 1.5, 1, 1.5, 0.15);
 		level.playSound(null, at.x, at.y, at.z, SoundEvents.FIREWORK_ROCKET_TWINKLE, SoundSource.PLAYERS, 3.0F, 1.0F);
-		Balls.place(ball, Balls.middle(level, arena));
+		Balls.place(ball, home);
 
 		if (by < 0) {
 			Arenas.tellInside(server, arena, (toucher != null ? toucher.name + " put it in their own goal" : "In " + TeamColors.of(into).name() + "'s goal")

@@ -101,6 +101,10 @@ public final class Fields {
 			p -> p.ballCount, (p, v) -> p.ballCount = v)
 			.help("A ball kicked into somebody is a hit for whoever kicked it")
 			.when(p -> p.activeGoal() == Preset.Goal.HITS && p.hitKind == Preset.HitKind.BALL));
+		fields.add(new Field.Number(GAME, "soccer_balls", "Balls", Field.Number.range(1, 3, 1), v -> v + (v == 1 ? " ball" : " balls"),
+			p -> p.soccerBalls, (p, v) -> p.soccerBalls = v)
+			.help("More than one at once, knocking into each other; each goal counts and that ball starts again")
+			.when(p -> p.activeGoal() == Preset.Goal.SOCCER));
 		fields.add(new Field.Choice(GAME, "ball", "The ball", Fields::ballOptions, p -> p.ballBlock, (p, v) -> p.ballBlock = v)
 			.help("A sulfur cube with a block inside, which plays the way the block feels. Kick it, or walk it along")
 			.when(Preset::playsBall));
@@ -929,6 +933,11 @@ public final class Fields {
 			case POOL -> "Pool";
 			case BATTLESHIP -> "Battleship";
 			case GUESS_WHO -> "Guess who";
+			case BOWLING -> "Bowling";
+			case CONNECT_FOUR -> "Connect four";
+			case MASTERMIND -> "Code breaking";
+			case MEMORY -> "Memory";
+			case MINESWEEPER -> "Minesweeper";
 		};
 	}
 
@@ -964,9 +973,14 @@ public final class Fields {
 			options.add(new Field.Choice.Option("bank", "Banking"));
 			options.add(new Field.Choice.Option("soccer", "Soccer"));
 			options.add(new Field.Choice.Option("pool", "Pool"));
+			options.add(new Field.Choice.Option("bowling", "Bowling"));
+			options.add(new Field.Choice.Option("mastermind", "Code breaking"));
+			options.add(new Field.Choice.Option("memory", "Memory"));
+			options.add(new Field.Choice.Option("minesweeper", "Minesweeper"));
 			if (preset.teams == 2) {
 				options.add(new Field.Choice.Option("battleship", "Battleship"));
 				options.add(new Field.Choice.Option("guess_who", "Guess who"));
+				options.add(new Field.Choice.Option("connect_four", "Connect four"));
 			}
 		}
 		return options;

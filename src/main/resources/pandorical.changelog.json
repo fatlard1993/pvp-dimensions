@@ -3,6 +3,14 @@
     "Arenas on demand. Pick a preset from a menu and a fresh piece of ground is made for the fight, floating alone in a dimension of its own, gone when the clock runs out."
   ],
   "versions": {
+    "1.8.0": [
+      "Bowling: a lane a team, ten pins, ten frames scored as at any alley.",
+      "Connect four, for two teams: drop pieces down a frame in the middle; first to three games.",
+      "Code breaking: every team races to crack a code of four colours, with black and white pegs for each try.",
+      "Memory: thirty-six cards in the middle, eighteen pairs, turned over two at a time.",
+      "Minesweeper: a field each, numbers on the ground, and the first team to clear theirs wins.",
+      "Balls now knock into each other in golf and soccer, and soccer can have up to three balls in play."
+    ],
     "1.7.0": [
       "Guess who, for two teams: a gallery of sixteen suspects at each end. Ask a yes-or-no question out loud, flip down who it rules out, ring your bell; right-click your suspect twice to accuse."
     ],

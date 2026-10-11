@@ -38,7 +38,8 @@ public final class Preset {
 	public enum Rarity { RARE, NORMAL, COMMON, SWARM }
 	/** How often one kind of mob turns up among the rest; any kind not given one is normal. */
 	public enum MobLevel { OFF, RARE, NORMAL, COMMON }
-	public enum Goal { TIME, KILLS, MOBS, CTF, TAKEOVER, DESTRUCTION, WAVES, HILL, BANK, RACE, SPY, HITS, SOCCER, KEEPAWAY, POTATO, GOLF, POOL, BATTLESHIP, GUESS_WHO }
+	public enum Goal { TIME, KILLS, MOBS, CTF, TAKEOVER, DESTRUCTION, WAVES, HILL, BANK, RACE, SPY, HITS, SOCCER, KEEPAWAY, POTATO, GOLF, POOL, BATTLESHIP, GUESS_WHO,
+		BOWLING, CONNECT_FOUR, MASTERMIND, MEMORY, MINESWEEPER }
 	/**
 	 * What lands a hit, where hits are what the arena is played for.
 	 *
@@ -249,6 +250,8 @@ public final class Preset {
 	public int golfHoles = 5;
 	/** Balls in play for dodgeball. */
 	public int ballCount = 3;
+	/** Balls in play at once for soccer: one, or a scramble of more that knock into each other. */
+	public int soccerBalls = 1;
 
 	public ItemList entryFee = new ItemList();
 	/** Whether everyone is handed a compass pointed at the goal: the hill, the finish, the other team's base. */
@@ -401,7 +404,8 @@ public final class Preset {
 	public boolean teamGoal() {
 		return goal == Goal.CTF || goal == Goal.TAKEOVER || goal == Goal.DESTRUCTION || goal == Goal.BANK || goal == Goal.SOCCER
 			|| goal == Goal.POOL || goal == Goal.BATTLESHIP
-			|| goal == Goal.GUESS_WHO;
+			|| goal == Goal.GUESS_WHO || goal == Goal.BOWLING || goal == Goal.CONNECT_FOUR || goal == Goal.MASTERMIND
+			|| goal == Goal.MEMORY || goal == Goal.MINESWEEPER;
 	}
 
 	/** Whether the arena is played with a sulfur cube ball whose block the preset picks; hot potato's is always TNT. */
@@ -427,7 +431,7 @@ public final class Preset {
 		if (teamGoal() && !teamsOn()) return Goal.TIME;
 		// Two fleets, each firing at the other, and two suspects, each hunted by the other side:
 		// there is no third side to aim at.
-		if ((goal == Goal.BATTLESHIP || goal == Goal.GUESS_WHO) && teams != 2) return Goal.TIME;
+		if ((goal == Goal.BATTLESHIP || goal == Goal.GUESS_WHO || goal == Goal.CONNECT_FOUR) && teams != 2) return Goal.TIME;
 		if (goal == Goal.KILLS && !pvp) return Goal.TIME;
 		if (goal == Goal.WAVES && mobStyle != MobStyle.WAVES) return Goal.TIME;
 		return goal;

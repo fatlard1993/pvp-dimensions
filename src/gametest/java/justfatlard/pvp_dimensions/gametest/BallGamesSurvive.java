@@ -28,16 +28,18 @@ public final class BallGamesSurvive implements FabricClientGameTest {
 			preset.keepTarget = 7;
 			preset.golfHoles = 9;
 			preset.ballCount = 5;
+			preset.soccerBalls = 3;
 
 			Preset fresh = new Preset();
 			if (preset.goalTarget == fresh.goalTarget || preset.ballBlock.equals(fresh.ballBlock) || preset.goalShape == fresh.goalShape
-				|| preset.keepTarget == fresh.keepTarget || preset.golfHoles == fresh.golfHoles || preset.ballCount == fresh.ballCount) {
+				|| preset.keepTarget == fresh.keepTarget || preset.golfHoles == fresh.golfHoles || preset.ballCount == fresh.ballCount
+				|| preset.soccerBalls == fresh.soccerBalls) {
 				throw new AssertionError("the test is asserting against the defaults and would pass either way");
 			}
 
 			JsonObject written = Presets.write(preset);
 			if (!written.has("goal_target")) throw new AssertionError("goal_target was never written");
-			for (String key : new String[] {"ball", "goal_shape", "keep_target", "golf_holes", "ball_count"}) {
+			for (String key : new String[] {"ball", "goal_shape", "keep_target", "golf_holes", "ball_count", "soccer_balls"}) {
 				if (!written.has(key)) throw new AssertionError(key + " was never written");
 			}
 
@@ -48,6 +50,7 @@ public final class BallGamesSurvive implements FabricClientGameTest {
 			if (back.keepTarget != 7) throw new AssertionError("keep_target came back as " + back.keepTarget);
 			if (back.golfHoles != 9) throw new AssertionError("golf_holes came back as " + back.golfHoles);
 			if (back.ballCount != 5) throw new AssertionError("ball_count came back as " + back.ballCount);
+			if (back.soccerBalls != 3) throw new AssertionError("soccer_balls came back as " + back.soccerBalls);
 			if (back.activeGoal() != Preset.Goal.SOCCER) throw new AssertionError("a team soccer preset plays for " + back.activeGoal());
 
 			// Two goals need two sides: without teams there is nobody to score for.

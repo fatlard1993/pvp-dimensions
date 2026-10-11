@@ -501,7 +501,7 @@ public final class Arenas {
 	public static void tick(MinecraftServer server) {
 		Jobs.tick();
 		Curtain.tick();
-		Pool.physics(server);
+		Balls.physics(server);
 		if (++ticks % 10 != 0) return;
 		long now = System.currentTimeMillis();
 		for (Arena arena : List.copyOf(vault(server).arenas().values())) {
@@ -814,6 +814,11 @@ public final class Arenas {
 			case SOCCER -> "Goals: " + Banks.tally(arena);
 			case POOL -> "Balls down: " + Banks.tally(arena);
 			case BATTLESHIP -> "Hits: " + Banks.tally(arena);
+			case BOWLING -> "Scores: " + Banks.tally(arena);
+			case CONNECT_FOUR -> "Games: " + Banks.tally(arena);
+			case MASTERMIND -> "Codes: " + Banks.tally(arena);
+			case MEMORY -> "Pairs: " + Banks.tally(arena);
+			case MINESWEEPER -> "Cleared: " + Banks.tally(arena);
 			case KEEPAWAY -> arena.preset.teamsOn() ? "Kept: " + Banks.tally(arena) : "";
 			case HILL -> arena.preset.teamsOn() ? "Held: " + Banks.tally(arena) : "";
 			default -> "";

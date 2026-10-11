@@ -157,6 +157,14 @@ public class PvpDimensions implements ModInitializer {
 			if (shot != InteractionResult.PASS) return shot;
 			InteractionResult gallery = justfatlard.pvp_dimensions.arena.GuessWho.useBlock(serverPlayer, (ServerLevel) level, hit.getBlockPos(), hand);
 			if (gallery != InteractionResult.PASS) return gallery;
+			InteractionResult piece = justfatlard.pvp_dimensions.arena.ConnectFour.use(serverPlayer, (ServerLevel) level, hit.getBlockPos(), hand);
+			if (piece != InteractionResult.PASS) return piece;
+			InteractionResult code = justfatlard.pvp_dimensions.arena.Mastermind.use(serverPlayer, (ServerLevel) level, hit.getBlockPos(), hand);
+			if (code != InteractionResult.PASS) return code;
+			InteractionResult card = justfatlard.pvp_dimensions.arena.Memory.use(serverPlayer, (ServerLevel) level, hit.getBlockPos(), hand);
+			if (card != InteractionResult.PASS) return card;
+			InteractionResult mine = justfatlard.pvp_dimensions.arena.Minesweeper.use(serverPlayer, (ServerLevel) level, hit.getBlockPos(), hand);
+			if (mine != InteractionResult.PASS) return mine;
 			InteractionResult chest = TeamChests.use(serverPlayer, (ServerLevel) level, hit.getBlockPos());
 			if (chest != InteractionResult.PASS) return chest;
 			if (!level.getBlockState(hit.getBlockPos()).is(Blocks.ENDER_CHEST)) return InteractionResult.PASS;

@@ -329,20 +329,14 @@ public final class Pool {
 
 	// --- Every tick: the balls against each other, the pockets, and the end of a shot ---
 
-	public static void physics(MinecraftServer server) {
-		if (plays.isEmpty()) return;
-		for (Arena arena : List.copyOf(Arenas.vault(server).arenas().values())) {
-			Play play = plays.get(arena.id);
-			if (play == null || arena.phase != Arena.Phase.LIVE || arena.closesAt > 0) continue;
-			ServerLevel level = Arenas.level(server, arena);
-			BlockPos corner = corner(arena);
-			if (level == null || corner == null) continue;
-			List<Balls.Ball> balls = Balls.of(level, arena);
-			roll(balls);
-			collide(balls);
-			drop(level, arena, play, corner, balls);
-			if (play.phase == Phase.ROLL) settle(server, level, arena, play, corner, balls);
-		}
+	static void physics(MinecraftServer server, ServerLevel level, Arena arena, List<Balls.Ball> balls) {
+		Play play = plays.get(arena.id);
+		BlockPos corner = corner(arena);
+		if (play == null || corner == null) return;
+		roll(balls);
+		Balls.knock(balls, RESTITUTION, ball -> 1);
+		drop(level, arena, play, corner, balls);
+		if (play.phase == Phase.ROLL) settle(server, level, arena, play, corner, balls);
 	}
 
 	/**
@@ -356,40 +350,6 @@ public final class Pool {
 			double keep = CLOTH_ROLL / GAME_ROLL;
 			ball.cube.setDeltaMovement(going.x * keep, going.y, going.z * keep);
 			ball.cube.needsSync = true;
-		}
-	}
-
-	/**
-	 * Two balls that meet trade what they had along the line between their middles, as balls of
-	 * one weight do, and are set apart where they had sunk into each other.
-	 */
-	private static void collide(List<Balls.Ball> balls) {
-		for (int i = 0; i < balls.size(); i++) {
-			SulfurCube a = balls.get(i).cube;
-			for (int j = i + 1; j < balls.size(); j++) {
-				SulfurCube b = balls.get(j).cube;
-				double reach = (a.getBbWidth() + b.getBbWidth()) / 2;
-				double dx = b.getX() - a.getX();
-				double dz = b.getZ() - a.getZ();
-				double apart = Math.sqrt(dx * dx + dz * dz);
-				if (apart >= reach || apart < 1.0E-4 || Math.abs(b.getY() - a.getY()) > 0.5) continue;
-				double nx = dx / apart;
-				double nz = dz / apart;
-				Vec3 va = a.getDeltaMovement();
-				Vec3 vb = b.getDeltaMovement();
-				double closing = (va.x - vb.x) * nx + (va.z - vb.z) * nz;
-				if (closing > 0) {
-					double impulse = closing * (1 + RESTITUTION) / 2;
-					a.setDeltaMovement(va.x - impulse * nx, va.y, va.z - impulse * nz);
-					b.setDeltaMovement(vb.x + impulse * nx, vb.y, vb.z + impulse * nz);
-					a.needsSync = true;
-					b.needsSync = true;
-					if (closing > 0.05) a.level().playSound(null, a.getX(), a.getY(), a.getZ(), SoundEvents.STONE_HIT, SoundSource.PLAYERS, 0.6F, 1.6F);
-				}
-				double push = (reach - apart) / 2;
-				a.setPos(a.getX() - nx * push, a.getY(), a.getZ() - nz * push);
-				b.setPos(b.getX() + nx * push, b.getY(), b.getZ() + nz * push);
-			}
 		}
 	}
 

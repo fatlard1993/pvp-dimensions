@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.ToDoubleFunction;
 import justfatlard.pvp_dimensions.preset.Preset;
 import justfatlard.pvp_dimensions.world.Footprint;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -12,6 +13,8 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
@@ -62,7 +65,8 @@ public final class Balls {
 
 	/** Whether this arena's goal is played with balls at all. */
 	static boolean played(Preset preset) {
-		return preset.playsBall() || preset.activeGoal() == Preset.Goal.POTATO || preset.activeGoal() == Preset.Goal.POOL;
+		Preset.Goal goal = preset.activeGoal();
+		return preset.playsBall() || goal == Preset.Goal.POTATO || goal == Preset.Goal.POOL || goal == Preset.Goal.BOWLING;
 	}
 
 	/**
@@ -174,6 +178,70 @@ public final class Balls {
 		return null;
 	}
 
+	// --- Every tick: balls against each other ---
+
+	/** How much of their closing speed two balls of a kick-about keep: most, so a ball run into runs on. */
+	private static final double BOUNCE = 0.9;
+
+	/**
+	 * The balls of every arena knocked against each other, which the cube does not do for itself:
+	 * it passes through another as if it were not there. Pool and bowling have their own rules for
+	 * a tick, and take their own knocks.
+	 */
+	public static void physics(MinecraftServer server) {
+		for (Arena arena : List.copyOf(Arenas.vault(server).arenas().values())) {
+			if (arena.phase != Arena.Phase.LIVE || arena.closesAt > 0 || !played(arena.preset)) continue;
+			ServerLevel level = Arenas.level(server, arena);
+			if (level == null) continue;
+			List<Ball> balls = of(level, arena);
+			switch (arena.preset.activeGoal()) {
+				case POOL -> Pool.physics(server, level, arena, balls);
+				case BOWLING -> Bowling.physics(server, level, arena, balls);
+				default -> {
+					if (balls.size() > 1) knock(balls, BOUNCE, ball -> 1);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Two balls that meet trade what they had along the line between their middles, the lighter
+	 * taking more of it, and are set apart where they had sunk into each other.
+	 *
+	 * @param restitution how much of their closing speed they keep: 1 for none lost
+	 */
+	static void knock(List<Ball> balls, double restitution, ToDoubleFunction<Ball> weight) {
+		for (int i = 0; i < balls.size(); i++) {
+			SulfurCube a = balls.get(i).cube;
+			double ia = 1 / weight.applyAsDouble(balls.get(i));
+			for (int j = i + 1; j < balls.size(); j++) {
+				SulfurCube b = balls.get(j).cube;
+				double reach = (a.getBbWidth() + b.getBbWidth()) / 2;
+				double dx = b.getX() - a.getX();
+				double dz = b.getZ() - a.getZ();
+				double apart = Math.sqrt(dx * dx + dz * dz);
+				if (apart >= reach || apart < 1.0E-4 || Math.abs(b.getY() - a.getY()) > 0.5) continue;
+				double ib = 1 / weight.applyAsDouble(balls.get(j));
+				double nx = dx / apart;
+				double nz = dz / apart;
+				Vec3 va = a.getDeltaMovement();
+				Vec3 vb = b.getDeltaMovement();
+				double closing = (va.x - vb.x) * nx + (va.z - vb.z) * nz;
+				if (closing > 0) {
+					double impulse = closing * (1 + restitution) / (ia + ib);
+					a.setDeltaMovement(va.x - impulse * ia * nx, va.y, va.z - impulse * ia * nz);
+					b.setDeltaMovement(vb.x + impulse * ib * nx, vb.y, vb.z + impulse * ib * nz);
+					a.needsSync = true;
+					b.needsSync = true;
+					if (closing > 0.05) a.level().playSound(null, a.getX(), a.getY(), a.getZ(), SoundEvents.STONE_HIT, SoundSource.PLAYERS, 0.6F, 1.6F);
+				}
+				double push = (reach - apart) / (ia + ib);
+				a.setPos(a.getX() - nx * push * ia, a.getY(), a.getZ() - nz * push * ia);
+				b.setPos(b.getX() + nx * push * ib, b.getY(), b.getZ() + nz * push * ib);
+			}
+		}
+	}
+
 	// --- Touches ---
 
 	/**
@@ -211,14 +279,27 @@ public final class Balls {
 		cube.needsSync = true;
 	}
 
+	/** Whether this hit on a ball is let through: pool and bowling say who may hit what, and when. */
+	public static boolean mayStrike(SulfurCube cube, @Nullable Entity by) {
+		return Pool.mayStrike(cube, by) && Bowling.mayStrike(cube, by);
+	}
+
+	/** A hit let through has landed. */
+	public static void struck(SulfurCube cube, @Nullable Entity by) {
+		Pool.struck(cube, by);
+		Bowling.struck(cube, by);
+	}
+
 	/**
 	 * Whether walking into a ball shoves it: not in golf, where every move of it is a stroke, nor
-	 * on a pool table, where only the cue ball moves, and only by a shot.
+	 * on a pool table or a bowling lane, where only the ball in play moves, and only by a shot.
 	 */
 	public static boolean pushable(SulfurCube cube) {
 		if (!cube.entityTags().contains(TAG) || !(cube.level() instanceof ServerLevel level)) return true;
 		Arena arena = Arenas.at(level, cube.getX(), cube.getZ());
-		return arena == null || arena.preset.activeGoal() != Preset.Goal.GOLF && arena.preset.activeGoal() != Preset.Goal.POOL;
+		if (arena == null) return true;
+		Preset.Goal goal = arena.preset.activeGoal();
+		return goal != Preset.Goal.GOLF && goal != Preset.Goal.POOL && goal != Preset.Goal.BOWLING;
 	}
 
 	/** Who touched it last, if they are still in the fight. */
