@@ -109,6 +109,7 @@ public final class Goals {
 		if (goal == Preset.Goal.MASTERMIND) Mastermind.begin(server, level, arena);
 		if (goal == Preset.Goal.MEMORY) Memory.begin(server, level, arena);
 		if (goal == Preset.Goal.MINESWEEPER) Minesweeper.begin(server, level, arena);
+		if (goal == Preset.Goal.COPS_AND_ROBBERS) CopsRobbers.begin(server, level, arena);
 		if (preset.livesOn() && preset.pooledLives()) {
 			for (int team = 0; team < preset.teams; team++) arena.pools.put(team, preset.livesCount);
 		}
@@ -148,13 +149,14 @@ public final class Goals {
 				? "; " + preset.goalTarget + (preset.goalTarget == 1 ? " goal wins" : " goals win") : "; the most goals when time is up wins");
 			case KEEPAWAY -> "The ball is yours until somebody else touches it. "
 				+ (preset.keepTarget > 0 ? "Keep it for " + Fields.duration(preset.keepTarget).toLowerCase() + " to win" : "Keep it longest to win");
-			case POTATO -> "The ball has a fuse. Whoever touched it last when it blows is caught";
+			case POTATO -> "The potato is stuck over somebody's head, on a fuse. Hit somebody to pass it on;"
+				+ " whoever has it when it blows is caught";
 			case GOLF -> preset.golfHoles + (preset.golfHoles == 1 ? " hole" : " holes")
 				+ ", a ball each: every kick of your own is a stroke, and the fewest strokes wins. Follow the sparks";
 			case GUESS_WHO -> "Each team has a suspect the other is after. On your turn, ask one yes-or-no question out loud,"
 				+ " flip down who it rules out, and ring your bell. Right-click a suspect twice to accuse: wrong, and you lose";
-			case BATTLESHIP -> "Each team's fleet is hidden. On your turn, right-click a square of the board at your end to fire at theirs;"
-				+ " sink every ship first to win";
+			case BATTLESHIP -> "A wall keeps each side's fleet its own. Lay yours on your fleet grid, ring your bell, then on your turn"
+				+ " right-click a square of their waters to fire; sink every ship first to win";
 			case BOWLING -> "A lane each. Take your frame when it's yours: hit your ball down the lane, crouching for a soft one."
 				+ " Ten frames, scored as at any alley; the highest score wins";
 			case CONNECT_FOUR -> "On your turn, right-click a column of the frame in the middle to drop a piece. Four in a row takes a game;"
@@ -167,6 +169,9 @@ public final class Goals {
 				+ " a mine starts your field again";
 			case POOL -> "Take turns at the white ball, crouching for a soft shot. Clear your colour, then sink the 8-ball;"
 				+ " sink it any sooner and you lose";
+			case COPS_AND_ROBBERS -> "Robbers: steal " + CopsRobbers.lootWord(preset) + " from the cops' vault, " + CopsRobbers.CARRY
+				+ " at a time, and bank " + preset.heistTarget + " in your hideout. Cops: hit a robber to jail them; jail them all at once to win."
+				+ " A free robber springs the jail with its door or the lever beside it";
 		};
 		if (how != null) Arenas.tellInside(server, arena, how);
 	}
@@ -297,7 +302,7 @@ public final class Goals {
 		if (Markers.part(arena, pos) || TeamChests.kept(arena, pos) || wallHolds(arena, pos) || mazeHolds(arena, pos) || Soccer.part(arena, pos)
 			|| Golf.part(arena, pos) || Pool.part(arena, pos)
 			|| Battleship.part(arena, pos) || GuessWho.part(arena, pos) || Bowling.part(arena, pos) || ConnectFour.part(arena, pos)
-			|| Mastermind.part(arena, pos) || Memory.part(arena, pos) || Minesweeper.part(arena, pos)) return !admin;
+			|| Mastermind.part(arena, pos) || Memory.part(arena, pos) || Minesweeper.part(arena, pos) || CopsRobbers.part(arena, pos)) return !admin;
 		if (goal == Preset.Goal.CTF || goal == Preset.Goal.BANK) {
 			for (BlockPos base : arena.bases) {
 				if (pos.equals(base) || pos.equals(base.east())) return breaker == null || !breaker.isCreative();
@@ -645,6 +650,7 @@ public final class Goals {
 			case MASTERMIND -> Mastermind.status(arena, member);
 			case MEMORY -> Memory.status(arena);
 			case MINESWEEPER -> Minesweeper.status(arena, member);
+			case COPS_AND_ROBBERS -> CopsRobbers.status(arena, member);
 			case POOL -> justfatlard.pvp_dimensions.PvpDimensions.server() == null ? null
 				: Pool.status(justfatlard.pvp_dimensions.PvpDimensions.server(), arena);
 			case RACE -> {
@@ -727,6 +733,7 @@ public final class Goals {
 			case MASTERMIND -> Mastermind.tick(server, level, arena, now);
 			case MEMORY -> Memory.tick(server, level, arena, now);
 			case MINESWEEPER -> Minesweeper.tick(server, level, arena, now);
+			case COPS_AND_ROBBERS -> CopsRobbers.tick(server, level, arena, now);
 			case HITS -> {
 				Dodgeball.tick(server, level, arena, now);
 				outOfLives(server, arena, now);
@@ -840,6 +847,7 @@ public final class Goals {
 		if (preset.activeGoal() == Preset.Goal.SPY) return Spies.timeUp(server, arena);
 		if (preset.activeGoal() == Preset.Goal.HITS) return Hits.timeUp(server, arena);
 		if (preset.activeGoal() == Preset.Goal.GOLF) return Golf.timeUp(server, arena);
+		if (preset.activeGoal() == Preset.Goal.COPS_AND_ROBBERS) return CopsRobbers.timeUp(server, arena);
 		if (preset.activeGoal() == Preset.Goal.KEEPAWAY && !preset.teamsOn()) return KeepAway.timeUp(server, arena);
 		switch (preset.activeGoal()) {
 			case CTF, BANK, SOCCER, KEEPAWAY, POOL, BATTLESHIP, BOWLING, CONNECT_FOUR, MASTERMIND, MEMORY, MINESWEEPER -> byTeam.putAll(arena.scores);
@@ -947,9 +955,14 @@ public final class Goals {
 	// --- Winning ---
 
 	public static void winTeam(MinecraftServer server, Arena arena, int team, String how) {
+		winTeam(server, arena, team, TeamColors.of(team).name() + " wins!", how);
+	}
+
+	/** A team's win under a title of its own, for sides with names of their own: "Cops win!". */
+	public static void winTeam(MinecraftServer server, Arena arena, int team, String words, String how) {
 		if (arena.closesAt > 0) return;
 		Rounds.teamWon(arena, team);
-		crown(server, arena, teamMembers(arena, team), TeamColors.of(team).name() + " wins!", how, Rounds.over(arena));
+		crown(server, arena, teamMembers(arena, team), words, how, Rounds.over(arena));
 		arena.closesAt = System.currentTimeMillis() + CELEBRATION_MILLIS;
 		Arenas.vault(server).touch();
 	}
@@ -1028,5 +1041,6 @@ public final class Goals {
 		Memory.forget(arena);
 		Minesweeper.forget(arena);
 		GuessWho.forget(arena);
+		CopsRobbers.forget(arena);
 	}
 }

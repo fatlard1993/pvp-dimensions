@@ -113,7 +113,19 @@ public final class Scoreboard {
 				}
 				title = "Guess who";
 				goal = GuessWho.whoseTurn(arena);
-				footer = GuessWho.secretWords(arena, viewer);
+			}
+			case COPS_AND_ROBBERS -> {
+				int banked = arena.scores.getOrDefault(CopsRobbers.ROBBERS, 0);
+				int jailed = CopsRobbers.jailedCount(arena);
+				int robbers = CopsRobbers.robberCount(arena);
+				lines.add(side(arena, CopsRobbers.ROBBERS, banked + "/" + preset.heistTarget + " " + CopsRobbers.lootWord(preset),
+					fraction(banked, preset.heistTarget), viewer.team == CopsRobbers.ROBBERS));
+				lines.add(side(arena, CopsRobbers.COPS, jailed + "/" + robbers + " jailed", fraction(jailed, robbers), viewer.team == CopsRobbers.COPS));
+				// The target is on the robbers' line already, and the title is too long to share its row.
+				title = "Cops and robbers";
+				String carrying = CopsRobbers.carriers(server, arena);
+				footer = (CopsRobbers.isJailed(arena, viewer.id) ? "You're in jail · " : "") + "In jail: " + jailed
+					+ (carrying.isEmpty() ? "" : " · Carrying: " + carrying);
 			}
 			case BOWLING -> {
 				int most = Math.max(1, arena.scores.values().stream().mapToInt(Integer::intValue).max().orElse(1));
@@ -156,12 +168,13 @@ public final class Scoreboard {
 			case MINESWEEPER -> {
 				int all = Minesweeper.toClear();
 				for (int team = 0; team < preset.teams; team++) {
-					int open = arena.scores.getOrDefault(team, 0);
-					lines.add(team(team, open + "/" + all, fraction(open, all), viewer.team == team));
+					int open = Minesweeper.cleared(arena, team);
+					int points = arena.scores.getOrDefault(team, 0);
+					lines.add(team(team, points + " pts · " + open + "/" + all, fraction(open, all), viewer.team == team));
 				}
 				title = "Minesweeper";
 				goal = "clear it";
-				footer = Minesweeper.MINES + " mines each";
+				footer = "Every square a point; a mine costs the field";
 			}
 			case BATTLESHIP -> {
 				int ships = Battleship.ships();
@@ -344,6 +357,12 @@ public final class Scoreboard {
 	private static Line team(int team, String value, float fill, boolean lit) {
 		TeamColors.Colour colour = TeamColors.of(team);
 		return new Line("team" + team, null, 0xFF000000 | colour.team().rgb(), colour.name(), value, fill, lit);
+	}
+
+	/** A team's line under the name its side goes by, where that is not its colour: the cops, the robbers. */
+	private static Line side(Arena arena, int team, String value, float fill, boolean lit) {
+		TeamColors.Colour colour = TeamColors.of(team);
+		return new Line("team" + team, null, 0xFF000000 | colour.team().rgb(), CopsRobbers.side(arena, team), value, fill, lit);
 	}
 
 	/** The top few by a score, and the viewer too if they aren't among them. */

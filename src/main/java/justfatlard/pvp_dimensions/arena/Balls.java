@@ -197,6 +197,10 @@ public final class Balls {
 			switch (arena.preset.activeGoal()) {
 				case POOL -> Pool.physics(server, level, arena, balls);
 				case BOWLING -> Bowling.physics(server, level, arena, balls);
+				case GOLF -> {
+					if (balls.size() > 1) knock(balls, BOUNCE, ball -> 1);
+					Golf.physics(server, level, arena);
+				}
 				default -> {
 					if (balls.size() > 1) knock(balls, BOUNCE, ball -> 1);
 				}
@@ -281,13 +285,14 @@ public final class Balls {
 
 	/** Whether this hit on a ball is let through: pool and bowling say who may hit what, and when. */
 	public static boolean mayStrike(SulfurCube cube, @Nullable Entity by) {
-		return Pool.mayStrike(cube, by) && Bowling.mayStrike(cube, by);
+		return Pool.mayStrike(cube, by) && Bowling.mayStrike(cube, by) && Golf.mayStrike(cube, by) && !HotPotato.isPotato(cube);
 	}
 
 	/** A hit let through has landed. */
 	public static void struck(SulfurCube cube, @Nullable Entity by) {
 		Pool.struck(cube, by);
 		Bowling.struck(cube, by);
+		Golf.struck(cube, by);
 	}
 
 	/**
@@ -299,7 +304,16 @@ public final class Balls {
 		Arena arena = Arenas.at(level, cube.getX(), cube.getZ());
 		if (arena == null) return true;
 		Preset.Goal goal = arena.preset.activeGoal();
-		return goal != Preset.Goal.GOLF && goal != Preset.Goal.POOL && goal != Preset.Goal.BOWLING;
+		return goal != Preset.Goal.GOLF && goal != Preset.Goal.POOL && goal != Preset.Goal.BOWLING && goal != Preset.Goal.POTATO;
+	}
+
+	/**
+	 * Whether this hurt is kept off a ball: being squeezed inside a block. A ball knocked hard into
+	 * a cushion or a wall can end the tick a little inside it, and a cube there suffocates; a ball
+	 * that dies of being played with is not a ball anyone wants.
+	 */
+	public static boolean sheltered(net.minecraft.world.entity.Entity entity, net.minecraft.world.damagesource.DamageSource source) {
+		return entity.entityTags().contains(TAG) && source.is(net.minecraft.world.damagesource.DamageTypes.IN_WALL);
 	}
 
 	/** Who touched it last, if they are still in the fight. */

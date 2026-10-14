@@ -15,12 +15,14 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContex
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Connect four, played: four in a row found every way it can lie, a right-click on a column
- * dropping a piece to the bottom of it, four up a column taking a game and the frame emptying for
- * the next, and the third game won taking the arena.
+ * Connect four, played: four in a row found every way it can lie, a right-click on a chute
+ * dropping a cube that falls down its channel and is held at the bottom, the next landing on it,
+ * four up a channel taking a game and the frame emptying for the next, and the third game won
+ * taking the arena.
  */
 public final class ConnectFourPlays implements FabricClientGameTest {
 
@@ -35,7 +37,7 @@ public final class ConnectFourPlays implements FabricClientGameTest {
 			server.waitFor(s -> ConnectFour.side(arena(s)) >= 0, 200);
 
 			BlockPos corner = server.computeOnServer(s -> arena(s).bases.get(0));
-			Tables.look(context, server, connection, Vec3.atBottomCenterOf(corner).add(3, -1, -7), Vec3.atCenterOf(corner).add(3, 2.5, 0));
+			Tables.look(context, server, connection, Vec3.atBottomCenterOf(corner).add(6.5, -1, -7), Vec3.atCenterOf(corner).add(6.5, 2.5, 0));
 			int[] team = new int[1];
 			server.runOnServer(s -> {
 				Arena arena = arena(s);
@@ -43,22 +45,39 @@ public final class ConnectFourPlays implements FabricClientGameTest {
 				ServerLevel level = Arenas.level(s, arena);
 				team[0] = arena.member(player.getUUID()).team;
 				check(ConnectFour.side(arena) == team[0], "with nobody on the other side, it is not our turn");
-				// A click high on the third column drops the piece all the way down it.
-				check(Tables.click(player, level, corner.offset(2, 4, 0)).consumesAction(), "a click on a column dropped nothing");
-				check(ConnectFour.slot(arena, 2, 0) == team[0], "the piece did not land at the bottom");
-				check(Tables.block(level, corner.offset(2, 0, 0)).endsWith("_concrete"), "the bottom slot shows " + Tables.block(level, corner.offset(2, 0, 0)));
-				check(Tables.block(level, corner.offset(2, 4, 0)).equals("glass"), "the slot clicked was filled instead");
-				// Nobody to take the other side's turn: it comes straight back.
-				check(ConnectFour.side(arena) == team[0], "the turn went to a side with nobody on it");
-				for (int i = 0; i < 2; i++) ConnectFour.drop(s, level, arena, team[0], 2, "tester");
-				ConnectFour.drop(s, level, arena, team[0], 3, "tester");
+				check(Tables.click(player, level, ConnectFour.chute(arena, 2)).consumesAction(), "a click on a chute dropped nothing");
+				check(ConnectFour.falling(arena), "no cube is falling");
+				check(Tables.click(player, level, ConnectFour.chute(arena, 3)) == InteractionResult.FAIL, "a second cube dropped while the first was falling");
 			});
+			server.waitFor(s -> !ConnectFour.falling(arena(s)), 100);
+			server.runOnServer(s -> {
+				Arena arena = arena(s);
+				ServerLevel level = Arenas.level(s, arena);
+				check(ConnectFour.slot(arena, 2, 0) == team[0], "the cube was not counted at the bottom");
+				check(ConnectFour.pieceAt(level, arena, 2, 0) != null, "no cube stands at the bottom of the channel");
+			});
+			// A click on the glass in front of a channel drops down it too.
+			server.runOnServer(s -> {
+				Arena arena = arena(s);
+				Tables.click(connection.getServerPlayer(), Arenas.level(s, arena), arena.bases.get(0).offset(2 * 2, 2, -1));
+			});
+			server.waitFor(s -> !ConnectFour.falling(arena(s)), 100);
+			drop(server, 2);
+			drop(server, 3);
 			context.waitTicks(5);
 			Tables.shoot(context, "connect-four");
 			server.runOnServer(s -> {
 				Arena arena = arena(s);
-				ConnectFour.drop(s, Arenas.level(s, arena), arena, team[0], 2, "tester");
-				check(arena.scores.getOrDefault(team[0], 0) == 1, "four up a column did not win the game");
+				ServerLevel level = Arenas.level(s, arena);
+				check(ConnectFour.slot(arena, 2, 0) == team[0] && ConnectFour.slot(arena, 2, 1) == team[0] && ConnectFour.slot(arena, 2, 2) == team[0],
+					"three dropped down one channel did not stack");
+				check(ConnectFour.pieceAt(level, arena, 2, 2) != null, "the third cube is not held on the second");
+				check(ConnectFour.slot(arena, 3, 0) == team[0], "the glass in front of a channel did not drop down it");
+			});
+			drop(server, 2);
+			server.runOnServer(s -> {
+				Arena arena = arena(s);
+				check(arena.scores.getOrDefault(team[0], 0) == 1, "four up a channel did not win the game");
 				check(ConnectFour.between(arena), "the frame did not wait to show off the four");
 			});
 
@@ -66,21 +85,26 @@ public final class ConnectFourPlays implements FabricClientGameTest {
 			server.runOnServer(s -> {
 				Arena arena = arena(s);
 				ServerLevel level = Arenas.level(s, arena);
-				for (int column = 0; column < ConnectFour.COLUMNS; column++) {
-					check(ConnectFour.slot(arena, column, 0) < 0, "the frame did not empty for the next game");
-				}
-				check(Tables.block(level, arena.bases.get(0).offset(2, 0, 0)).equals("glass"), "the old piece still shows");
-				// Across the bottom, twice more: the third game takes it.
-				for (int column = 0; column < 4; column++) ConnectFour.drop(s, level, arena, team[0], column, "tester");
+				for (int column = 0; column < ConnectFour.COLUMNS; column++) check(ConnectFour.slot(arena, column, 0) < 0, "the frame did not empty");
+				check(ConnectFour.pieceAt(level, arena, 2, 0) == null, "an old cube is still in the frame");
 			});
+			for (int column = 0; column < 4; column++) drop(server, column);
 			server.waitFor(s -> !ConnectFour.between(arena(s)), 200);
+			for (int column = 3; column < 7; column++) drop(server, column);
 			server.runOnServer(s -> {
 				Arena arena = arena(s);
-				ServerLevel level = Arenas.level(s, arena);
-				for (int column = 3; column < 7; column++) ConnectFour.drop(s, level, arena, team[0], column, "tester");
 				check(arena.closesAt > 0 && arena.winners.contains(connection.getServerPlayer().getUUID()), "three games won did not win it");
 			});
 		}
+	}
+
+	/** A cube dropped down a column for the only team there is, and landed. */
+	private static void drop(TestServerContext server, int column) {
+		server.runOnServer(s -> {
+			Arena arena = arena(s);
+			ConnectFour.drop(s, Arenas.level(s, arena), arena, ConnectFour.side(arena), column, "tester");
+		});
+		server.waitFor(s -> !ConnectFour.falling(arena(s)), 100);
 	}
 
 	private static void lines() {

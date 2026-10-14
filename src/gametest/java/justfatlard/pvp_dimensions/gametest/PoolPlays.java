@@ -99,6 +99,30 @@ public final class PoolPlays implements FabricClientGameTest {
 				check(furthest[0] < start[0].x + 0.5, "the white went on into the red's place, " + (furthest[0] - start[0].x) + " past where it stood");
 			});
 
+			// Rolled at the far cushion, the white comes back off it, and never into it.
+			double[] far = {Double.NEGATIVE_INFINITY};
+			double[] edge = new double[1];
+			server.runOnServer(s -> {
+				BlockPos corner = arena(s).bases.get(0);
+				edge[0] = corner.getX() + 24;
+				SulfurCube white = white(s);
+				white.setPos(corner.getX() + 18.5, corner.getY(), corner.getZ() + 6.0);
+				white.setDeltaMovement(0.5, 0, 0);
+				white.needsSync = true;
+			});
+			for (int t = 0; t < 30; t++) {
+				context.waitTick();
+				server.runOnServer(s -> far[0] = Math.max(far[0], white(s).getX() + white(s).getBbWidth() / 2));
+			}
+			server.runOnServer(s -> {
+				check(far[0] <= edge[0] + 0.02, "the white went into the cushion, to " + far[0] + " past " + edge[0]);
+				check(white(s).getX() < far[0] - 1.5, "the white stopped at the cushion instead of coming back off it: at " + white(s).getX());
+				// Shoved into the rail, it is set back on the cloth.
+				white(s).setPos(edge[0] + 0.3, white(s).getY(), white(s).getZ());
+			});
+			context.waitTicks(2);
+			server.runOnServer(s -> check(white(s).getX() + white(s).getBbWidth() / 2 <= edge[0] + 0.02, "a ball in the rail was left there"));
+
 			// A red ball set over a pocket during a shot goes down and counts for red.
 			server.runOnServer(s -> {
 				Arena arena = arena(s);

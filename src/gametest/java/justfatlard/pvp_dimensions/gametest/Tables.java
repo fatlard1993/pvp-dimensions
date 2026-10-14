@@ -37,7 +37,7 @@ final class Tables {
 				});
 			check(arena != null, "no arena");
 		});
-		server.waitFor(s -> arena(s) != null && arena(s).phase == Arena.Phase.LIVE && !arena(s).bases.isEmpty(), 2400);
+		server.waitFor(s -> arena(s) != null && arena(s).phase == Arena.Phase.LIVE, 2400);
 	}
 
 	static Arena arena(MinecraftServer server) {

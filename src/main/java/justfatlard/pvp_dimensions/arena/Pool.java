@@ -87,6 +87,8 @@ public final class Pool {
 	 * sliver left over into a white that creeps on after the ball it hit.
 	 */
 	private static final double RESTITUTION = 1.0;
+	/** What a ball keeps of its speed off a cushion. */
+	private static final double CUSHION = 0.8;
 
 	private static final ItemStack CUE = new ItemStack(Items.BONE_BLOCK);
 	private static final ItemStack EIGHT = new ItemStack(Items.COAL_BLOCK);
@@ -335,6 +337,7 @@ public final class Pool {
 		if (play == null || corner == null) return;
 		roll(balls);
 		Balls.knock(balls, RESTITUTION, ball -> 1);
+		cushions(level, balls, corner);
 		drop(level, arena, play, corner, balls);
 		if (play.phase == Phase.ROLL) settle(server, level, arena, play, corner, balls);
 	}
@@ -350,6 +353,45 @@ public final class Pool {
 			double keep = CLOTH_ROLL / GAME_ROLL;
 			ball.cube.setDeltaMovement(going.x * keep, going.y, going.z * keep);
 			ball.cube.needsSync = true;
+		}
+	}
+
+	/**
+	 * Each ball about to run into a cushion sent back off it, as a pool ball comes off the rail. The
+	 * cube itself would stop dead against the block, every bit of its speed gone. Any ball a knock
+	 * has shoved into the cushion is set back on the cloth, so none is left inside the rail.
+	 */
+	private static void cushions(ServerLevel level, List<Balls.Ball> balls, BlockPos corner) {
+		for (Balls.Ball ball : balls) {
+			SulfurCube cube = ball.cube;
+			if (cube.getY() < corner.getY() - 0.5) continue;
+			double r = cube.getBbWidth() / 2 + 0.01;
+			double minX = corner.getX() + r;
+			double maxX = corner.getX() + LENGTH - r;
+			double minZ = corner.getZ() + r;
+			double maxZ = corner.getZ() + WIDTH - r;
+			Vec3 at = cube.position();
+			Vec3 going = cube.getDeltaMovement();
+			double vx = going.x;
+			double vz = going.z;
+			boolean bounced = false;
+			if (vx > 0 && at.x + vx > maxX || vx < 0 && at.x + vx < minX) {
+				vx = -vx * CUSHION;
+				bounced = true;
+			}
+			if (vz > 0 && at.z + vz > maxZ || vz < 0 && at.z + vz < minZ) {
+				vz = -vz * CUSHION;
+				bounced = true;
+			}
+			double x = Math.clamp(at.x, minX, maxX);
+			double z = Math.clamp(at.z, minZ, maxZ);
+			if (x != at.x || z != at.z) cube.setPos(x, at.y, z);
+			if (!bounced) continue;
+			cube.setDeltaMovement(vx, going.y, vz);
+			cube.needsSync = true;
+			if (Math.abs(vx) + Math.abs(vz) > 0.05) {
+				level.playSound(null, at.x, at.y, at.z, SoundEvents.WOOD_HIT, SoundSource.PLAYERS, 0.5F, 1.2F);
+			}
 		}
 	}
 

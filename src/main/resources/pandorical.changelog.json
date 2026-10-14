@@ -3,6 +3,22 @@
     "Arenas on demand. Pick a preset from a menu and a fresh piece of ground is made for the fight, floating alone in a dimension of its own, gone when the clock runs out."
   ],
   "versions": {
+    "1.8.2": [
+      "Cops and robbers, for two teams: the cops tag robbers into an iron-barred jail that any free robber can spring, while the robbers steal gold from the cops' vault and bank it in their hideout.",
+      "In Guess who, ringing your bell with one suspect left standing accuses it.",
+      "Guess who has many more suspects: zombies and skeletons (in leather caps against the sun), piglins, wardens, dolphins, camels and more, every baby as a suspect of its own, ores, Nether and End blocks, beacons and cakes, and items floating over their squares, from a diamond or a trident to water and lava in their buckets; and our other mods' blocks, items, bears and baby skeletons when those mods are on the server."
+    ],
+    "1.8.1": [
+      "Battleship is played as at the table: a wall down the middle, and each side lays its own fleet by hand before the shooting starts.",
+      "Each team has two grids, its own fleet with the other side's shots landing on it, and their waters to fire at.",
+      "Pool balls bounce off the cushions instead of stopping dead, and can't get stuck in the rail.",
+      "Bowling pins are two cubes stacked: knock one and its head flies off.",
+      "Minesweeper points add up across fields: a mine costs you the field, not the squares you've cleared.",
+      "Connect four drops cubes in your colour down glass channels.",
+      "Hot potato sticks to whoever has it, over their head: hit somebody to pass it on.",
+      "Guess who's suspects are real mobs and blocks, drawn fresh each game, with a wall between the galleries.",
+      "Golf is played in turns, a shot each. Crouch to chip the ball up and over; a ball in water comes back a stroke the worse."
+    ],
     "1.8.0": [
       "Bowling: a lane a team, ten pins, ten frames scored as at any alley.",
       "Connect four, for two teams: drop pieces down a frame in the middle; first to three games.",

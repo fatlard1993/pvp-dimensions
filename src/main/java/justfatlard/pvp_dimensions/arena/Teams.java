@@ -70,9 +70,10 @@ public final class Teams {
 			PlayerTeam team = scoreboard.getPlayerTeam(name);
 			if (team == null) team = scoreboard.addPlayerTeam(name);
 			TeamColors.Colour colour = TeamColors.of(i);
-			team.setDisplayName(Component.literal(colour.name()));
+			String called = CopsRobbers.side(arena, i);
+			team.setDisplayName(Component.literal(called));
 			team.setColor(java.util.Optional.of(colour.team()));
-			team.setPlayerPrefix(Component.literal("[" + colour.name() + "] ").withColor(colour.team().rgb()));
+			team.setPlayerPrefix(Component.literal("[" + called + "] ").withColor(colour.team().rgb()));
 			team.setAllowFriendlyFire(arena.preset.friendlyFire);
 			team.setSeeFriendlyInvisibles(true);
 			team.setCollisionRule(Team.CollisionRule.PUSH_OTHER_TEAMS);
@@ -92,24 +93,34 @@ public final class Teams {
 		if (horde != null) scoreboard.removePlayerTeam(horde);
 	}
 
-	/** Whether a member may join this team and keep the teams even: no more on it than on the smallest, not counting them. */
+	/**
+	 * Whether a member may join this team and keep the teams even: no more on it than on the
+	 * smallest, not counting them. Even is by each team's share, which is the same for every team
+	 * but where a game wants lopsided sides: in cops and robbers, two robbers to every cop.
+	 */
 	public static boolean open(Arena arena, int team, Arena.Member member) {
-		int smallest = Integer.MAX_VALUE;
-		int there = 0;
-		for (int i = 0; i < arena.preset.teams; i++) {
-			int size = 0;
-			for (Arena.Member other : arena.members.values()) if (other != member && other.inside && other.team == i) size++;
-			smallest = Math.min(smallest, size);
-			if (i == team) there = size;
+		int[] sizes = new int[arena.preset.teams];
+		for (Arena.Member other : arena.members.values()) {
+			if (other != member && other.inside && other.team >= 0 && other.team < sizes.length) sizes[other.team]++;
 		}
-		return there <= smallest;
+		if (team < 0 || team >= sizes.length) return false;
+		// Joined, this team would be no fuller for its share than any other would be with one more.
+		for (int i = 0; i < sizes.length; i++) {
+			if ((long) (sizes[team] + 1) * CopsRobbers.share(arena, i) > (long) (sizes[i] + 1) * CopsRobbers.share(arena, team)) return false;
+		}
+		return true;
 	}
 
-	/** The team with the fewest players inside, the lowest-numbered on a tie. */
+	/**
+	 * The team a newcomer goes on: the one with the fewest players inside for its share, so it is
+	 * the emptiest with them on it too. On a tie the smaller share, then the lowest-numbered.
+	 */
 	public static int smallest(Arena arena) {
 		int best = 0;
 		for (int i = 1; i < arena.preset.teams; i++) {
-			if (arena.teamSize(i) < arena.teamSize(best)) best = i;
+			long mine = (long) (arena.teamSize(i) + 1) * CopsRobbers.share(arena, best);
+			long theirs = (long) (arena.teamSize(best) + 1) * CopsRobbers.share(arena, i);
+			if (mine < theirs || mine == theirs && CopsRobbers.share(arena, i) < CopsRobbers.share(arena, best)) best = i;
 		}
 		return best;
 	}

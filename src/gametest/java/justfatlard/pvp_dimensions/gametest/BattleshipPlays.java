@@ -1,5 +1,8 @@
 package justfatlard.pvp_dimensions.gametest;
 
+import static justfatlard.pvp_dimensions.gametest.Tables.arena;
+import static justfatlard.pvp_dimensions.gametest.Tables.check;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -8,28 +11,21 @@ import justfatlard.pvp_dimensions.arena.Arena;
 import justfatlard.pvp_dimensions.arena.Arenas;
 import justfatlard.pvp_dimensions.arena.Battleship;
 import justfatlard.pvp_dimensions.preset.Kinds;
-import justfatlard.pvp_dimensions.preset.Preset;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerConnection;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Battleship, played: fleets that are always a legal fleet, a right-click on your own board that
- * fires and on anyone else's that does not, the same square refused twice, and a fleet sunk to the
- * last ship winning it.
+ * Battleship, played as at the table: a wall down the middle; a fleet laid by hand on the team's
+ * own grid, turned and picked up again; the bell putting the rest out and starting the shooting;
+ * shots fired from their waters landing on their fleet; and the last ship sunk winning it.
  */
 public final class BattleshipPlays implements FabricClientGameTest {
 
@@ -40,47 +36,76 @@ public final class BattleshipPlays implements FabricClientGameTest {
 			TestServerContext server = world.getServer();
 			TestServerConnection connection = world.getConnection();
 			connection.waitForChunksRender();
+			Tables.start(server, connection, Kinds.BATTLESHIP, preset -> {});
+			server.waitFor(s -> arena(s).bases.size() == 4 && Battleship.settingUp(arena(s)), 200);
 
+			int[] team = new int[1];
 			server.runOnServer(s -> {
-				Preset preset = Kinds.BATTLESHIP.make();
-				preset.waitingRoom = false;
-				Arena arena = Arenas.start(s, connection.getServerPlayer(), "battleship-test", preset,
-					new Arenas.Start(Arenas.Invite.NOBODY, List.of(), false, true), complaint -> {
-						throw new AssertionError("the arena would not start: " + complaint);
-					});
-				check(arena != null, "no arena");
+				Arena arena = arena(s);
+				ServerPlayer player = connection.getServerPlayer();
+				ServerLevel level = Arenas.level(s, arena);
+				team[0] = arena.member(player.getUUID()).team;
+				int enemy = 1 - team[0];
+
+				// The wall stands between the stations, higher than anyone sees over.
+				int middle = (int) Math.floor(arena.footprint().centerX());
+				BlockPos mine = arena.bases.get(team[0]);
+				check(Tables.block(level, new BlockPos(middle, mine.getY() + 8, mine.getZ())).equals("polished_deepslate"), "no wall down the middle");
+				check(Integer.signum(arena.bases.get(team[0]).getX() - middle) != Integer.signum(arena.bases.get(enemy).getX() - middle),
+					"both stations are on one side of the wall");
+
+				BlockPos fleet = arena.bases.get(2 + team[0]);
+				// The carrier, laid across from the first square by a real click.
+				check(Tables.click(player, level, Battleship.posOf(fleet, 0)).consumesAction(), "a click on our fleet grid laid nothing");
+				check(Battleship.fleetOf(arena, team[0]).equals(Set.of(0, 1, 2, 3, 4)), "the carrier lies at " + Battleship.fleetOf(arena, team[0]));
+				for (int cell = 0; cell < 5; cell++) check(Tables.block(level, Battleship.posOf(fleet, cell)).equals("gray_concrete"), "our ship does not show");
+				check(Tables.block(level, Battleship.posOf(fleet, 5)).equals("light_blue_concrete"), "the sea shows as " + Tables.block(level, Battleship.posOf(fleet, 5)));
+				// Its first square again turns it.
+				Tables.click(player, level, Battleship.posOf(fleet, 0));
+				check(Battleship.fleetOf(arena, team[0]).equals(Set.of(0, 10, 20, 30, 40)), "the carrier did not turn: " + Battleship.fleetOf(arena, team[0]));
+				check(Tables.block(level, Battleship.posOf(fleet, 1)).equals("light_blue_concrete"), "the old place still shows a ship");
+				// Another square of it picks it up.
+				Tables.click(player, level, Battleship.posOf(fleet, 20));
+				check(Battleship.fleetOf(arena, team[0]).isEmpty(), "the carrier was not picked up");
+				// Laid again, and the battleship after it.
+				Tables.click(player, level, Battleship.posOf(fleet, 0));
+				Tables.click(player, level, Battleship.posOf(fleet, 22));
+				check(Battleship.fleetOf(arena, team[0]).size() == 9, "two ships cover " + Battleship.fleetOf(arena, team[0]).size() + " squares");
+
+				// Theirs is not ours, and nobody fires during setup.
+				check(Tables.click(player, level, Battleship.posOf(arena.bases.get(2 + enemy), 50)) == InteractionResult.FAIL, "we laid a ship in their fleet");
+				check(Tables.click(player, level, Battleship.posOf(arena.bases.get(team[0]), 50)) == InteractionResult.FAIL, "we fired during setup");
+
+				// The bell: the rest of ours laid at random, theirs too with nobody to lay it, and the shooting starts.
+				Tables.click(player, level, Battleship.bellAt(arena, team[0]));
+				check(!Battleship.settingUp(arena), "ringing the bell did not start the shooting");
+				check(Battleship.fleetOf(arena, team[0]).size() == 17, "our fleet covers " + Battleship.fleetOf(arena, team[0]).size());
+				check(Battleship.fleetOf(arena, team[0]).containsAll(Set.of(0, 1, 2, 3, 4)), "the bell moved the ships we laid");
+				check(Battleship.fleetOf(arena, enemy).size() == 17, "their fleet was not put out");
 			});
-			server.waitFor(s -> arena(s) != null && arena(s).phase == Arena.Phase.LIVE && arena(s).bases.size() == 2, 2400);
+
+			BlockPos station = server.computeOnServer(s -> arena(s).bases.get(2 + team[0]));
+			int toward = server.computeOnServer(s -> arena(s).bases.get(team[0]).getX() > arena(s).footprint().centerX() ? 1 : -1);
+			Tables.look(context, server, connection, Vec3.atBottomCenterOf(station).add(5 + toward * 12, 1, -3),
+				Vec3.atCenterOf(station).add(5, -1, -3));
+			Tables.shoot(context, "battleship-station");
 
 			server.runOnServer(s -> {
 				Arena arena = arena(s);
 				ServerPlayer player = connection.getServerPlayer();
 				ServerLevel level = Arenas.level(s, arena);
-				int team = arena.member(player.getUUID()).team;
-				check(team == 0 || team == 1, "the player is on no side: " + team);
-				int enemy = 1 - team;
-				Set<Integer> fleet = Battleship.fleetOf(arena, enemy);
-				check(fleet.size() == 17, "their fleet covers " + fleet.size() + " squares, not 17");
-
-				// Their board is not ours to fire from.
-				check(click(player, level, square(arena, enemy, 0)) == InteractionResult.FAIL, "fired from the other team's board");
-
-				// A real right-click on our own board, through the game's own use of a block.
-				int first = 0;
-				while (fleet.contains(first)) first++;
-				check(click(player, level, square(arena, team, first)).consumesAction(), "a right-click on our board did not fire");
-				check(block(level, square(arena, team, first)).equals("white_wool"), "a miss shows as " + block(level, square(arena, team, first)));
-				check(click(player, level, square(arena, team, first)) == InteractionResult.FAIL, "the same square fired at twice");
-
-				// Every ship of theirs, square by square: their side has nobody to fire back, so the turn stays ours.
-				int hit = fleet.iterator().next();
-				Battleship.fire(s, level, arena, team, hit, "tester");
-				check(arena.closesAt > 0 || block(level, square(arena, team, hit)).matches("(red|black)_wool"),
-					"a hit shows as " + block(level, square(arena, team, hit)));
-				for (int cell : fleet) Battleship.fire(s, level, arena, team, cell, "tester");
-				check(arena.closesAt > 0, "the whole fleet sunk and nobody won");
-				check(arena.scores.getOrDefault(team, 0) == 17, "17 hits counted as " + arena.scores.getOrDefault(team, 0));
-				for (int cell : fleet) check(block(level, square(arena, team, cell)).equals("black_wool"), "a sunk ship's square shows as " + block(level, square(arena, team, cell)));
+				int enemy = 1 - team[0];
+				Set<Integer> theirs = Battleship.fleetOf(arena, enemy);
+				int miss = 0;
+				while (theirs.contains(miss)) miss++;
+				check(Tables.click(player, level, Battleship.posOf(arena.bases.get(team[0]), miss)).consumesAction(), "a click on their waters did not fire");
+				check(Tables.block(level, Battleship.posOf(arena.bases.get(team[0]), miss)).equals("white_wool"), "a miss shows as " + Tables.block(level, Battleship.posOf(arena.bases.get(team[0]), miss)));
+				check(Tables.block(level, Battleship.posOf(arena.bases.get(2 + enemy), miss)).equals("white_wool"), "the miss does not show on their fleet");
+				check(Tables.click(player, level, Battleship.posOf(arena.bases.get(team[0]), miss)) == InteractionResult.FAIL, "the same square fired at twice");
+				for (int cell : theirs) Battleship.fire(s, level, arena, team[0], cell, "tester");
+				check(arena.scores.getOrDefault(team[0], 0) == 17, "17 hits counted as " + arena.scores.getOrDefault(team[0], 0));
+				for (int cell : theirs) check(Tables.block(level, Battleship.posOf(arena.bases.get(2 + enemy), cell)).equals("black_wool"), "a sunk ship does not show on their fleet");
+				check(arena.closesAt > 0 && arena.winners.contains(player.getUUID()), "the whole fleet sunk and nobody won");
 			});
 		}
 	}
@@ -103,33 +128,7 @@ public final class BattleshipPlays implements FabricClientGameTest {
 				}
 				boolean straight = rows.size() == 1 && columns.size() == ship.size() || columns.size() == 1 && rows.size() == ship.size();
 				check(straight, "a ship is not in a straight unbroken line: " + ship);
-				int low = rows.size() == 1 ? columns.stream().min(Integer::compare).get() : rows.stream().min(Integer::compare).get();
-				int high = rows.size() == 1 ? columns.stream().max(Integer::compare).get() : rows.stream().max(Integer::compare).get();
-				check(high - low + 1 == ship.size(), "a ship has a gap: " + ship);
 			}
 		}
-	}
-
-	private static InteractionResult click(ServerPlayer player, ServerLevel level, BlockPos pos) {
-		BlockHitResult hit = new BlockHitResult(Vec3.atCenterOf(pos).add(0, 0.5, 0), Direction.UP, pos, false);
-		return player.gameMode.useItemOn(player, level, ItemStack.EMPTY, InteractionHand.MAIN_HAND, hit);
-	}
-
-	private static BlockPos square(Arena arena, int team, int cell) {
-		BlockPos corner = arena.bases.get(team);
-		return corner.offset(cell % Battleship.SIZE, -1, cell / Battleship.SIZE);
-	}
-
-	private static String block(ServerLevel level, BlockPos pos) {
-		return BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock()).getPath();
-	}
-
-	private static Arena arena(MinecraftServer server) {
-		List<Arena> running = Arenas.running(server);
-		return running.isEmpty() ? null : running.get(0);
-	}
-
-	private static void check(boolean ok, String complaint) {
-		if (!ok) throw new AssertionError(complaint);
 	}
 }

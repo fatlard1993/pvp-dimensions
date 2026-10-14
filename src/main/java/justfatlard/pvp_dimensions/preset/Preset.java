@@ -39,7 +39,7 @@ public final class Preset {
 	/** How often one kind of mob turns up among the rest; any kind not given one is normal. */
 	public enum MobLevel { OFF, RARE, NORMAL, COMMON }
 	public enum Goal { TIME, KILLS, MOBS, CTF, TAKEOVER, DESTRUCTION, WAVES, HILL, BANK, RACE, SPY, HITS, SOCCER, KEEPAWAY, POTATO, GOLF, POOL, BATTLESHIP, GUESS_WHO,
-		BOWLING, CONNECT_FOUR, MASTERMIND, MEMORY, MINESWEEPER }
+		BOWLING, CONNECT_FOUR, MASTERMIND, MEMORY, MINESWEEPER, COPS_AND_ROBBERS }
 	/**
 	 * What lands a hit, where hits are what the arena is played for.
 	 *
@@ -252,6 +252,10 @@ public final class Preset {
 	public int ballCount = 3;
 	/** Balls in play at once for soccer: one, or a scramble of more that knock into each other. */
 	public int soccerBalls = 1;
+	/** What cops and robbers is played for: the item in the cops' vault. */
+	public String heistItem = "minecraft:gold_ingot";
+	/** How many of it the robbers must bank in their hideout to win. */
+	public int heistTarget = 15;
 
 	public ItemList entryFee = new ItemList();
 	/** Whether everyone is handed a compass pointed at the goal: the hill, the finish, the other team's base. */
@@ -405,7 +409,7 @@ public final class Preset {
 		return goal == Goal.CTF || goal == Goal.TAKEOVER || goal == Goal.DESTRUCTION || goal == Goal.BANK || goal == Goal.SOCCER
 			|| goal == Goal.POOL || goal == Goal.BATTLESHIP
 			|| goal == Goal.GUESS_WHO || goal == Goal.BOWLING || goal == Goal.CONNECT_FOUR || goal == Goal.MASTERMIND
-			|| goal == Goal.MEMORY || goal == Goal.MINESWEEPER;
+			|| goal == Goal.MEMORY || goal == Goal.MINESWEEPER || goal == Goal.COPS_AND_ROBBERS;
 	}
 
 	/** Whether the arena is played with a sulfur cube ball whose block the preset picks; hot potato's is always TNT. */
@@ -423,15 +427,16 @@ public final class Preset {
 	 */
 	public double ringAngle(int team) {
 		Goal active = activeGoal();
-		return Math.PI * 2 * team / Math.max(1, teams) + (active == Goal.SOCCER || active == Goal.BATTLESHIP || active == Goal.GUESS_WHO ? 0 : Math.PI / 4);
+		return Math.PI * 2 * team / Math.max(1, teams) + (active == Goal.SOCCER || active == Goal.BATTLESHIP || active == Goal.GUESS_WHO
+			|| active == Goal.COPS_AND_ROBBERS ? 0 : Math.PI / 4);
 	}
 
 	/** What the arena is actually played for: a team goal only counts with teams, a kill count only with fighting. */
 	public Goal activeGoal() {
 		if (teamGoal() && !teamsOn()) return Goal.TIME;
 		// Two fleets, each firing at the other, and two suspects, each hunted by the other side:
-		// there is no third side to aim at.
-		if ((goal == Goal.BATTLESHIP || goal == Goal.GUESS_WHO || goal == Goal.CONNECT_FOUR) && teams != 2) return Goal.TIME;
+		// there is no third side to aim at. Cops and robbers are two sides by name.
+		if ((goal == Goal.BATTLESHIP || goal == Goal.GUESS_WHO || goal == Goal.CONNECT_FOUR || goal == Goal.COPS_AND_ROBBERS) && teams != 2) return Goal.TIME;
 		if (goal == Goal.KILLS && !pvp) return Goal.TIME;
 		if (goal == Goal.WAVES && mobStyle != MobStyle.WAVES) return Goal.TIME;
 		return goal;

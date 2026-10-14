@@ -58,7 +58,7 @@ public enum Kinds {
 		p.ballBlock = "minecraft:white_wool";
 		p.size = 3;
 	}),
-	HOT_POTATO(Family.FREE_FOR_ALL, "Hot potato", "minecraft:flint_and_steel", "Don't be holding it when it blows", p -> {
+	HOT_POTATO(Family.FREE_FOR_ALL, "Hot potato", "minecraft:flint_and_steel", "Stuck on your head: hit somebody to pass it", p -> {
 		ballGame(p);
 		p.goal = Preset.Goal.POTATO;
 		p.size = 3;
@@ -142,8 +142,22 @@ public enum Kinds {
 		teams(p);
 		ballGame(p);
 		p.goal = Preset.Goal.BATTLESHIP;
-		p.lifeMinutes = 20;
-		p.size = 3;
+		p.lifeMinutes = 25;
+		p.size = 4;
+	}),
+	COPS_AND_ROBBERS(Family.TEAMS, "Cops and robbers", "minecraft:iron_bars", "Jail them all, or pull the heist", p -> {
+		teams(p);
+		// Played the way the ball games are: tag, not a fight. Nobody is hurt, nobody digs or
+		// builds, and level ground leaves nowhere to hole up but behind what grows on it.
+		p.pvp = false;
+		p.gameMode = Preset.GameRule.ADVENTURE;
+		p.shape = Preset.Shape.FLAT;
+		p.goal = Preset.Goal.COPS_AND_ROBBERS;
+		p.heistItem = "minecraft:gold_ingot";
+		p.heistTarget = 15;
+		p.entryKit = Kit.dressed(List.of(stack("minecraft:cooked_beef", 8)));
+		p.lifeMinutes = 10;
+		p.size = 5;
 	}),
 	BOWLING(Family.TEAMS, "Bowling", "minecraft:white_concrete_powder", "A lane a team, ten frames", p -> {
 		teams(p);

@@ -47,6 +47,8 @@ public final class Fields {
 	private static final int[] HILL_MOVES = {0, 1, 2, 3, 5, 10, 15};
 	private static final int[] HILL_TARGETS = {0, 1, 2, 3, 5, 10, 15, 20, 30};
 	private static final int[] BANK_TARGETS = {0, 50, 100, 200, 300, 500, 1000, 2000, 5000};
+	/** Loot the robbers bank to win; never nought, since the vault is filled from it. */
+	private static final int[] HEIST_TARGETS = {5, 10, 15, 20, 25, 30, 40, 50};
 	private static final int[] HEAD_LOCKS = {-1, 0, 1, 2, 3, 5, 10, 15, 30, 60};
 	private static final int[] WEATHER_AFTER = {1, 2, 3, 5, 10, 15, 20, 30, 45, 60};
 	/** Chunks a player may see through the fog, thickest last; nought for no fog. */
@@ -151,6 +153,18 @@ public final class Fields {
 		fields.add(new Field.Number(GAME, "bank_target", "Win at", BANK_TARGETS, v -> v == 0 ? "Richest at the end" : v + " points",
 			p -> p.bankTarget, (p, v) -> p.bankTarget = v).help("Every team has a chest that can't be broken; what's in it is its score")
 			.when(p -> p.activeGoal() == Preset.Goal.BANK));
+		fields.add(new Field.Choice(GAME, "heist_item", "The loot", Fields::heistOptions, p -> p.heistItem, (p, v) -> p.heistItem = v)
+			.help("What the cops' vault holds and the robbers steal; a robber carrying any glows")
+			.when(p -> p.activeGoal() == Preset.Goal.COPS_AND_ROBBERS));
+		fields.add(new Field.Number(GAME, "heist_target", "Banked to win", HEIST_TARGETS,
+			v -> v + " " + justfatlard.pvp_dimensions.arena.CopsRobbers.lootWord(preset),
+			p -> p.heistTarget, (p, v) -> p.heistTarget = v)
+			.help("Banked in the robbers' hideout, " + justfatlard.pvp_dimensions.arena.CopsRobbers.CARRY + " carried at a time. The vault holds "
+				+ justfatlard.pvp_dimensions.arena.CopsRobbers.SPARE + " more, and loot that goes missing goes back to it")
+			.when(p -> p.activeGoal() == Preset.Goal.COPS_AND_ROBBERS));
+		fields.add(new Field.Note(GAME, "heist.note", false, p -> "The cops win by having every robber in jail at once;"
+			+ " a robber still free when time runs out wins it for the robbers")
+			.when(p -> p.activeGoal() == Preset.Goal.COPS_AND_ROBBERS));
 		fields.add(Field.Choice.ofEnum(GAME, "finish_place", "The finish stands", Preset.MarkerPlace.class,
 			new String[] {"In the middle", "Anywhere"}, p -> p.finishPlace, (p, v) -> p.finishPlace = v)
 			.help("An emerald pad under a beacon's beam; everyone starts the same distance from it")
@@ -229,6 +243,7 @@ public final class Fields {
 				p.pvp = v;
 				if (!v && p.goal == Preset.Goal.KILLS) p.goal = Preset.Goal.MOBS;
 			}).help("Off makes it players against the mobs: nobody can hurt anybody else"));
+		fields.add(new Field.Note(PLAYERS, "pvp.note", true, Summary::copsHurtNobody));
 		fields.add(new Field.Toggle(PLAYERS, "friendly_fire", "Friendly fire", p -> p.friendlyFire, (p, v) -> p.friendlyFire = v)
 			.when(p -> p.teamsOn() && p.pvp));
 		fields.add(new Field.Choice(PLAYERS, "chest_access", "Other teams' chests", Fields::chestAccessOptions,
@@ -248,6 +263,7 @@ public final class Fields {
 			new String[] {"Random spots", "Team corners", "The middle"}, p -> p.spawn, (p, v) -> p.spawn = v));
 		fields.add(new Field.Toggle(PLAYERS, "waiting_room", "Waiting room", p -> p.waitingRoom, (p, v) -> p.waitingRoom = v)
 			.help("Players gather first, pick a team by standing on its colour, and the host starts the fight"));
+		fields.add(new Field.Note(PLAYERS, "waiting_room.note", true, Summary::copsDealt));
 		fields.add(Field.Choice.ofEnum(PLAYERS, "late_join", "Late arrivals", Preset.LateJoin.class,
 			new String[] {"Join in", "Watch", "Turned away"}, p -> p.lateJoin, (p, v) -> p.lateJoin = v)
 			.help("Whoever arrives after the fight has started"));
@@ -938,6 +954,7 @@ public final class Fields {
 			case MASTERMIND -> "Code breaking";
 			case MEMORY -> "Memory";
 			case MINESWEEPER -> "Minesweeper";
+			case COPS_AND_ROBBERS -> "Cops and robbers";
 		};
 	}
 
@@ -981,6 +998,7 @@ public final class Fields {
 				options.add(new Field.Choice.Option("battleship", "Battleship"));
 				options.add(new Field.Choice.Option("guess_who", "Guess who"));
 				options.add(new Field.Choice.Option("connect_four", "Connect four"));
+				options.add(new Field.Choice.Option("cops_and_robbers", "Cops and robbers"));
 			}
 		}
 		return options;
@@ -1050,6 +1068,16 @@ public final class Fields {
 		// Last because it is wild: three times the kick of the rest and hardly any drag, so it
 		// bounces most of the way across an arena from one touch.
 		options.add(new Field.Choice.Option("minecraft:oak_planks", "Wild: oak planks"));
+		return options;
+	}
+
+	private static List<Field.Choice.Option> heistOptions(Preset preset) {
+		List<Field.Choice.Option> options = new ArrayList<>();
+		options.add(new Field.Choice.Option("minecraft:gold_ingot", "Gold ingots"));
+		options.add(new Field.Choice.Option("minecraft:diamond", "Diamonds"));
+		options.add(new Field.Choice.Option("minecraft:emerald", "Emeralds"));
+		options.add(new Field.Choice.Option("minecraft:iron_ingot", "Iron ingots"));
+		options.add(new Field.Choice.Option("minecraft:gold_nugget", "Gold nuggets"));
 		return options;
 	}
 

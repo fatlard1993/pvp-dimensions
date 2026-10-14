@@ -9,7 +9,10 @@ import justfatlard.pvp_dimensions.Say;
 import justfatlard.pvp_dimensions.preset.Preset;
 import justfatlard.pvp_dimensions.preset.TeamColors;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -17,18 +20,32 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.monster.cubemob.SulfurCube;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.HopperBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import org.jspecify.annotations.Nullable;
 
 /**
- * Connect four, between two teams: a frame standing in the middle of the ground, seven columns of
- * six. On your team's turn, right-click anywhere on a column to drop a piece of your colour down
- * it. Four in a row, across, up or slanting, takes the game; a full frame with no four is nobody's.
- * The frame empties and the side that lost goes first in the next. The first to {@link #TO_WIN}
- * games wins.
+ * Connect four, between two teams: a glass frame standing in the middle of the ground, seven
+ * channels of six. On your team's turn, right-click a channel's chute, or the glass in front of
+ * it, and a cube in your colour drops down it and lands on whatever is already there. Four in a
+ * row, across, up or slanting, takes the game; a full frame with no four is nobody's. The frame
+ * empties and the side that lost goes first in the next. The first to {@link #TO_WIN} games wins.
  *
- * <p>The frame is {@link Arena#bases}: its bottom-left slot, seen from the south. Games won are
+ * <p>The pieces are small sulfur cubes, each holding its team's concrete powder. A cube does not
+ * stand on another, so each is let fall on its own and held where it lands, in the slot the game
+ * has counted it into.
+ *
+ * <p>The frame is {@link Arena#bases}: its bottom-left slot, seen from the north. Games won are
  * {@link Arena#scores}. The pieces are not saved: a game carried over a restart starts the frame
  * again, with the games won kept.
  */
@@ -38,17 +55,28 @@ public final class ConnectFour {
 	public static final int COLUMNS = 7;
 	public static final int ROWS = 6;
 	public static final int TO_WIN = 3;
+	/** The mark on a piece, which is the frame's and nobody's to touch. */
+	public static final String TAG = "pvp-dimensions.connect_four";
+	/** Blocks from one channel to the next: the channel and a pane of glass between. */
+	private static final int STEP = 2;
+	private static final int WIDE = (COLUMNS - 1) * STEP + 1;
 	private static final long TURN_MILLIS = 30_000L;
 	/** How long four in a row are shown off before the frame empties. */
 	private static final long SHOW_MILLIS = 3_000L;
+	/** A piece that has not landed in this long is set down where it belongs. */
+	private static final long FALL_LIMIT_MILLIS = 3_000L;
 
 	private static final Random DRAW = new Random();
 	private static final int EMPTY = -1;
+
+	/** A piece on its way down: whose, the slot it is falling to, and the cube. */
+	private record Falling(int team, int column, int row, SulfurCube cube, String by, long since) {}
 
 	private static final class Game {
 		/** The team in each slot, by column then row from the bottom; {@link #EMPTY} for none. */
 		final int[][] slots = new int[COLUMNS][ROWS];
 		final Turns turn;
+		@Nullable Falling falling;
 		/** When the frame empties after a game is decided; 0 while one is being played. */
 		long clearAt;
 		/** Who goes first once it has. */
@@ -58,6 +86,12 @@ public final class ConnectFour {
 			turn = new Turns(TURN_MILLIS, first);
 			for (int[] column : slots) java.util.Arrays.fill(column, EMPTY);
 		}
+
+		/** The lowest empty slot in a column, or -1 when it is full. */
+		int landing(int column) {
+			for (int row = 0; row < ROWS; row++) if (slots[column][row] == EMPTY) return row;
+			return -1;
+		}
 	}
 
 	private static final Map<String, Game> games = new HashMap<>();
@@ -66,51 +100,59 @@ public final class ConnectFour {
 
 	static void begin(MinecraftServer server, ServerLevel level, Arena arena) {
 		arena.bases.clear();
-		BlockPos corner = Boards.inMiddle(level, arena, COLUMNS, 1).above();
+		BlockPos corner = Boards.inMiddle(level, arena, WIDE, 1).above();
 		arena.bases.add(corner);
-		Builds.yard(level, corner.getX() + COLUMNS / 2, corner.getY() - 1, corner.getZ(), COLUMNS / 2 + 4, ROWS + 3);
+		Builds.yard(level, corner.getX() + WIDE / 2, corner.getY() - 1, corner.getZ(), WIDE / 2 + 4, ROWS + 3);
 		Game game = new Game(DRAW.nextInt(2));
 		games.put(arena.id, game);
-		build(level, corner, game);
+		build(level, corner);
 		turnTo(server, arena, game, game.turn.side);
 	}
 
-	/** The frame round the slots, and every slot as the game has it: glass for empty, concrete for a piece. */
-	private static void build(ServerLevel level, BlockPos corner, Game game) {
-		BlockState frame = Blocks.DARK_OAK_PLANKS.defaultBlockState();
-		for (int column = -1; column <= COLUMNS; column++) {
-			for (int row = -1; row <= ROWS; row++) {
-				boolean edge = column < 0 || column >= COLUMNS || row < 0 || row >= ROWS;
-				level.setBlock(corner.offset(column, row, 0), edge ? frame : slotBlock(game.slots[column][row]), Block.UPDATE_ALL);
+	/**
+	 * The frame: a channel of air for each column, glass round and between them so both sides see
+	 * in, a base of dark oak, and a hopper over each channel for its chute.
+	 */
+	private static void build(ServerLevel level, BlockPos corner) {
+		BlockState wood = Blocks.DARK_OAK_PLANKS.defaultBlockState();
+		BlockState glass = Blocks.GLASS.defaultBlockState();
+		BlockState chute = Blocks.HOPPER.defaultBlockState().setValue(HopperBlock.FACING, Direction.DOWN);
+		for (int x = -1; x <= WIDE; x++) {
+			for (int z = -1; z <= 1; z++) {
+				for (int row = -1; row <= ROWS; row++) {
+					boolean side = x < 0 || x >= WIDE;
+					boolean channel = !side && x % STEP == 0 && z == 0;
+					BlockState state;
+					if (row < 0 || side) state = wood;
+					else if (row == ROWS) state = channel ? chute : wood;
+					else state = channel ? Blocks.AIR.defaultBlockState() : glass;
+					level.setBlock(corner.offset(x, row, z), state, Block.UPDATE_ALL);
+				}
 			}
 		}
-		// Feet on the frame, so it stands.
-		for (int side : new int[] {-1, COLUMNS}) {
-			level.setBlock(corner.offset(side, -1, -1), frame, Block.UPDATE_ALL);
-			level.setBlock(corner.offset(side, -1, 1), frame, Block.UPDATE_ALL);
-		}
 	}
 
-	private static BlockState slotBlock(int team) {
-		return team == EMPTY ? Blocks.GLASS.defaultBlockState() : Boards.rim(team);
-	}
-
-	/** Whether this block is the frame or a slot of it, which nobody breaks. */
+	/** Whether this block is the frame, which nobody breaks. */
 	public static boolean part(Arena arena, BlockPos pos) {
 		if (arena.preset.activeGoal() != Preset.Goal.CONNECT_FOUR || arena.bases.isEmpty()) return false;
 		BlockPos corner = arena.bases.get(0);
-		int column = pos.getX() - corner.getX();
+		int x = pos.getX() - corner.getX();
 		int row = pos.getY() - corner.getY();
-		int depth = pos.getZ() - corner.getZ();
-		return column >= -1 && column <= COLUMNS && row >= -1 && row <= ROWS && Math.abs(depth) <= (row == -1 ? 1 : 0);
+		int z = pos.getZ() - corner.getZ();
+		return x >= -1 && x <= WIDE && row >= -1 && row <= ROWS && Math.abs(z) <= 1;
 	}
 
-	/** The column under this block, or -1: any slot of it, or the frame just above or below it. */
+	/** The column under this block, or -1: its chute, or the glass before or behind its channel. */
 	private static int columnAt(BlockPos corner, BlockPos pos) {
-		int column = pos.getX() - corner.getX();
+		int x = pos.getX() - corner.getX();
 		int row = pos.getY() - corner.getY();
-		if (pos.getZ() != corner.getZ() || column < 0 || column >= COLUMNS || row < -1 || row > ROWS) return -1;
-		return column;
+		int z = pos.getZ() - corner.getZ();
+		if (x < 0 || x >= WIDE || x % STEP != 0 || Math.abs(z) > 1 || row < 0 || row > ROWS) return -1;
+		return x / STEP;
+	}
+
+	private static Vec3 slotAt(BlockPos corner, int column, int row) {
+		return new Vec3(corner.getX() + column * STEP + 0.5, corner.getY() + row, corner.getZ() + 0.5);
 	}
 
 	// --- Dropping a piece ---
@@ -130,11 +172,15 @@ public final class ConnectFour {
 			Say.bar(player, "The next game is about to start");
 			return InteractionResult.FAIL;
 		}
+		if (game.falling != null) {
+			Say.bar(player, "Wait for it to land");
+			return InteractionResult.FAIL;
+		}
 		if (game.turn.side != member.team) {
 			Say.bar(player, "It's " + TeamColors.of(game.turn.side).name() + "'s turn");
 			return InteractionResult.FAIL;
 		}
-		if (game.slots[column][ROWS - 1] != EMPTY) {
+		if (game.landing(column) < 0) {
 			Say.bar(player, "That column is full");
 			return InteractionResult.FAIL;
 		}
@@ -142,30 +188,82 @@ public final class ConnectFour {
 		return InteractionResult.SUCCESS;
 	}
 
-	/** A team drops a piece down a column. */
+	/** A team drops a piece down a column: a cube let go at the top, to land on whatever is there. */
 	public static void drop(MinecraftServer server, ServerLevel level, Arena arena, int team, int column, String by) {
 		Game game = games.get(arena.id);
-		if (game == null || game.clearAt > 0 || game.turn.side != team || game.slots[column][ROWS - 1] != EMPTY) return;
-		int row = 0;
-		while (game.slots[column][row] != EMPTY) row++;
-		game.slots[column][row] = team;
+		if (game == null || game.clearAt > 0 || game.falling != null || game.turn.side != team) return;
+		int row = game.landing(column);
+		if (row < 0) return;
 		BlockPos corner = arena.bases.get(0);
-		BlockPos slot = corner.offset(column, row, 0);
-		level.setBlock(slot, slotBlock(team), Block.UPDATE_ALL);
-		for (int above = ROWS - 1; above > row; above--) {
-			level.sendParticles(ParticleTypes.CLOUD, slot.getX() + 0.5, corner.getY() + above + 0.5, slot.getZ() + 0.5, 1, 0.1, 0.1, 0.1, 0);
+		SulfurCube cube = piece(level, team, slotAt(corner, column, ROWS - 1).add(0, 0.3, 0));
+		if (cube == null) {
+			settle(server, level, arena, game, team, column, row, by);
+			return;
 		}
-		level.playSound(null, slot.getX() + 0.5, slot.getY() + 0.5, slot.getZ() + 0.5, SoundEvents.STONE_PLACE, SoundSource.PLAYERS, 1.0F, 0.8F);
+		game.falling = new Falling(team, column, row, cube, by, System.currentTimeMillis());
+		level.playSound(null, cube.getX(), cube.getY(), cube.getZ(), SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 1.0F, 0.6F);
+	}
+
+	/** A small cube in the team's colour: still, silent, unhurt, and the arena's. */
+	private static @Nullable SulfurCube piece(ServerLevel level, int team, Vec3 at) {
+		SulfurCube cube = EntityTypes.SULFUR_CUBE.create(level, EntitySpawnReason.EVENT);
+		if (cube == null) return null;
+		cube.addTag(TAG);
+		cube.addTag(Mobs.OURS);
+		cube.setSize(1, true);
+		Identifier powder = Identifier.withDefaultNamespace(TeamColors.of(team).dye() + "_concrete_powder");
+		cube.setItemSlot(EquipmentSlot.BODY, BuiltInRegistries.ITEM.getOptional(powder).map(ItemStack::new).orElse(new ItemStack(Items.DIRT)));
+		cube.setDropChance(EquipmentSlot.BODY, 0);
+		cube.setNoAi(true);
+		cube.setSilent(true);
+		cube.setPermanentlyInvulnerable(true);
+		cube.setPersistenceRequired();
+		cube.snapTo(at.x, at.y, at.z, 0, 0);
+		level.addFreshEntity(cube);
+		return cube;
+	}
+
+	/** Every tick: a falling piece, once it reaches its slot, held there and counted. */
+	public static void physics(MinecraftServer server) {
+		if (games.isEmpty()) return;
+		for (Arena arena : List.copyOf(Arenas.vault(server).arenas().values())) {
+			Game game = games.get(arena.id);
+			if (game == null || game.falling == null || arena.bases.isEmpty()) continue;
+			ServerLevel level = Arenas.level(server, arena);
+			if (level == null) continue;
+			Falling falling = game.falling;
+			Vec3 slot = slotAt(arena.bases.get(0), falling.column(), falling.row());
+			boolean late = System.currentTimeMillis() - falling.since() > FALL_LIMIT_MILLIS;
+			if (falling.cube().isAlive() && falling.cube().getY() > slot.y + 0.01 && !late) continue;
+			game.falling = null;
+			hold(falling.cube(), slot);
+			settle(server, level, arena, game, falling.team(), falling.column(), falling.row(), falling.by());
+		}
+	}
+
+	private static void hold(SulfurCube cube, Vec3 slot) {
+		if (!cube.isAlive()) return;
+		cube.setNoGravity(true);
+		cube.setDeltaMovement(Vec3.ZERO);
+		cube.setPos(slot.x, slot.y, slot.z);
+		cube.needsSync = true;
+	}
+
+	/** A piece has landed: counted into its slot, and four in a row looked for. */
+	private static void settle(MinecraftServer server, ServerLevel level, Arena arena, Game game, int team, int column, int row, String by) {
+		game.slots[column][row] = team;
+		Vec3 slot = slotAt(arena.bases.get(0), column, row);
+		level.playSound(null, slot.x, slot.y, slot.z, SoundEvents.STONE_PLACE, SoundSource.PLAYERS, 1.0F, 0.8F);
 
 		List<int[]> four = four(game.slots, column, row);
 		if (four != null) {
 			int won = arena.scores.merge(team, 1, Integer::sum);
 			Arenas.vault(server).touch();
 			for (int[] cell : four) {
-				BlockPos at = corner.offset(cell[0], cell[1], 0);
-				level.sendParticles(ParticleTypes.FIREWORK, at.getX() + 0.5, at.getY() + 0.5, at.getZ() + 0.5, 10, 0.3, 0.3, 0.3, 0.05);
+				Vec3 at = slotAt(arena.bases.get(0), cell[0], cell[1]);
+				level.sendParticles(ParticleTypes.FIREWORK, at.x, at.y + 0.3, at.z, 10, 0.3, 0.3, 0.3, 0.05);
 			}
-			level.playSound(null, slot.getX() + 0.5, slot.getY() + 0.5, slot.getZ() + 0.5, SoundEvents.FIREWORK_ROCKET_TWINKLE, SoundSource.PLAYERS, 2.0F, 1.0F);
+			level.playSound(null, slot.x, slot.y, slot.z, SoundEvents.FIREWORK_ROCKET_TWINKLE, SoundSource.PLAYERS, 2.0F, 1.0F);
 			if (won >= TO_WIN) {
 				Goals.winTeam(server, arena, team, "connected four, " + won + " games to " + arena.scores.getOrDefault(1 - team, 0));
 				return;
@@ -211,15 +309,39 @@ public final class ConnectFour {
 		return true;
 	}
 
+	/** Every piece in or round the frame taken away. */
+	private static void clearPieces(ServerLevel level, BlockPos corner) {
+		AABB frame = new AABB(corner.getX() - 2, corner.getY() - 2, corner.getZ() - 2, corner.getX() + WIDE + 2, corner.getY() + ROWS + 2, corner.getZ() + 3);
+		for (SulfurCube cube : level.getEntitiesOfClass(SulfurCube.class, frame, cube -> cube.entityTags().contains(TAG))) cube.discard();
+	}
+
 	/** The team in a slot, for the tests; -1 for none. */
 	public static int slot(Arena arena, int column, int row) {
 		Game game = games.get(arena.id);
 		return game == null ? EMPTY : game.slots[column][row];
 	}
 
+	/** The cube standing in a slot, for the tests: one held there, or none. */
+	public static @Nullable SulfurCube pieceAt(ServerLevel level, Arena arena, int column, int row) {
+		Vec3 slot = slotAt(arena.bases.get(0), column, row);
+		List<SulfurCube> near = level.getEntitiesOfClass(SulfurCube.class, new AABB(slot, slot).inflate(0.3, 0.3, 0.3),
+			cube -> cube.entityTags().contains(TAG));
+		return near.isEmpty() ? null : near.get(0);
+	}
+
+	/** The block a player clicks to drop down a column: its chute. */
+	public static BlockPos chute(Arena arena, int column) {
+		return arena.bases.get(0).offset(column * STEP, ROWS, 0);
+	}
+
 	public static int side(Arena arena) {
 		Game game = games.get(arena.id);
 		return game == null ? -1 : game.turn.side;
+	}
+
+	public static boolean falling(Arena arena) {
+		Game game = games.get(arena.id);
+		return game != null && game.falling != null;
 	}
 
 	public static boolean between(Arena arena) {
@@ -235,8 +357,8 @@ public final class ConnectFour {
 
 	private static void announce(MinecraftServer server, Arena arena, Game game) {
 		int side = game.turn.side;
-		Arenas.tellInside(server, arena, TeamColors.of(side).name() + " to drop: right-click a column of the frame");
-		Boards.titleTeam(server, arena, side, "Your turn", "Right-click a column to drop a piece");
+		Arenas.tellInside(server, arena, TeamColors.of(side).name() + " to drop: right-click a chute, or the glass in front of a channel");
+		Boards.titleTeam(server, arena, side, "Your turn", "Right-click a channel to drop a cube");
 	}
 
 	// --- Every half second ---
@@ -248,7 +370,8 @@ public final class ConnectFour {
 			if (arena.bases.isEmpty()) return;
 			game = new Game(0);
 			games.put(arena.id, game);
-			build(level, arena.bases.get(0), game);
+			clearPieces(level, arena.bases.get(0));
+			build(level, arena.bases.get(0));
 			Arenas.tellInside(server, arena, "The pieces fell out of the frame; a new game, with the games won kept");
 			turnTo(server, arena, game, 0);
 			return;
@@ -257,11 +380,12 @@ public final class ConnectFour {
 			if (now < game.clearAt) return;
 			game.clearAt = 0;
 			for (int[] column : game.slots) java.util.Arrays.fill(column, EMPTY);
-			build(level, arena.bases.get(0), game);
+			clearPieces(level, arena.bases.get(0));
 			Arenas.tellInside(server, arena, "A new game: " + Banks.tally(arena));
 			turnTo(server, arena, game, game.nextFirst);
 			return;
 		}
+		if (game.falling != null) return;
 		int was = game.turn.side;
 		Turns.Passed passed = game.turn.check(arena, now);
 		if (passed == Turns.Passed.TOO_LONG) Arenas.tellInside(server, arena, TeamColors.of(was).name() + " took too long; the turn passes");
@@ -278,10 +402,12 @@ public final class ConnectFour {
 		Game game = games.get(arena.id);
 		if (game == null) return "Setting up the frame";
 		if (game.clearAt > 0) return "Next game coming";
+		if (game.falling != null) return "Dropping";
 		return TeamColors.of(game.turn.side).name() + " to drop";
 	}
 
 	public static void forget(Arena arena) {
-		games.remove(arena.id);
+		Game game = games.remove(arena.id);
+		if (game != null && game.falling != null) game.falling.cube().discard();
 	}
 }

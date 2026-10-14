@@ -38,7 +38,7 @@ public final class Summary {
 		List<String> all = new ArrayList<>();
 		for (String line : new String[] {huntBringsMobs(p), kindsAllOff(p), livesRespawnInside(p), playsInSurvival(p), creativeKeepsApart(p),
 				pooledLivesAlone(p), teammateNamesAlone(p), netherKeepsCavern(p), noWayOut(p), hordeNeverRises(p), basesNeedSides(p),
-				picksNeedLootEnder(p), noSkyForWeather(p)}) {
+				picksNeedLootEnder(p), noSkyForWeather(p), copsHurtNobody(p), copsDealt(p)}) {
 			if (line != null) all.add(line);
 		}
 		return all;
@@ -104,9 +104,19 @@ public final class Summary {
 		return set && p.world != Preset.World.OVERWORLD ? "The nether and the end have no weather" : null;
 	}
 
+	public static @Nullable String copsHurtNobody(Preset p) {
+		return p.pvp && p.activeGoal() == Preset.Goal.COPS_AND_ROBBERS ? "In cops and robbers nobody is hurt: a cop's hit jails a robber" : null;
+	}
+
+	public static @Nullable String copsDealt(Preset p) {
+		return p.activeGoal() == Preset.Goal.COPS_AND_ROBBERS && p.waitingRoom
+			? "The cops are made a third of everyone as it starts, whatever colours were stood on" : null;
+	}
+
 	// --- The sentences ---
 
 	private static String who(Preset p) {
+		if (p.activeGoal() == Preset.Goal.COPS_AND_ROBBERS) return "Robbers in red and cops in blue, a cop to every two robbers and nobody hurt, play";
 		String sides = p.teamsOn() ? teamNames(p) : "Everyone for themselves";
 		if (!p.pvp) return (p.teamsOn() ? sides + ", side by side," : "Everyone, side by side,") + " against the mobs,";
 		return sides + (p.teamsOn() ? " fight" : ", fighting,");
@@ -146,7 +156,7 @@ public final class Summary {
 					case LINE -> ", pushed over their line";
 				};
 			case KEEPAWAY -> p.keepTarget > 0 ? "to keep the ball for " + Fields.duration(p.keepTarget).toLowerCase(Locale.ROOT) : "to keep the ball longest";
-			case POTATO -> "to be the last not holding the ball when it blows";
+			case POTATO -> "to be the last not caught holding the potato when it blows";
 			case GUESS_WHO -> "to find the other team's suspect first, a yes-or-no question at a time";
 			case BATTLESHIP -> "to sink the other team's fleet first, a square at a time";
 			case BOWLING -> "to bowl the highest score over ten frames";
@@ -154,6 +164,8 @@ public final class Summary {
 			case MASTERMIND -> "to crack " + justfatlard.pvp_dimensions.arena.Mastermind.TO_WIN + " codes of four colours first";
 			case MEMORY -> "to find the most pairs among thirty-six cards";
 			case MINESWEEPER -> "to clear their minefield first";
+			case COPS_AND_ROBBERS -> "for the robbers to bank " + p.heistTarget + " " + justfatlard.pvp_dimensions.arena.CopsRobbers.lootWord(p)
+				+ " from the cops' vault, and the cops to have every robber in jail at once";
 			case POOL -> "to clear their colour off the pool table, then sink the 8-ball";
 			case GOLF -> "to sink the ball in " + p.golfHoles + (p.golfHoles == 1 ? " hole" : " holes") + " in the fewest kicks";
 		};
@@ -208,7 +220,8 @@ public final class Summary {
 		if (p.lifeMinutes <= 0) return series + (series.isEmpty() ? "No time limit" : "No time limit per round");
 		String line = series + (series.isEmpty() ? "Lasts " : "Each round lasts ")
 			+ Fields.duration(p.lifeMinutes).toLowerCase(Locale.ROOT);
-		if (p.activeGoal() != Preset.Goal.TIME && p.activeGoal() != Preset.Goal.WAVES) line += "; the leader then wins";
+		if (p.activeGoal() == Preset.Goal.COPS_AND_ROBBERS) line += "; a robber still free then wins it for the robbers";
+		else if (p.activeGoal() != Preset.Goal.TIME && p.activeGoal() != Preset.Goal.WAVES) line += "; the leader then wins";
 		if (p.borderShrink > 0) line += ", the border closing in as it goes";
 		if (!p.modeChanges.isEmpty()) {
 			List<String> changes = new ArrayList<>();

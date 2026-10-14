@@ -50,6 +50,34 @@ final class Boards {
 		return new BlockPos(x - wide / 2, Builds.ground(level, arena, x, z), z - deep / 2);
 	}
 
+	/** How high the wall down the middle stands over the ground. */
+	private static final int WALL_HEIGHT = 16;
+
+	/**
+	 * A wall down the middle, edge to edge across the ground and too high to see over, so each
+	 * side's half is its own secret: for the games whose sides each keep something hidden. Two
+	 * thick, of dark stone, north to south through the middle, whatever the arena itself is
+	 * divided by; the sides' ends lie east and west of it.
+	 */
+	static void wall(ServerLevel level, Arena arena) {
+		Footprint footprint = arena.footprint();
+		int x = (int) Math.floor(footprint.centerX());
+		BlockState stone = Blocks.POLISHED_DEEPSLATE.defaultBlockState();
+		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+		for (int z = footprint.minZ(); z < footprint.maxZ(); z++) {
+			int ground = Builds.ground(level, arena, x, z);
+			for (int dx = -1; dx <= 0; dx++) {
+				for (int y = ground - 3; y < ground + WALL_HEIGHT; y++) level.setBlock(pos.set(x + dx, y, z), stone, Block.UPDATE_ALL);
+			}
+		}
+	}
+
+	static boolean inWall(Arena arena, BlockPos pos) {
+		Footprint footprint = arena.footprint();
+		int x = (int) Math.floor(footprint.centerX());
+		return (pos.getX() == x || pos.getX() == x - 1) && footprint.containsBlock(pos.getX(), pos.getZ());
+	}
+
 	/** A sign standing here, turned by {@code rotation} sixteenths, the words on both faces. */
 	static void sign(ServerLevel level, BlockPos pos, String words, int rotation) {
 		level.setBlock(pos, Blocks.OAK_SIGN.defaultBlockState().setValue(StandingSignBlock.ROTATION, rotation), Block.UPDATE_ALL);

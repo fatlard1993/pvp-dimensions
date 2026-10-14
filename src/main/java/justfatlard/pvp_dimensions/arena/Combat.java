@@ -38,6 +38,9 @@ public final class Combat {
 		// The odd one out is played with blades down until the room names somebody; then they are
 		// out for everybody at once, which is what makes a scramble out of an execution.
 		if (Spies.open(arena)) return arena.phase == Arena.Phase.LIVE;
+		// A cop's hit jails and does nothing else, and nothing a robber does hurts a cop: whatever
+		// the switch says, nobody here is hurt by anybody.
+		if (arena.preset.activeGoal() == Preset.Goal.COPS_AND_ROBBERS) return false;
 		return arena.phase == Arena.Phase.LIVE && arena.preset.pvp;
 	}
 

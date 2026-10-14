@@ -41,8 +41,9 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>The pins and the ball are cubes, like every ball here: the pins white, the ball in the team's
  * colour, and only the ball takes a hit, only from whoever's frame it is. The ball is the heavier,
- * so it carries on through the pins it hits, and they scatter into each other. A pin is down once
- * it is knocked off its spot.
+ * so it carries on through the pins it hits, and they scatter into each other. Each pin is two
+ * cubes, a head riding its foot: knock the foot and the head is thrown off, so a pin goes over. A
+ * pin is down once its head is off or its foot is knocked off its spot.
  *
  * <p>Each lane is {@link Arena#bases}: the middle of the foul line on its floor, at the height the
  * ball rolls at. Each team's score so far is {@link Arena#scores}. The frames are not saved: a game
@@ -72,6 +73,8 @@ public final class Bowling {
 	private static final double PIN_ROLL = 0.93;
 	private static final double GAME_ROLL = 0.87;
 	private static final double SOFT = 0.5;
+	/** How fast a pin's foot has to be knocked for its head to come off it. */
+	private static final double TOPPLE = 0.06;
 	/** The ball is three pins' weight: it goes on through, as a ball does. */
 	private static final double BALL_WEIGHT = 3;
 	private static final double RESTITUTION = 0.8;
@@ -81,7 +84,6 @@ public final class Bowling {
 	private static final int STILL_TICKS = 10;
 	private static final double STILL_SPEED = 0.01;
 
-	private static final ItemStack PIN = stack("white_concrete_powder");
 
 	private enum Phase { AIM, ROLL, DONE }
 
@@ -98,6 +100,8 @@ public final class Bowling {
 		int standingBefore = 10;
 		Balls.@Nullable Ball ball;
 		final Balls.Ball[] pins = new Balls.Ball[10];
+		/** The top of each pin, riding its foot until a knock throws it off. */
+		final Balls.Ball[] heads = new Balls.Ball[10];
 
 		Lane(int team) {
 			this.team = team;
@@ -288,9 +292,22 @@ public final class Bowling {
 	private static void rack(ServerLevel level, Arena arena, Lane lane) {
 		BlockPos foul = arena.bases.get(lane.team);
 		for (int pin = 0; pin < 10; pin++) {
-			if (lane.pins[pin] != null) Balls.remove(arena, lane.pins[pin]);
-			lane.pins[pin] = Balls.spawn(level, arena, spot(foul, pin), PIN.copy(), null);
+			clear(arena, lane, pin);
+			Vec3 at = spot(foul, pin);
+			Balls.Ball foot = Balls.spawn(level, arena, at, stack("white_concrete_powder"), null);
+			Balls.Ball head = Balls.spawn(level, arena, at.add(0, 1.1, 0), stack("white_concrete_powder"), null);
+			lane.pins[pin] = foot;
+			lane.heads[pin] = head;
+			if (foot != null && head != null) head.cube.startRiding(foot.cube, true, false);
 		}
+	}
+
+	/** A pin taken off the lane, foot and head. */
+	private static void clear(Arena arena, Lane lane, int pin) {
+		if (lane.heads[pin] != null) Balls.remove(arena, lane.heads[pin]);
+		if (lane.pins[pin] != null) Balls.remove(arena, lane.pins[pin]);
+		lane.heads[pin] = null;
+		lane.pins[pin] = null;
 	}
 
 	private static List<Arena.Member> bowlers(Arena arena, int team) {
@@ -320,9 +337,12 @@ public final class Bowling {
 		return up;
 	}
 
+	/** A pin still standing: its foot on its spot, and its head still on its foot. */
 	private static boolean up(Lane lane, BlockPos foul, int pin) {
 		Balls.Ball ball = lane.pins[pin];
+		Balls.Ball head = lane.heads[pin];
 		if (ball == null || !ball.cube.isAlive()) return false;
+		if (head == null || !head.cube.isAlive() || head.cube.getVehicle() != ball.cube) return false;
 		Vec3 at = ball.cube.position();
 		Vec3 home = spot(foul, pin);
 		return Math.hypot(at.x - home.x, at.z - home.z) < KNOCKED && at.y > foul.getY() - 0.5;
@@ -355,6 +375,7 @@ public final class Bowling {
 		for (Lane lane : game.lanes.values()) {
 			if (lane.ball != null && lane.ball.cube == cube) return lane;
 			for (Balls.Ball pin : lane.pins) if (pin != null && pin.cube == cube) return lane;
+			for (Balls.Ball head : lane.heads) if (head != null && head.cube == cube) return lane;
 		}
 		return null;
 	}
@@ -416,9 +437,30 @@ public final class Bowling {
 			List<Balls.Ball> balls = new ArrayList<>();
 			if (lane.ball != null && lane.ball.cube.isAlive()) balls.add(lane.ball);
 			for (Balls.Ball pin : lane.pins) if (pin != null && pin.cube.isAlive()) balls.add(pin);
+			// A head thrown off is loose on the lane, and knocks like any pin.
+			for (Balls.Ball head : lane.heads) if (head != null && head.cube.isAlive() && !head.cube.isPassenger()) balls.add(head);
 			for (Balls.Ball ball : balls) roll(ball, ball == lane.ball ? BALL_ROLL : PIN_ROLL);
 			Balls.knock(balls, RESTITUTION, ball -> ball == lane.ball ? BALL_WEIGHT : 1);
+			topple(level, lane);
 			if (lane.phase == Phase.ROLL) settle(server, level, arena, game, lane, balls);
+		}
+	}
+
+	/**
+	 * A pin whose foot has been knocked loses its head: thrown off ahead of the knock and up, so
+	 * the pin goes over the way a pin does, instead of a cube sliding along the boards upright.
+	 */
+	private static void topple(ServerLevel level, Lane lane) {
+		for (int pin = 0; pin < 10; pin++) {
+			Balls.Ball foot = lane.pins[pin];
+			Balls.Ball head = lane.heads[pin];
+			if (foot == null || head == null || head.cube.getVehicle() != foot.cube) continue;
+			Vec3 going = foot.cube.getDeltaMovement();
+			if (going.x * going.x + going.z * going.z < TOPPLE * TOPPLE) continue;
+			head.cube.stopRiding();
+			head.cube.setDeltaMovement(going.x * 1.4, 0.3, going.z * 1.4);
+			head.cube.needsSync = true;
+			level.playSound(null, foot.cube.getX(), foot.cube.getY(), foot.cube.getZ(), SoundEvents.WOOD_HIT, SoundSource.PLAYERS, 1.0F, 1.4F);
 		}
 	}
 
@@ -451,10 +493,7 @@ public final class Bowling {
 	private static void resolve(MinecraftServer server, ServerLevel level, Arena arena, Game game, Lane lane, int down) {
 		BlockPos foul = arena.bases.get(lane.team);
 		for (int pin = 0; pin < 10; pin++) {
-			if (lane.pins[pin] != null && !up(lane, foul, pin)) {
-				Balls.remove(arena, lane.pins[pin]);
-				lane.pins[pin] = null;
-			}
+			if (lane.pins[pin] != null && !up(lane, foul, pin)) clear(arena, lane, pin);
 		}
 		Arena.Member bowler = lane.bowler == null ? null : arena.member(lane.bowler);
 		String who = bowler == null ? TeamColors.of(lane.team).name() : bowler.name;
@@ -483,7 +522,7 @@ public final class Bowling {
 			lane.phase = Phase.DONE;
 			if (lane.ball != null) Balls.remove(arena, lane.ball);
 			lane.ball = null;
-			for (int pin = 0; pin < 10; pin++) if (lane.pins[pin] != null) Balls.remove(arena, lane.pins[pin]);
+			for (int pin = 0; pin < 10; pin++) clear(arena, lane, pin);
 			Arenas.tellInside(server, arena, TeamColors.of(lane.team).name() + " has bowled its ten frames, for " + score(lane.rolls));
 			allDone(server, level, arena, game);
 			return;

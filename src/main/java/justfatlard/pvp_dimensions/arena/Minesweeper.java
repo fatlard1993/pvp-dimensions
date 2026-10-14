@@ -41,8 +41,8 @@ import org.joml.Vector3f;
  * new field. The first square of a field is never a mine, nor anything round it.
  *
  * <p>A field is {@link Arena#bases}: each team's first corner, at the height of the floor it is set
- * in. Squares uncovered on the field each team is on now are {@link Arena#scores}, so time running
- * out goes to whoever is furthest. The mines are not saved: over a restart every field starts
+ * in. Every square a team has uncovered, on every field it has played, is {@link Arena#scores}: a mine
+ * costs the field, never the squares already won, and time running out goes to the most. The mines are not saved: over a restart every field starts
  * again.
  */
 public final class Minesweeper {
@@ -247,6 +247,7 @@ public final class Minesweeper {
 			}
 		}
 		BlockPos corner = arena.bases.get(team);
+		int before = field.open.size();
 		Deque<Integer> spreading = new ArrayDeque<>(toOpen);
 		while (!spreading.isEmpty()) {
 			int next = spreading.poll();
@@ -259,7 +260,7 @@ public final class Minesweeper {
 		}
 		BlockPos at = squareAt(corner, square);
 		level.playSound(null, at.getX() + 0.5, at.getY() + 1, at.getZ() + 0.5, SoundEvents.GRAVEL_BREAK, SoundSource.PLAYERS, 0.8F, 1.2F);
-		arena.scores.put(team, field.open.size());
+		arena.scores.merge(team, field.open.size() - before, Integer::sum);
 		Arenas.vault(server).touch();
 		if (field.open.size() >= SIZE * SIZE - MINES) Goals.winTeam(server, arena, team, "cleared its field first");
 	}
@@ -271,8 +272,6 @@ public final class Minesweeper {
 		level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, at.getX() + 0.5, at.getY() + 1, at.getZ() + 0.5, 1, 0, 0, 0, 0);
 		level.playSound(null, at.getX() + 0.5, at.getY() + 1, at.getZ() + 0.5, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.5F, 1.0F);
 		field.resetAt = System.currentTimeMillis() + BLAST_MILLIS;
-		arena.scores.put(team, 0);
-		Arenas.vault(server).touch();
 		Boards.titleTeam(server, arena, team, "Boom!", by + " found a mine. A new field in a moment");
 		Arenas.tellInside(server, arena, by + " found a mine: " + TeamColors.of(team).name() + " starts a new field");
 	}
@@ -314,8 +313,7 @@ public final class Minesweeper {
 				draw(level, arena, team, field);
 			}
 			games.put(arena.id, fields);
-			arena.scores.clear();
-			Arenas.tellInside(server, arena, "The fields were swept clean; everyone starts a new one");
+			Arenas.tellInside(server, arena, "The fields were swept clean; everyone starts a new one, with the squares cleared so far still counting");
 			return;
 		}
 		for (Map.Entry<Integer, Field> entry : fields.entrySet()) {
@@ -333,11 +331,18 @@ public final class Minesweeper {
 		Field field = viewer == null ? null : field(arena, viewer.team);
 		if (field == null) return Banks.tally(arena);
 		int left = SIZE * SIZE - MINES - field.open.size();
-		return field.resetAt > 0 ? "Boom! A new field in a moment" : left + " squares to clear  ·  " + field.flags.size() + "/" + MINES + " flagged";
+		return field.resetAt > 0 ? "Boom! A new field in a moment" : left + " squares to clear  ·  " + field.flags.size() + "/" + MINES + " flagged"
+			+ "  ·  " + Banks.tally(arena) + " points";
 	}
 
 	static int toClear() {
 		return SIZE * SIZE - MINES;
+	}
+
+	/** Squares uncovered on the field a team is on now, for the board. */
+	static int cleared(Arena arena, int team) {
+		Field field = field(arena, team);
+		return field == null ? 0 : field.open.size();
 	}
 
 	public static void forget(Arena arena) {

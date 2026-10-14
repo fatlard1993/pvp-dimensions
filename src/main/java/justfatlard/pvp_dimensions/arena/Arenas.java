@@ -502,6 +502,8 @@ public final class Arenas {
 		Jobs.tick();
 		Curtain.tick();
 		Balls.physics(server);
+		ConnectFour.physics(server);
+		HotPotato.physics(server);
 		if (++ticks % 10 != 0) return;
 		long now = System.currentTimeMillis();
 		for (Arena arena : List.copyOf(vault(server).arenas().values())) {
@@ -543,7 +545,7 @@ public final class Arenas {
 			int standing = Lobby.standingOn(level, arena, player.position());
 			if (standing >= 0 && standing != member.team) {
 				Teams.put(player, arena, member, standing);
-				Say.to(player, "You're on " + TeamColors.of(standing).name());
+				Say.to(player, "You're on " + CopsRobbers.side(arena, standing));
 			}
 			if (ticks % 40 == 0) Say.bar(player, lobbyLine(arena, player.getUUID()));
 		}
@@ -558,7 +560,7 @@ public final class Arenas {
 		if (arena.preset.teamsOn()) {
 			for (int team = 0; team < arena.preset.teams; team++) {
 				if (team > 0) line.append("  ");
-				line.append(TeamColors.of(team).name()).append(" ").append(arena.teamSize(team));
+				line.append(CopsRobbers.side(arena, team)).append(" ").append(arena.teamSize(team));
 			}
 			line.append("  |  Stand on a colour to join it");
 		} else {
@@ -819,6 +821,7 @@ public final class Arenas {
 			case MASTERMIND -> "Codes: " + Banks.tally(arena);
 			case MEMORY -> "Pairs: " + Banks.tally(arena);
 			case MINESWEEPER -> "Cleared: " + Banks.tally(arena);
+			case COPS_AND_ROBBERS -> CopsRobbers.tally(arena) + ".";
 			case KEEPAWAY -> arena.preset.teamsOn() ? "Kept: " + Banks.tally(arena) : "";
 			case HILL -> arena.preset.teamsOn() ? "Held: " + Banks.tally(arena) : "";
 			default -> "";

@@ -52,7 +52,10 @@ public final class BowlingPlays implements FabricClientGameTest {
 				check(Balls.mayStrike(Bowling.ballOf(arena, team[0]), connection.getServerPlayer()), "the bowler may not hit their own ball");
 				check(!Balls.mayStrike(Bowling.ballOf(arena, 1 - team[0]), connection.getServerPlayer()), "the bowler may hit the other lane's ball");
 			});
-			Vec3 behind = Vec3.atBottomCenterOf(foul[0]).add(-4, 0, 0);
+			// Up close to the rack: ten pins, each a head on a foot.
+			Tables.look(context, server, connection, Vec3.atBottomCenterOf(foul[0]).add(10, 0, 3), Vec3.atCenterOf(foul[0]).add(16.5, 0.5, 0));
+			Tables.shoot(context, "bowling-pins");
+						Vec3 behind = Vec3.atBottomCenterOf(foul[0]).add(-4, 0, 0);
 			Tables.look(context, server, connection, behind, Vec3.atCenterOf(foul[0]).add(16, 0, 0));
 
 			// Off to the side and into the gutter: nothing down, and the same frame's second ball.

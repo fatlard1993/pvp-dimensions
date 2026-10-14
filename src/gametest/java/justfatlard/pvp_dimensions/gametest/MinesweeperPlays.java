@@ -48,6 +48,7 @@ public final class MinesweeperPlays implements FabricClientGameTest {
 			BlockPos mine0 = server.computeOnServer(s -> arena(s).bases.get(arena(s).member(connection.getServerPlayer().getUUID()).team));
 			Tables.look(context, server, connection, Vec3.atBottomCenterOf(mine0).add(6, 0, -4), Vec3.atCenterOf(mine0).add(6, -1, 6));
 			int[] team = new int[1];
+			int[] points = new int[1];
 			int middle = Minesweeper.SIZE / 2 * Minesweeper.SIZE + Minesweeper.SIZE / 2;
 			server.runOnServer(s -> {
 				Arena arena = arena(s);
@@ -87,7 +88,8 @@ public final class MinesweeperPlays implements FabricClientGameTest {
 				Minesweeper.flag(level, arena, team[0], mine);
 				Minesweeper.uncover(s, level, arena, team[0], mine, "tester");
 				check(Minesweeper.blown(arena, team[0]), "a mine uncovered did not go off");
-				check(arena.scores.getOrDefault(team[0], 0) == 0, "squares still count after the field blew");
+				check(arena.scores.getOrDefault(team[0], 0) > 1, "the squares won were lost with the field: " + arena.scores.get(team[0]));
+				points[0] = arena.scores.getOrDefault(team[0], 0);
 			});
 			server.waitFor(s -> !Minesweeper.blown(arena(s), team[0]), 300);
 
@@ -101,6 +103,8 @@ public final class MinesweeperPlays implements FabricClientGameTest {
 					if (!mines.contains(square) && !Minesweeper.isOpen(arena, team[0], square)) Minesweeper.uncover(s, level, arena, team[0], square, "tester");
 				}
 				check(arena.closesAt > 0 && arena.winners.contains(connection.getServerPlayer().getUUID()), "a cleared field did not win it");
+				check(arena.scores.getOrDefault(team[0], 0) == points[0] + Minesweeper.SIZE * Minesweeper.SIZE - Minesweeper.MINES,
+					"points did not add up across fields: " + arena.scores.get(team[0]) + " after " + points[0]);
 			});
 		}
 	}

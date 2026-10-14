@@ -386,6 +386,8 @@ public final class Presets {
 		json.addProperty("golf_holes", p.golfHoles);
 		json.addProperty("ball_count", p.ballCount);
 		json.addProperty("soccer_balls", p.soccerBalls);
+		json.addProperty("heist_item", p.heistItem);
+		json.addProperty("heist_target", p.heistTarget);
 		json.addProperty("lives", name(p.lives));
 		json.addProperty("lives_count", p.livesCount);
 		json.addProperty("mob_goal_kind", p.mobGoalKind);
@@ -595,6 +597,8 @@ public final class Presets {
 		integer(json, "golf_holes", v -> p.golfHoles = Math.max(1, v));
 		integer(json, "ball_count", v -> p.ballCount = Math.max(1, v));
 		integer(json, "soccer_balls", v -> p.soccerBalls = Math.max(1, Math.min(3, v)));
+		string(json, "heist_item", v -> p.heistItem = v);
+		integer(json, "heist_target", v -> p.heistTarget = Math.max(1, v));
 		p.lives = choice(json, "lives", Preset.Lives.class, p.lives);
 		integer(json, "lives_count", v -> p.livesCount = Math.max(1, v));
 		string(json, "mob_goal_kind", v -> p.mobGoalKind = v);

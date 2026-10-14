@@ -140,6 +140,11 @@ public final class Pictures {
 		} else if (goal == Preset.Goal.POOL) {
 			dot(cells, new int[] {MAP / 2 - 1, MAP / 2 - 1}, palette.add(BALL), 3);
 			key.add(new Field.Picture.Key("the pool table", darker(BALL)));
+		} else if (goal == Preset.Goal.COPS_AND_ROBBERS) {
+			for (int team = 0; team < teams; team++) {
+				dot(cells, spot(Divisions.NONE, p, team, Preset.GOAL_RING), palette.add(0xFF000000 | TeamColors.of(team).team().rgb()), 3);
+			}
+			key.add(new Field.Picture.Key("the jail and vault, and the robbers' hideout", darker(BALL)));
 		} else if (goal == Preset.Goal.GOLF) {
 			key.add(new Field.Picture.Key(p.golfHoles + (p.golfHoles == 1 ? " hole" : " holes") + ", a new course every time", darker(BALL)));
 		}

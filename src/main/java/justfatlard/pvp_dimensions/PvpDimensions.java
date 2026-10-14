@@ -112,7 +112,8 @@ public class PvpDimensions implements ModInitializer {
 			if (entity instanceof ServerPlayer player) Combat.died(player, source);
 			else Combat.mobDied(entity);
 		});
-		ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> Combat.allowDamage(entity));
+		ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) ->
+			!justfatlard.pvp_dimensions.arena.Balls.sheltered(entity, source) && Combat.allowDamage(entity));
 		ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, base, taken, blocked) -> {
 			if (taken > 0) justfatlard.pvp_dimensions.arena.Moments.hurt(entity, source);
 		});
@@ -165,6 +166,8 @@ public class PvpDimensions implements ModInitializer {
 			if (card != InteractionResult.PASS) return card;
 			InteractionResult mine = justfatlard.pvp_dimensions.arena.Minesweeper.use(serverPlayer, (ServerLevel) level, hit.getBlockPos(), hand);
 			if (mine != InteractionResult.PASS) return mine;
+			InteractionResult heist = justfatlard.pvp_dimensions.arena.CopsRobbers.useBlock(serverPlayer, (ServerLevel) level, hit.getBlockPos(), hand);
+			if (heist != InteractionResult.PASS) return heist;
 			InteractionResult chest = TeamChests.use(serverPlayer, (ServerLevel) level, hit.getBlockPos());
 			if (chest != InteractionResult.PASS) return chest;
 			if (!level.getBlockState(hit.getBlockPos()).is(Blocks.ENDER_CHEST)) return InteractionResult.PASS;
@@ -177,7 +180,19 @@ public class PvpDimensions implements ModInitializer {
 		// A ball is a sulfur cube, which anyone could otherwise bucket, shear, leash, feed another
 		// block or light: each one ends the match or changes how the ball plays.
 		UseEntityCallback.EVENT.register((player, level, hand, entity, hit) ->
-			entity.entityTags().contains(justfatlard.pvp_dimensions.arena.Balls.TAG) ? InteractionResult.FAIL : InteractionResult.PASS);
+			entity.entityTags().contains(justfatlard.pvp_dimensions.arena.Balls.TAG)
+				|| entity.entityTags().contains(justfatlard.pvp_dimensions.arena.ConnectFour.TAG) ? InteractionResult.FAIL : InteractionResult.PASS);
+		// A hot potato is passed by hitting somebody, or by handing it over with a right-click.
+		net.fabricmc.fabric.api.event.player.AttackEntityCallback.EVENT.register((player, level, hand, entity, hit) ->
+			player instanceof ServerPlayer serverPlayer && justfatlard.pvp_dimensions.arena.HotPotato.pass(serverPlayer, entity)
+				? InteractionResult.FAIL : InteractionResult.PASS);
+		UseEntityCallback.EVENT.register((player, level, hand, entity, hit) ->
+			hand == net.minecraft.world.InteractionHand.MAIN_HAND && player instanceof ServerPlayer serverPlayer
+				&& justfatlard.pvp_dimensions.arena.HotPotato.pass(serverPlayer, entity) ? InteractionResult.SUCCESS : InteractionResult.PASS);
+		// In cops and robbers a cop's hit jails a robber, and no hit between two players does anything else.
+		net.fabricmc.fabric.api.event.player.AttackEntityCallback.EVENT.register((player, level, hand, entity, hit) ->
+			player instanceof ServerPlayer serverPlayer && justfatlard.pvp_dimensions.arena.CopsRobbers.tag(serverPlayer, entity)
+				? InteractionResult.FAIL : InteractionResult.PASS);
 		// A suspect in a guessing game is never traded with, sheared or led off: only accused.
 		UseEntityCallback.EVENT.register((player, level, hand, entity, hit) ->
 			player instanceof ServerPlayer serverPlayer ? justfatlard.pvp_dimensions.arena.GuessWho.useEntity(serverPlayer, entity, hand)
