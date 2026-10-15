@@ -178,7 +178,7 @@ public final class GuessWho {
 	private static final String BABY_SKELETONS = "baby-skeletons-justfatlard";
 
 	/**
-	 * One of Beets & Bears' bears, as that mod makes one: a polar bear with the tag it reads for which
+	 * One of Beets Bears' bears, as that mod makes one: a polar bear with the tag it reads for which
 	 * bear this is, grown or shrunk by the same modifier at the same id. The coat is the mod's own
 	 * part; it paints it on any bear wearing the tag as it loads.
 	 */
