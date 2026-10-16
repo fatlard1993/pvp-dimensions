@@ -40,9 +40,6 @@ import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Interaction;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.sheep.Sheep;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
@@ -78,7 +75,7 @@ import org.jspecify.annotations.Nullable;
  * items between them, drawn fresh each game from pools of dozens of each, so the questions are the
  * ones anybody can ask about Minecraft. Is it a mob? Is it hostile? Can it fly? Is it something you
  * mine? Can you hold it? An item floats over its pen, water and lava as their buckets. Our other
- * mods add to the pools while they are loaded: their blocks and items, and the bears and baby
+ * mods add to the pools while they are loaded: their blocks and items, their bears, and the baby
  * skeletons they make of vanilla mobs. Nothing here needs them; what isn't on the server isn't drawn. A wall down the
  * middle of the ground keeps each team's gallery, and its flipping, its own.
  *
@@ -116,14 +113,18 @@ public final class GuessWho {
 	 * A suspect: a kind of mob, a block, or an item, called by what it is. A mob can be dressed as it
 	 * is made, into one of the variants another of our mods makes of it, and then it needs that mod.
 	 */
-	private record Suspect(String name, @Nullable EntityType<? extends Mob> type, @Nullable String block, @Nullable String item,
-			Consumer<Mob> dress, @Nullable String mod) {
+	private record Suspect(String name, @Nullable EntityType<? extends Mob> type, @Nullable String entity, @Nullable String block,
+			@Nullable String item, Consumer<Mob> dress, @Nullable String mod) {
 		/**
 		 * Whether this server can show it: a block or an item by an id it knows, so one from a mod that
 		 * isn't loaded never stands in as the stone or the nothing it would fall back to; a mob whose
 		 * mod, if any, is loaded.
 		 */
 		boolean here() {
+			if (entity != null) {
+				Identifier id = Identifier.tryParse(entity);
+				return id != null && BuiltInRegistries.ENTITY_TYPE.containsKey(id);
+			}
 			if (block != null) {
 				Identifier id = Identifier.tryParse(block);
 				return id != null && BuiltInRegistries.BLOCK.containsKey(id);
@@ -134,17 +135,24 @@ public final class GuessWho {
 			}
 			return mod == null || FabricLoader.getInstance().isModLoaded(mod);
 		}
+
+		/** The mob's type, from the registry for one of our mods' own mobs; null for a block or an item. */
+		@Nullable EntityType<?> kind() {
+			if (entity == null) return type;
+			Identifier id = Identifier.tryParse(entity);
+			return id == null ? null : BuiltInRegistries.ENTITY_TYPE.getValue(id);
+		}
 	}
 
 	private static final Consumer<Mob> PLAIN = mob -> { };
 
 	private static Suspect mob(String name, EntityType<? extends Mob> type) {
-		return new Suspect(name, type, null, null, PLAIN, null);
+		return new Suspect(name, type, null, null, null, PLAIN, null);
 	}
 
 	/** One of the mobs another of our mods makes out of a vanilla one, there only when that mod is. */
 	private static Suspect variant(String name, String mod, EntityType<? extends Mob> type, Consumer<Mob> dress) {
-		return new Suspect(name, type, null, null, dress, mod);
+		return new Suspect(name, type, null, null, null, dress, mod);
 	}
 
 	private static final Consumer<Mob> BABY = mob -> {
@@ -153,46 +161,33 @@ public final class GuessWho {
 	};
 
 	private static Suspect baby(String name, EntityType<? extends Mob> type) {
-		return new Suspect(name, type, null, null, BABY, null);
+		return new Suspect(name, type, null, null, null, BABY, null);
 	}
 
 	private static Suspect block(String name, String id) {
-		return new Suspect(name, null, "minecraft:" + id, null, PLAIN, null);
+		return new Suspect(name, null, null, "minecraft:" + id, null, PLAIN, null);
 	}
 
 	/** A block from one of our mods, by its full id: in the pool only while that mod is loaded. */
 	private static Suspect ours(String name, String id) {
-		return new Suspect(name, null, id, null, PLAIN, null);
+		return new Suspect(name, null, null, id, null, PLAIN, null);
 	}
 
 	private static Suspect item(String name, String id) {
-		return new Suspect(name, null, null, "minecraft:" + id, PLAIN, null);
+		return new Suspect(name, null, null, null, "minecraft:" + id, PLAIN, null);
 	}
 
 	/** An item from one of our mods, by its full id: in the pool only while that mod is loaded. */
 	private static Suspect ourItem(String name, String id) {
-		return new Suspect(name, null, null, id, PLAIN, null);
+		return new Suspect(name, null, null, null, id, PLAIN, null);
 	}
 
 	private static final String BEARS = "beets-bears-justfatlard";
 	private static final String BABY_SKELETONS = "baby-skeletons-justfatlard";
 
-	/**
-	 * One of Beets Bears' bears, as that mod makes one: a polar bear with the tag it reads for which
-	 * bear this is, grown or shrunk by the same modifier at the same id. The coat is the mod's own
-	 * part; it paints it on any bear wearing the tag as it loads.
-	 */
-	private static Consumer<Mob> bear(String kind, float scale) {
-		return mob -> {
-			mob.addTag(kind);
-			AttributeModifier size = new AttributeModifier(Identifier.fromNamespaceAndPath(BEARS, "size_" + kind), scale - 1F,
-				AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
-			for (var attribute : List.of(Attributes.SCALE, Attributes.MAX_HEALTH)) {
-				AttributeInstance instance = mob.getAttribute(attribute);
-				if (instance != null) instance.addOrReplacePermanentModifier(size);
-			}
-			mob.setHealth(mob.getMaxHealth());
-		};
+	/** A mob of one of our mods' own types, by its full id: in the pool only while that mod is loaded. */
+	private static Suspect ourMob(String name, String id, Consumer<Mob> dress) {
+		return new Suspect(name, null, id, null, null, dress, null);
 	}
 
 	/**
@@ -229,16 +224,16 @@ public final class GuessWho {
 		mob("Horse", EntityTypes.HORSE), mob("Donkey", EntityTypes.DONKEY), mob("Camel", EntityTypes.CAMEL), mob("Mooshroom", EntityTypes.MOOSHROOM),
 		mob("Ocelot", EntityTypes.OCELOT), mob("Sniffer", EntityTypes.SNIFFER), mob("Armadillo", EntityTypes.ARMADILLO),
 		mob("Wandering trader", EntityTypes.WANDERING_TRADER), mob("Copper golem", EntityTypes.COPPER_GOLEM),
-		// Our own mods' takes on vanilla mobs, while those mods are loaded. Each is made the way its
-		// mod makes one: the tag it reads, and its size; the mod dresses the rest as the mob loads.
-		variant("Black bear", BEARS, EntityTypes.POLAR_BEAR, bear("black_bear", 0.8F)),
-		variant("Brown bear", BEARS, EntityTypes.POLAR_BEAR, bear("brown_bear", 1.25F)),
+		// Our own mods' mobs, while those mods are loaded: their own types, and the variants they make
+		// of vanilla mobs by the tag they read.
+		ourMob("Black bear", BEARS + ":black_bear", PLAIN),
+		ourMob("Brown bear", BEARS + ":brown_bear", PLAIN),
 		variant("Baby skeleton", BABY_SKELETONS, EntityTypes.SKELETON, mob -> mob.addTag("baby_skeleton")),
 		variant("Baby stray", BABY_SKELETONS, EntityTypes.STRAY, mob -> mob.addTag("baby_skeleton")),
 		variant("Baby bogged", BABY_SKELETONS, EntityTypes.BOGGED, mob -> mob.addTag("baby_skeleton")),
 		variant("Baby wither skeleton", BABY_SKELETONS, EntityTypes.WITHER_SKELETON, mob -> mob.addTag("baby_skeleton")),
-		variant("Black bear cub", BEARS, EntityTypes.POLAR_BEAR, bear("black_bear", 0.8F).andThen(BABY)),
-		variant("Brown bear cub", BEARS, EntityTypes.POLAR_BEAR, bear("brown_bear", 1.25F).andThen(BABY)),
+		ourMob("Black bear cub", BEARS + ":black_bear", BABY),
+		ourMob("Brown bear cub", BEARS + ":brown_bear", BABY),
 		// Every baby the game has, each its own suspect. No tadpole: it turns into a frog while it stands.
 		baby("Calf", EntityTypes.COW), baby("Piglet", EntityTypes.PIG), baby("Lamb", EntityTypes.SHEEP), baby("Chick", EntityTypes.CHICKEN),
 		baby("Puppy", EntityTypes.WOLF), baby("Kitten", EntityTypes.CAT), baby("Fox kit", EntityTypes.FOX), baby("Baby rabbit", EntityTypes.RABBIT),
@@ -486,9 +481,8 @@ public final class GuessWho {
 
 	/** A suspect's mob, made, dressed and frozen but not yet in the world; null for a block, or a mob that won't make. */
 	private static @Nullable Mob make(ServerLevel level, Suspect suspect) {
-		if (suspect.type() == null) return null;
-		Mob mob = suspect.type().create(level, EntitySpawnReason.EVENT);
-		if (mob == null) return null;
+		EntityType<?> kind = suspect.kind();
+		if (kind == null || !(kind.create(level, EntitySpawnReason.EVENT) instanceof Mob mob)) return null;
 		suspect.dress().accept(mob);
 		freeze(mob);
 		return mob;
@@ -845,9 +839,9 @@ public final class GuessWho {
 		return game == null ? null : game.lineup.get(place).block();
 	}
 
-	public static @Nullable EntityType<? extends Mob> typeOf(Arena arena, int place) {
+	public static @Nullable EntityType<?> typeOf(Arena arena, int place) {
 		Game game = games.get(arena.id);
-		return game == null ? null : game.lineup.get(place).type();
+		return game == null ? null : game.lineup.get(place).kind();
 	}
 
 	public static BlockPos spotOf(Arena arena, int team, int place) {
