@@ -74,6 +74,10 @@ public final class Travel {
 			return null;
 		}
 		if (player.isDeadOrDying()) return null;
+		if (Places.heldElsewhere(player.level())) {
+			Say.to(player, "Not from here: leave this world first");
+			return null;
+		}
 
 		Preset preset = arena.preset;
 		boolean admin = Access.admin(player);

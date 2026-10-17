@@ -38,6 +38,21 @@ public final class Places {
 		return dimension.equals(OVERWORLD) || dimension.equals(NETHER) || dimension.equals(END);
 	}
 
+	/**
+	 * Mods whose dimensions hold a visit of their own: what a player carried, set aside at that
+	 * mod's door and handed back when they cross out of it, by whatever means.
+	 */
+	private static final java.util.Set<String> HELD_ELSEWHERE = java.util.Set.of("learning-blocks-justfatlard");
+
+	/**
+	 * Whether this level belongs to a mod holding the player's own things. Going in from there would
+	 * put that mod's pack aside as theirs, and the trip out of its dimension would make it hand the
+	 * real one back inside the arena, for the way out to clear.
+	 */
+	public static boolean heldElsewhere(Level level) {
+		return HELD_ELSEWHERE.contains(level.dimension().identifier().getNamespace());
+	}
+
 	public static ResourceKey<Level> forWorld(Preset.World world) {
 		return switch (world) {
 			case OVERWORLD -> OVERWORLD;
