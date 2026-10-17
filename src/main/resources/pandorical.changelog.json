@@ -3,6 +3,10 @@
     "Arenas on demand. Pick a preset from a menu and a fresh piece of ground is made for the fight, floating alone in a dimension of its own, gone when the clock runs out."
   ],
   "versions": {
+    "1.8.3": [
+      "Guess who's black and brown bears are Beets Bears' own animals, wearing their own coats again.",
+      "Arenas can't be joined from the Learning Blocks classroom: leave the classroom first, so your own things stay with you."
+    ],
     "1.8.2": [
       "Cops and robbers, for two teams: the cops tag robbers into an iron-barred jail that any free robber can spring, while the robbers steal gold from the cops' vault and bank it in their hideout.",
       "In Guess who, ringing your bell with one suspect left standing accuses it.",
@@ -41,7 +45,7 @@
       "Join lists the arenas running to pick from, instead of putting you in the first one it finds."
     ],
     "1.4.1": [
-    	"Arena matches keep their own PvP rules whatever an op has trusted anyone with outside them."
+      "Arena matches keep their own PvP rules whatever an op has trusted anyone with outside them."
     ],
     "1.1.0": [
       "The arena is a menu: arenas, join, loadout, begin and leave are buttons, not things you type.",
