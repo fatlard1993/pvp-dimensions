@@ -198,6 +198,7 @@ public final class Travel {
 		ServerLevel level = Arenas.level(player.level().getServer(), arena);
 		if (level == null) return "The arena isn't there";
 		Teams.put(player, arena, member, team);
+		Teams.dress(player, arena, member);
 		Vec3 spot = Spawns.forPlayer(level, arena, team);
 		player.teleportTo(level, spot.x, spot.y, spot.z, Set.of(), player.getYRot(), 0, true);
 		GoalCompass.give(player, arena, member);
@@ -230,6 +231,7 @@ public final class Travel {
 		if (member != null) {
 			Goals.supply(player, arena, member);
 			GoalCompass.give(player, arena, member);
+			Teams.dress(player, arena, member);
 		}
 		player.setHealth(player.getMaxHealth());
 		player.getFoodData().setFoodLevel(20);

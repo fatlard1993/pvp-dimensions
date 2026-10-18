@@ -107,6 +107,7 @@ public final class Loadouts {
 			Kit kit = preset.loadoutKit(index);
 			kit.give(player);
 			handed.put(player.getUUID(), new Handed(kit.copy(), last.at()));
+			Teams.dress(player, arena, member);
 			player.containerMenu.broadcastChanges();
 			Say.to(player, "Swapped for " + name);
 		} else {
@@ -153,19 +154,29 @@ public final class Loadouts {
 		return cap <= 0 ? "" : cap + " at most" + (perTeam(arena) ? " per team" : "");
 	}
 
-	/** Out of the pack, what the last kit put there and is still there as it was handed over. */
+	/**
+	 * Out of the pack, what the last kit put there and is still there as it was handed over. The
+	 * team's dye went on after the handing, so it is no reason to leave a piece behind.
+	 */
 	private static void takeBack(ServerPlayer player, Kit kit) {
 		Inventory inventory = player.getInventory();
 		for (ItemStack given : kit.stacks()) {
 			int left = given.getCount();
 			for (int slot = 0; slot < inventory.getContainerSize() && left > 0; slot++) {
 				ItemStack stack = inventory.getItem(slot);
-				if (!ItemStack.isSameItemSameComponents(stack, given)) continue;
+				if (!ItemStack.isSameItemSameComponents(undyed(stack, given), given)) continue;
 				int taken = Math.min(left, stack.getCount());
 				stack.shrink(taken);
 				left -= taken;
 			}
 		}
+	}
+
+	private static ItemStack undyed(ItemStack stack, ItemStack given) {
+		if (!stack.has(net.minecraft.core.component.DataComponents.DYED_COLOR)) return stack;
+		ItemStack plain = stack.copy();
+		plain.set(net.minecraft.core.component.DataComponents.DYED_COLOR, given.get(net.minecraft.core.component.DataComponents.DYED_COLOR));
+		return plain;
 	}
 
 	/** A loadout's picture: the first thing in its kit. */

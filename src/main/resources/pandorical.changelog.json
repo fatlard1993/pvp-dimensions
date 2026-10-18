@@ -3,6 +3,9 @@
     "Arenas on demand. Pick a preset from a menu and a fresh piece of ground is made for the fight, floating alone in a dimension of its own, gone when the clock runs out."
   ],
   "versions": {
+    "1.8.4": [
+      "In team games, leather armour is dyed your team's colour."
+    ],
     "1.8.3": [
       "Guess who's black and brown bears are Beets Bears' own animals, wearing their own coats again.",
       "Arenas can't be joined from the Learning Blocks classroom: leave the classroom first, so your own things stay with you."

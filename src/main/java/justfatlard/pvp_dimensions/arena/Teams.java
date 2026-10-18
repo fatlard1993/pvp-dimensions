@@ -2,9 +2,16 @@ package justfatlard.pvp_dimensions.arena;
 
 import justfatlard.pvp_dimensions.preset.Preset;
 import justfatlard.pvp_dimensions.preset.TeamColors;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.world.scores.Team;
@@ -129,6 +136,24 @@ public final class Teams {
 	public static void put(ServerPlayer player, Arena arena, Arena.Member member, int team) {
 		member.team = team;
 		join(player, player.level().getServer().getScoreboard().getPlayerTeam(teamName(arena, team)));
+	}
+
+	private static final java.util.Set<Item> LEATHER = java.util.Set.of(
+		Items.LEATHER_HELMET, Items.LEATHER_CHESTPLATE, Items.LEATHER_LEGGINGS, Items.LEATHER_BOOTS);
+
+	/**
+	 * Leather in the team's colour, so a side reads at a glance from across the field. Every
+	 * leather piece the player carries, not just what they wear: a helmet taken off and put back
+	 * on is still theirs. The horde keeps its rags.
+	 */
+	public static void dress(ServerPlayer player, Arena arena, Arena.Member member) {
+		if (!arena.preset.teamsOn() || member.team < 0 || member.zombie) return;
+		int rgb = DyeColor.byName(TeamColors.of(member.team).dye(), DyeColor.WHITE).getTextureDiffuseColor();
+		Inventory inventory = player.getInventory();
+		for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+			ItemStack stack = inventory.getItem(slot);
+			if (LEATHER.contains(stack.getItem())) stack.set(DataComponents.DYED_COLOR, new DyedItemColor(rgb));
+		}
 	}
 
 	/** Onto the horde's team, green-named, whatever team they fought on. */
