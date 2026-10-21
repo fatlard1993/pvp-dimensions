@@ -124,7 +124,6 @@ public final class Travel {
 
 		GameType mode;
 		if (watching) mode = GameType.SPECTATOR;
-		else if (admin) mode = player.gameMode();
 		else if (arena.phase == Arena.Phase.LOBBY) mode = GameType.ADVENTURE;
 		else mode = playMode(arena);
 		if (!watching && preset.activeGoal() == Preset.Goal.DESTRUCTION && member.team >= 0 && arena.fallen.contains(member.team)) {
@@ -178,7 +177,7 @@ public final class Travel {
 	public static void setDown(ServerPlayer player, Arena arena, Arena.Member member) {
 		ServerLevel level = Arenas.level(player.level().getServer(), arena);
 		if (level == null) return;
-		if (!Access.admin(player)) player.setGameMode(playMode(arena));
+		player.setGameMode(playMode(arena));
 		Vec3 spot = Spawns.forPlayer(level, arena, member.team);
 		player.teleportTo(level, spot.x, spot.y, spot.z, Set.of(), player.getYRot(), 0, true);
 		equip(player, arena, true);

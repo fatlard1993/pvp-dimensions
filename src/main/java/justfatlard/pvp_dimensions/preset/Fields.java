@@ -257,7 +257,7 @@ public final class Fields {
 		fields.add(new Field.Note(PLAYERS, "name_tags.note", true, Summary::teammateNamesAlone));
 		fields.add(Field.Choice.ofEnum(PLAYERS, "game_mode", "Game mode", Preset.GameRule.class,
 			new String[] {"Survival", "Adventure (no digging)", "Creative (building, no harm)"}, p -> p.gameMode, (p, v) -> p.gameMode = v)
-			.help("Admins keep their own game mode"));
+			.help("Admins too, though they can change theirs after"));
 		fields.add(new Field.Note(PLAYERS, "game_mode.note", true, Summary::playsInSurvival));
 		fields.add(Field.Choice.ofEnum(PLAYERS, "spawn", "Spawn at", Preset.Spawn.class,
 			new String[] {"Random spots", "Team corners", "The middle"}, p -> p.spawn, (p, v) -> p.spawn = v));

@@ -3,6 +3,9 @@
     "Arenas on demand. Pick a preset from a menu and a fresh piece of ground is made for the fight, floating alone in a dimension of its own, gone when the clock runs out."
   ],
   "versions": {
+    "1.9.1": [
+      "Admins are put in the arena's game mode on the way in and at every scheduled change, like everyone else; they can change their own after."
+    ],
     "1.9.0": [
       "Arenas are sealed by default: a portal built inside, a nether frame or another mod's, goes nowhere, and an Amethyst Door put down inside will not open.",
       "Turn Sealed off in a preset and such a portal leads out, and going through it is leaving."

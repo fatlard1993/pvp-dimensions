@@ -2,7 +2,6 @@ package justfatlard.pvp_dimensions.arena;
 
 import java.util.Comparator;
 import java.util.List;
-import justfatlard.pvp_dimensions.Access;
 import justfatlard.pvp_dimensions.preset.Preset;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -18,7 +17,7 @@ import net.minecraft.sounds.SoundSource;
  * The game mode changing partway through a fight, as the preset lays out: a creative spell to
  * build in, a minute's warning, then survival as the walls come down, and so on. Each change can
  * empty everyone's pack and hand their kit out again, so nothing made in creative is carried into
- * the fight. Admins keep their own mode, as they always do.
+ * the fight. Admins change with everyone, and can change themselves back after.
  */
 public final class ModeChanges {
 	private ModeChanges() {}
@@ -54,7 +53,7 @@ public final class ModeChanges {
 	private static void apply(MinecraftServer server, Arena arena, Preset.ModeChange change) {
 		for (Arena.Member member : arena.inside()) {
 			ServerPlayer player = server.getPlayerList().getPlayer(member.id);
-			if (player == null || member.watching || member.zombie || Access.admin(player)) continue;
+			if (player == null || member.watching || member.zombie) continue;
 			player.setGameMode(Travel.playMode(arena));
 			if (change.kits) {
 				player.getInventory().clearContent();
