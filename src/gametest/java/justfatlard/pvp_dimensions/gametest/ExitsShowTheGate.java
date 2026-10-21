@@ -65,7 +65,7 @@ public final class ExitsShowTheGate implements FabricClientGameTest {
 				ServerPlayer player = connection.getServerPlayer();
 				ServerLevel arenaLevel = (ServerLevel) player.level();
 				player.teleportTo(arenaLevel, exit.getX() + 0.5, exit.getY(), exit.getZ() - 4.5, Set.of(), 0.0F, 0.0F, true);
-				PortalApi.FarEnd far = Portals.lookThrough(player, arenaLevel, exit);
+				PortalApi.FarEnd far = justfatlard.pvp_dimensions.arena.PortalViews.lookThrough(player, arenaLevel, exit);
 				check(far != null, "the exit shows nothing to the player who came in by the gate");
 				check(far.portal().dimension() == Level.OVERWORLD && far.portal().pos().closerThan(frame, 4),
 					"the exit shows " + far.portal() + ", not the gate at " + frame);

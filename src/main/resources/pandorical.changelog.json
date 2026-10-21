@@ -3,6 +3,9 @@
     "Arenas on demand. Pick a preset from a menu and a fresh piece of ground is made for the fight, floating alone in a dimension of its own, gone when the clock runs out."
   ],
   "versions": {
+    "1.10.1": [
+      "Works with Pandorical as old as 15.13.0. Before 15.24.1 an arena's exit does not show the gate you came in by, and before 15.17 the Arena menu leaves out Invite: /pvp invite still does it."
+    ],
     "1.10.0": [
       "With Pandorical's immersive portals on, an arena's exit portal shows you the frame you came in by, on the side you come out of."
     ],

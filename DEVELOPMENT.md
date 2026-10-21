@@ -34,6 +34,7 @@ made in `createState` from the level's seed, passing it in place of the blank on
 | File | Responsibility |
 |------|---------------|
 | `PvpDimensions.java` | Entry point: codecs, events, commands, the ender chest rule |
+| `PandoricalVersion.java` | Whether the running Pandorical has a feature newer than the oldest this loads with |
 | `Access.java` | Admin and user tiers: ops, granted players, permission nodes |
 | `preset/Preset.java` | Every setting, as plain fields |
 | `preset/Fields.java`, `preset/Field.java` | The settings' names, labels, limits, tab and when each shows; the menus and commands both read these |
@@ -53,6 +54,7 @@ made in `createState` from the level's seed, passing it in place of the blank on
 | `arena/Visit.java` | The player attachment that holds home and the stashed pack |
 | `arena/Combat.java` | PvP rules, kills and their rewards, respawning inside |
 | `arena/Portals.java`, `arena/Gateways.java` | Lit frames in the world, exit portals inside; what may cross an arena edge, and pets home when one ends |
+| `arena/PortalViews.java` | What an exit shows through immersive portals; its own class, loaded only beside Pandorical 15.24.1 or newer |
 | `arena/Borders.java` | Each arena's edge as a per-player world border, and the server's own check of it |
 | `arena/Lobby.java`, `arena/Teams.java`, `arena/Spawns.java` | Waiting room, scoreboard teams, where people are put down |
 | `arena/Goals.java` | What an arena is won by: kills and lives, mob hunts, capture the flag, colour takeover, base destruction; the win |

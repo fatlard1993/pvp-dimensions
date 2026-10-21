@@ -205,7 +205,7 @@ public class PvpDimensions implements ModInitializer {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> PvpCommands.register(dispatcher));
 
 		PandoricalApi.portals().keepOutOfPairing(Portals::ours);
-		PandoricalApi.portals().lookThrough(Portals::lookThrough);
+		if (PandoricalVersion.atLeast("15.24.1")) justfatlard.pvp_dimensions.arena.PortalViews.register();
 		// An arena's own rules decide who fights whom in it, whatever an op has trusted anyone with.
 		PandoricalApi.trust().pvpDecidedElsewhere(level -> Places.isArena(level.dimension()));
 		// Taking from another team's chest is half of some games; nobody's lock gets in the way.
@@ -233,13 +233,16 @@ public class PvpDimensions implements ModInitializer {
 	 * to work.
 	 */
 	private static void promoteArenaButtons() {
-		PandoricalApi.actionMenus().suggestMenu(MOD_ID + ":arena", "Arena", java.util.List.of(
+		// A Pandorical before 15.17 sends {players} as typed, so there inviting stays a command.
+		java.util.List<ActionMenuApi.Button> buttons = new java.util.ArrayList<>(java.util.List.of(
 			ActionMenuApi.Button.runs("minecraft:iron_sword", "Arenas", "pvp"),
-			ActionMenuApi.Button.runs("minecraft:oak_door", "Join", "pvp join"),
-			ActionMenuApi.Button.runs("minecraft:player_head", "Invite", "pvp invite {players}"),
+			ActionMenuApi.Button.runs("minecraft:oak_door", "Join", "pvp join")));
+		if (PandoricalVersion.atLeast("15.17.0")) buttons.add(ActionMenuApi.Button.runs("minecraft:player_head", "Invite", "pvp invite {players}"));
+		buttons.addAll(java.util.List.of(
 			ActionMenuApi.Button.runs("minecraft:chest", "Loadout", "pvp loadout"),
 			ActionMenuApi.Button.runs("minecraft:bell", "Begin", "pvp begin"),
 			ActionMenuApi.Button.runs("minecraft:iron_door", "Leave", "pvp leave")));
+		PandoricalApi.actionMenus().suggestMenu(MOD_ID + ":arena", "Arena", buttons);
 
 		PandoricalApi.commandHelp().describe("/pvp", "Open the arena menu.");
 		PandoricalApi.commandHelp().describe("/pvp join", "Pick an arena that is running to join; with its name, go straight in.");
