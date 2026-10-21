@@ -3,6 +3,9 @@
     "Arenas on demand. Pick a preset from a menu and a fresh piece of ground is made for the fight, floating alone in a dimension of its own, gone when the clock runs out."
   ],
   "versions": {
+    "1.10.0": [
+      "With Pandorical's immersive portals on, an arena's exit portal shows you the frame you came in by, on the side you come out of."
+    ],
     "1.9.1": [
       "Admins are put in the arena's game mode on the way in and at every scheduled change, like everyone else; they can change their own after."
     ],
