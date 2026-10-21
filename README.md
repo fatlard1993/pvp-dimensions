@@ -95,6 +95,7 @@ Colour takeover, destroying bases, banking, and a race up into the sky or down u
 - **Waiting room**: a glass box over the arena where players gather before the fight. Its floor is striped in the team colours, and standing on a colour is how you pick that team. The host starts the fight (**Fight!** in the menu, or `/pvp begin`); if nobody does, it starts by itself after the server's waiting time, or closes if fewer than two came.
 - **Late arrivals**: join in, watch as a spectator, or be turned away. Joining a fight with teams already on, a player is put on the smallest team and gets a screen to change it while they've only just arrived, to any team that stays even with the rest (`/pvp team` in chat).
 - **Ways home**: an exit portal inside, the `/pvp leave` command, both, or only the end.
+- **Sealed** (on by default): a portal built inside, a nether frame or another mod's, goes nowhere, and an Amethyst Door put down inside will not open. Off, it leads out, and going through it is leaving.
 
 PvP is on in an arena's fight and off in its waiting room, whatever the server's own pvp rule says for the rest of the world.
 

@@ -87,7 +87,7 @@ made in `createState` from the level's seed, passing it in place of the blank on
 | `ui/ChatMenus.java` | The same, as clickable chat |
 | `ui/ItemSessions.java` | Editing an item list by holding it |
 | `command/PvpCommands.java` | `/pvp` |
-| `mixin/NetherPortalBlockMixin.java` | Gates lead in, exits lead home, nothing else in an arena leads anywhere |
+| `mixin/PortalProcessorMixin.java` | Gates lead in, exits lead home, nothing else in a sealed arena leads anywhere, whichever mod answers for the portal |
 | `mixin/PortalForcerMixin.java` | Nether trips never come out in a lit gate |
 | `mixin/ServerPlayerMixin.java` | Respawning inside; the arena's own PvP rule, and the horde's |
 | `mixin/PlayerListMixin.java` | The arena's border sent after the dimension's |

@@ -82,7 +82,7 @@ public final class Summary {
 	}
 
 	public static @Nullable String noWayOut(Preset p) {
-		if (p.exitPortal || p.exitCommand) return null;
+		if (p.exitPortal || p.exitCommand || !p.sealed) return null;
 		return p.respawnsInside() ? "Nobody can leave until it ends" : "Nobody can leave until it ends, but by dying";
 	}
 
@@ -304,9 +304,10 @@ public final class Summary {
 	}
 
 	private static String waysHome(Preset p) {
-		if (p.exitPortal && p.exitCommand) return "Leave through an exit portal or with /pvp leave";
-		if (p.exitPortal) return "Leave through an exit portal";
-		if (p.exitCommand) return "Leave with /pvp leave";
-		return "No way out until it ends";
+		String built = p.sealed ? "" : "; a portal built inside leads out too";
+		if (p.exitPortal && p.exitCommand) return "Leave through an exit portal or with /pvp leave" + built;
+		if (p.exitPortal) return "Leave through an exit portal" + built;
+		if (p.exitCommand) return "Leave with /pvp leave" + built;
+		return p.sealed ? "No way out until it ends" : "No way out until it ends, but through a portal built inside";
 	}
 }

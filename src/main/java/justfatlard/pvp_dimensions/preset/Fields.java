@@ -271,6 +271,8 @@ public final class Fields {
 			new String[] {"Portal or command", "Exit portal", "/pvp leave", "Only the end"}, WaysHome::of, WaysHome::apply)
 			.help("An exit portal inside, the /pvp leave command, both, or neither"));
 		fields.add(new Field.Note(PLAYERS, "ways_home.note", true, Summary::noWayOut));
+		fields.add(new Field.Toggle(PLAYERS, "sealed", "Sealed", p -> p.sealed, (p, v) -> p.sealed = v)
+			.help("A portal built inside goes nowhere, and an amethyst door will not open. Off, one leads out, and going through it is leaving"));
 
 		// --- Arena: where ---
 		fields.add(new Field.Picture(ARENA, "map", 4, Pictures::map));

@@ -370,6 +370,7 @@ public final class Presets {
 		json.addProperty("name_tags", name(p.nameTags));
 		json.addProperty("exit_portal", p.exitPortal);
 		json.addProperty("exit_command", p.exitCommand);
+		json.addProperty("sealed", p.sealed);
 		json.addProperty("death_compasses", p.deathCompasses);
 		json.addProperty("head_lock", p.headLock);
 		json.addProperty("last_side", p.endWhenOneSideLeft);
@@ -581,6 +582,7 @@ public final class Presets {
 		p.nameTags = choice(json, "name_tags", Preset.NameTags.class, p.nameTags);
 		bool(json, "exit_portal", v -> p.exitPortal = v);
 		bool(json, "exit_command", v -> p.exitCommand = v);
+		bool(json, "sealed", v -> p.sealed = v);
 		bool(json, "death_compasses", v -> p.deathCompasses = v);
 		integer(json, "head_lock", v -> p.headLock = Math.max(-1, v));
 		bool(json, "last_side", v -> p.endWhenOneSideLeft = v);

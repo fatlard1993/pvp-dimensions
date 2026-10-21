@@ -3,6 +3,7 @@ package justfatlard.pvp_dimensions.arena;
 import justfatlard.pvp_dimensions.world.Footprint;
 import justfatlard.pvp_dimensions.world.Footprints;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -41,11 +42,27 @@ public final class Gateways {
 		}
 		if (!Places.isArena(level.dimension())) return Answer.VANILLA;
 		String exit = Portals.exitAt(level, pos);
-		if (exit != null && entity instanceof ServerPlayer player) {
+		if (exit != null) {
+			if (!(entity instanceof ServerPlayer player)) return Answer.NOWHERE;
 			Arena arena = Arenas.of(player);
 			if (arena != null && arena.id.equals(exit)) return new Answer(true, Travel.leave(player, arena, Travel.Why.PORTAL));
+			return Answer.NOWHERE;
 		}
-		return Answer.NOWHERE;
+		return sealed(level, pos) ? Answer.NOWHERE : Answer.VANILLA;
+	}
+
+	/** Amethyst Door's door: a step into its geodes, by a block anybody can carry in and put down. */
+	private static final String GEODE_DOOR = "amethyst-door-justfatlard:amethyst_door";
+
+	/** Whether this is a door out of a sealed arena that is not one of the arena's own. */
+	public static boolean sealedDoor(ServerLevel level, BlockPos pos) {
+		return BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock()).toString().equals(GEODE_DOOR) && sealed(level, pos);
+	}
+
+	/** In an arena dimension, anywhere but a running arena that is not sealed counts as sealed. */
+	private static boolean sealed(ServerLevel level, BlockPos pos) {
+		Arena arena = Arenas.at(level, pos.getX(), pos.getZ());
+		return arena == null || arena.preset.sealed;
 	}
 
 	/**

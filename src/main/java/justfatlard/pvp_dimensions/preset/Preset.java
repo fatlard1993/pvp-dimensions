@@ -193,6 +193,8 @@ public final class Preset {
 	public NameTags nameTags = NameTags.SHOWN;
 	public boolean exitPortal = true;
 	public boolean exitCommand = true;
+	/** On, a portal built or a door to a geode put down inside goes nowhere: the ways home are the only ways out. */
+	public boolean sealed = true;
 	public boolean endWhenOneSideLeft = false;
 
 	// --- Goal ---

@@ -154,6 +154,10 @@ public class PvpDimensions implements ModInitializer {
 				Say.bar(serverPlayer, "The horde doesn't open things");
 				return InteractionResult.FAIL;
 			}
+			if (justfatlard.pvp_dimensions.arena.Gateways.sealedDoor((ServerLevel) level, hit.getBlockPos())) {
+				Say.bar(serverPlayer, "Sealed: the only ways out are the arena's own");
+				return InteractionResult.FAIL;
+			}
 			InteractionResult shot = justfatlard.pvp_dimensions.arena.Battleship.use(serverPlayer, (ServerLevel) level, hit.getBlockPos(), hand);
 			if (shot != InteractionResult.PASS) return shot;
 			InteractionResult gallery = justfatlard.pvp_dimensions.arena.GuessWho.useBlock(serverPlayer, (ServerLevel) level, hit.getBlockPos(), hand);
