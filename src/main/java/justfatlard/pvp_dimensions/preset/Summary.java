@@ -66,7 +66,12 @@ public final class Summary {
 	}
 
 	public static @Nullable String creativeKeepsApart(Preset p) {
-		return p.creative() && p.traversal != Preset.Traversal.ISOLATED ? "Creative keeps everything apart and lets nothing out" : null;
+		if (!p.makesItems() || p.traversal == Preset.Traversal.ISOLATED) return null;
+		return (p.creative() ? "Creative keeps" : "Endless blocks keep") + " everything apart and let nothing out";
+	}
+
+	public static @Nullable String customPlaysSurvival(Preset p) {
+		return p.customUsed() && !p.flight && p.endlessBlocks.isEmpty() ? "With no flying and no endless blocks, custom plays as survival" : null;
 	}
 
 	public static @Nullable String pooledLivesAlone(Preset p) {
@@ -278,6 +283,7 @@ public final class Summary {
 			case SURVIVAL -> "Survival";
 			case ADVENTURE -> "Adventure";
 			case CREATIVE -> "Creative";
+			case CUSTOM -> "Custom";
 		};
 	}
 
@@ -291,7 +297,7 @@ public final class Summary {
 	}
 
 	private static String gear(Preset p) {
-		String carried = switch (p.creative() ? Preset.Traversal.ISOLATED : p.traversal) {
+		String carried = switch (p.makesItems() ? Preset.Traversal.ISOLATED : p.traversal) {
 			case FREE -> "Everyone keeps their own things";
 			case ISOLATED -> "What you carry waits outside";
 			case REWARDS -> "What you carry waits outside; a shortlist comes home";

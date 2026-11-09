@@ -318,12 +318,13 @@ public final class Pictures {
 		return new Field.Picture.Canvas(CLOCK, rows, palette.colours(), cells, key);
 	}
 
-	/** Creative bright, survival and adventure in quieter colours of their own. */
+	/** Creative bright, survival, adventure and custom in quieter colours of their own. */
 	private static int modeColour(Preset.GameRule mode) {
 		return switch (mode) {
 			case CREATIVE -> 0xFFE8C85A;
 			case SURVIVAL -> 0xFFB05A4A;
 			case ADVENTURE -> 0xFF5A8AB0;
+			case CUSTOM -> 0xFF8A6AB8;
 		};
 	}
 

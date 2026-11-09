@@ -75,6 +75,7 @@ made in `createState` from the level's seed, passing it in place of the blank on
 | `arena/GoalCompass.java` | A compass pointed at the goal, into Map++'s slot where it can go |
 | `arena/Curtain.java` | Division walls coming down from the top, a layer a tick |
 | `arena/ModeChanges.java` | The game mode switching partway through |
+| `arena/Powers.java` | Custom's flight and endless blocks, given on top of survival |
 | `arena/Traps.java` | Who put each block down, for crediting a trap's kill |
 | `arena/Moments.java` | The moments worth a cheer: kill bursts, long shots, assists, avenging, captures, the hill, waves, big game, surviving |
 | `preset/Sharing.java` | Exporting and importing presets, and the mods a preset needs |
@@ -98,7 +99,7 @@ made in `createState` from the level's seed, passing it in place of the blank on
 | `mixin/ServerLevelMixin.java`, `mixin/LevelMixin.java` | No world weather in arena worlds; rain there falls by each arena's own |
 | `mixin/ItemEntityMixin.java` | The horde picks nothing up |
 | `mixin/ServerExplosionMixin.java` | Blasts leave standing what may not be broken |
-| `mixin/BlockItemMixin.java`, `mixin/PrimedTntAccessor.java` | Remembering who placed a block; lighting TNT in its placer's name |
+| `mixin/BlockItemMixin.java`, `mixin/PrimedTntAccessor.java` | Remembering who placed a block, and not using up custom's endless blocks; lighting TNT in its placer's name |
 | `mixin/MobMixin.java`, `mixin/MobAccessor.java` | The arena's mobs never target each other; a giant given the goals the game leaves it without |
 
 ## Testing

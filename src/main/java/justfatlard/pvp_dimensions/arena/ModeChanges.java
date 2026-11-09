@@ -55,6 +55,7 @@ public final class ModeChanges {
 			ServerPlayer player = server.getPlayerList().getPlayer(member.id);
 			if (player == null || member.watching || member.zombie) continue;
 			player.setGameMode(Travel.playMode(arena));
+			Powers.give(player, arena);
 			if (change.kits) {
 				player.getInventory().clearContent();
 				Travel.equip(player, arena, true);
@@ -80,6 +81,7 @@ public final class ModeChanges {
 			case SURVIVAL -> "Survival";
 			case ADVENTURE -> "Adventure";
 			case CREATIVE -> "Creative";
+			case CUSTOM -> "Custom";
 		};
 	}
 }

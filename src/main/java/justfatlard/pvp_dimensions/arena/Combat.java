@@ -119,6 +119,7 @@ public final class Combat {
 			if (member != null && member.out) Goals.respawnedOut(player, arena, member);
 			else if (arena.phase == Arena.Phase.LIVE) {
 				Travel.equip(player, arena, false);
+				Powers.give(player, arena);
 				if (arena.preset.loadoutRepick) Loadouts.offer(player, arena);
 			}
 			Borders.send(player, arena);

@@ -131,6 +131,7 @@ public final class Travel {
 			mode = GameType.SPECTATOR;
 		}
 		player.setGameMode(mode);
+		Powers.give(player, arena);
 
 		Vec3 destination;
 		if (arena.phase == Arena.Phase.LOBBY && arena.lobbyStanding) destination = Lobby.arrival(arena);
@@ -178,6 +179,7 @@ public final class Travel {
 		ServerLevel level = Arenas.level(player.level().getServer(), arena);
 		if (level == null) return;
 		player.setGameMode(playMode(arena));
+		Powers.give(player, arena);
 		Vec3 spot = Spawns.forPlayer(level, arena, member.team);
 		player.teleportTo(level, spot.x, spot.y, spot.z, Set.of(), player.getYRot(), 0, true);
 		equip(player, arena, true);
@@ -205,13 +207,13 @@ public final class Travel {
 		return null;
 	}
 
-	/** Adventure only where the goal needs no digging or building. */
+	/** Adventure only where the goal needs no digging or building; custom is survival, its powers given by {@link Powers}. */
 	public static GameType playMode(Arena arena) {
 		Preset preset = arena.preset;
 		return switch (ModeChanges.current(arena)) {
 			case CREATIVE -> GameType.CREATIVE;
 			case ADVENTURE -> preset.needsSurvival() ? GameType.SURVIVAL : GameType.ADVENTURE;
-			case SURVIVAL -> GameType.SURVIVAL;
+			case SURVIVAL, CUSTOM -> GameType.SURVIVAL;
 		};
 	}
 
@@ -270,7 +272,7 @@ public final class Travel {
 				for (AddedSlots.Held held : AddedSlots.take(player)) carried.add(held.stack());
 			}
 			List<ItemStack> keep = new ArrayList<>();
-			if (preset != null && !preset.creative()) {
+			if (preset != null && !preset.makesItems()) {
 				for (ItemStack stack : carried) {
 					if (winner && preset.winnersKeepPack || preset.rewardsOut() && preset.rewards.allows(stack.getItem())) keep.add(stack);
 				}
@@ -295,6 +297,8 @@ public final class Travel {
 
 		GameType before = visit.gameMode().map(name -> GameType.byName(name, GameType.SURVIVAL)).orElse(GameType.SURVIVAL);
 		if (player.gameMode() != before) player.setGameMode(before);
+		before.updatePlayerAbilities(player.getAbilities());
+		player.onUpdateAbilities();
 		Teams.restore(player, visit.team().orElse(null));
 		Visit.set(player, null);
 
@@ -365,6 +369,7 @@ public final class Travel {
 				member.inside = true;
 				Arenas.wake(server, arena);
 				Fog.show(player, arena);
+				Powers.give(player, arena);
 				if (!dead && !arena.footprint().containsBlock(player.getX(), player.getZ())) {
 					ServerLevel level = player.level();
 					Vec3 back = arena.lobbyStanding ? Lobby.arrival(arena) : Spawns.forPlayer(level, arena, member.team);

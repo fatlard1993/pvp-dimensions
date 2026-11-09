@@ -256,9 +256,15 @@ public final class Fields {
 			.help("Hidden, nobody can pick out who is who from across the arena"));
 		fields.add(new Field.Note(PLAYERS, "name_tags.note", true, Summary::teammateNamesAlone));
 		fields.add(Field.Choice.ofEnum(PLAYERS, "game_mode", "Game mode", Preset.GameRule.class,
-			new String[] {"Survival", "Adventure (no digging)", "Creative (building, no harm)"}, p -> p.gameMode, (p, v) -> p.gameMode = v)
+			new String[] {"Survival", "Adventure (no digging)", "Creative (building, no harm)", "Custom (survival, with powers)"}, p -> p.gameMode, (p, v) -> p.gameMode = v)
 			.help("Admins too, though they can change theirs after"));
 		fields.add(new Field.Note(PLAYERS, "game_mode.note", true, Summary::playsInSurvival));
+		fields.add(new Field.Toggle(PLAYERS, "flight", "Custom: flying", p -> p.flight, (p, v) -> p.flight = v)
+			.help("Everyone can fly as in creative, and can still be hurt").when(Preset::customUsed));
+		fields.add(Field.Items.list(PLAYERS, "endless_blocks", "Custom: endless blocks", p -> p.endlessBlocks, (p, v) -> p.endlessBlocks = v)
+			.help("Putting one of these down never uses it up; hand them out in a kit. Anything else is used up as in survival")
+			.when(Preset::customUsed));
+		fields.add(new Field.Note(PLAYERS, "custom.note", true, Summary::customPlaysSurvival));
 		fields.add(Field.Choice.ofEnum(PLAYERS, "spawn", "Spawn at", Preset.Spawn.class,
 			new String[] {"Random spots", "Team corners", "The middle"}, p -> p.spawn, (p, v) -> p.spawn = v));
 		fields.add(new Field.Toggle(PLAYERS, "waiting_room", "Waiting room", p -> p.waitingRoom, (p, v) -> p.waitingRoom = v)
@@ -524,7 +530,7 @@ public final class Fields {
 			new String[] {"The prize", "Prize and pack"},
 			p -> p.winnersKeepPack ? WinnersKeep.PACK : WinnersKeep.PRIZE, (p, v) -> p.winnersKeepPack = v == WinnersKeep.PACK)
 			.help("On top of their own things. Pack: whatever they were carrying inside comes home too")
-			.when(p -> winnable.test(p) && p.isolated() && !p.creative()));
+			.when(p -> winnable.test(p) && p.isolated() && !p.makesItems()));
 
 		fields.removeIf(field -> !field.shown(preset));
 		return fields;
@@ -567,7 +573,7 @@ public final class Fields {
 				p -> index < p.modeChanges.size() ? p.modeChanges.get(index).minute : 1,
 				(p, v) -> { if (index < p.modeChanges.size()) p.modeChanges.get(index).minute = v; }));
 			fields.add(Field.Choice.ofEnum(TIMELINE, "mode." + i + ".mode", "To", Preset.GameRule.class,
-				new String[] {"Survival", "Adventure", "Creative"}, p -> index < p.modeChanges.size() ? p.modeChanges.get(index).mode : Preset.GameRule.SURVIVAL,
+				new String[] {"Survival", "Adventure", "Creative", "Custom"}, p -> index < p.modeChanges.size() ? p.modeChanges.get(index).mode : Preset.GameRule.SURVIVAL,
 				(p, v) -> { if (index < p.modeChanges.size()) p.modeChanges.get(index).mode = v; }));
 			fields.add(new Field.Toggle(TIMELINE, "mode." + i + ".warn", "A minute's warning", p -> index < p.modeChanges.size() && p.modeChanges.get(index).warn,
 				(p, v) -> { if (index < p.modeChanges.size()) p.modeChanges.get(index).warn = v; }));

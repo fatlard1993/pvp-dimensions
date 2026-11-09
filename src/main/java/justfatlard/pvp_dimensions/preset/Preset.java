@@ -19,7 +19,8 @@ public final class Preset {
 	public enum RespawnKit { NONE, ENTRY, CUSTOM }
 	public enum Mode { FFA, TEAMS }
 	public enum LateJoin { ALLOW, SPECTATE, DENY }
-	public enum GameRule { SURVIVAL, ADVENTURE, CREATIVE }
+	/** Custom is survival with the powers the preset gives it: flight, and blocks that never run out. */
+	public enum GameRule { SURVIVAL, ADVENTURE, CREATIVE, CUSTOM }
 	public enum Spawn { RANDOM, TEAM, CENTER }
 	public enum NameTags { SHOWN, TEAMMATES, HIDDEN }
 	public enum Source { GENERATE, SAVED }
@@ -188,6 +189,10 @@ public final class Preset {
 	public boolean waitingRoom = true;
 	public LateJoin lateJoin = LateJoin.ALLOW;
 	public GameRule gameMode = GameRule.SURVIVAL;
+	/** Whether players can fly while the arena is in custom. */
+	public boolean flight = true;
+	/** Blocks that putting down never uses up while the arena is in custom. */
+	public ItemList endlessBlocks = new ItemList();
 	public Spawn spawn = Spawn.RANDOM;
 	/** The names over players' heads: everyone's, only teammates', or nobody's. */
 	public NameTags nameTags = NameTags.SHOWN;
@@ -491,11 +496,11 @@ public final class Preset {
 	}
 
 	/**
-	 * Whether what a player carries is put aside on the way in. Always, in a creative arena,
-	 * whatever the preset says: anything can be made there, so nothing may be carried out.
+	 * Whether what a player carries is put aside on the way in. Always, in an arena that makes
+	 * things, whatever the preset says, so nothing made there may be carried out.
 	 */
 	public boolean isolated() {
-		return traversal != Traversal.FREE || creative();
+		return traversal != Traversal.FREE || makesItems();
 	}
 
 	/** Level ground: flat, or a maze laid on flat. */
@@ -564,9 +569,24 @@ public final class Preset {
 		return gameMode == GameRule.CREATIVE || modeChanges.stream().anyMatch(change -> change.mode == GameRule.CREATIVE);
 	}
 
-	/** Whether the rewards shortlist lets anything out: never from a creative arena. */
+	/** Whether it is custom at any point, so its powers are set. */
+	public boolean customUsed() {
+		return gameMode == GameRule.CUSTOM || modeChanges.stream().anyMatch(change -> change.mode == GameRule.CUSTOM);
+	}
+
+	/** Whether endless blocks are ever in play: put down and broken, they are as many as anyone likes. */
+	public boolean endless() {
+		return customUsed() && !endlessBlocks.isEmpty();
+	}
+
+	/** Whether things can be had for nothing at any point, so nothing may be carried out. */
+	public boolean makesItems() {
+		return creative() || endless();
+	}
+
+	/** Whether the rewards shortlist lets anything out: never from an arena that makes things. */
 	public boolean rewardsOut() {
-		return traversal == Traversal.REWARDS && !creative();
+		return traversal == Traversal.REWARDS && !makesItems();
 	}
 
 	public ItemList bonus(KillType type) {
