@@ -81,6 +81,16 @@ public record Visit(String arena, Home home, Optional<Kit> stash, Optional<Exper
 		.copyOnDeath()
 		.buildAndRegister(PvpDimensions.id("visit"));
 
+	/**
+	 * Where a visit began, kept after it ended by something else teleporting the player out: Spawn
+	 * Lock's jail, say, which notes the arena spot it took them from and sends them back there when it
+	 * lets them go. Being turned away from that ground puts them here rather than nowhere they ever were.
+	 */
+	public static final AttachmentType<Home> LEFT_FROM = AttachmentRegistry.<Home>builder()
+		.persistent(Home.CODEC)
+		.copyOnDeath()
+		.buildAndRegister(PvpDimensions.id("left_from"));
+
 	/** Loads the class, which is what registers the attachment; it must happen at init. */
 	public static void init() {}
 

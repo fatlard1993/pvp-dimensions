@@ -6,6 +6,7 @@
 	"description": "Loads the mod, joins a world, and checks a hits preset survives a save.",
 	"license": "MIT",
 	"environment": "*",
+	"provides": ["spawn-lock-justfatlard"],
 	"entrypoints": {
 		"fabric-client-gametest": [
 			"justfatlard.pvp_dimensions.gametest.SmokeTest",
@@ -28,7 +29,8 @@
 			"justfatlard.pvp_dimensions.gametest.GolfPlays",
 			"justfatlard.pvp_dimensions.gametest.CustomPlays",
 			"justfatlard.pvp_dimensions.gametest.DemosPlay",
-			"justfatlard.pvp_dimensions.gametest.DemoChain"
+			"justfatlard.pvp_dimensions.gametest.DemoChain",
+			"justfatlard.pvp_dimensions.gametest.HeldAtSpawn"
 		],
 		"pvp-dimensions-demo": [
 			"justfatlard.pvp_dimensions.gametest.TestDemoHook"

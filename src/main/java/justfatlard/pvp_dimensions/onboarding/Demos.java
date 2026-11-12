@@ -127,6 +127,10 @@ public final class Demos {
 			Say.to(player, "Finish editing items first: /pvp done");
 			return;
 		}
+		if (justfatlard.pvp_dimensions.integration.SpawnLock.held(player)) {
+			Say.to(player, "Not while you're held at the spawn");
+			return;
+		}
 		if (current == null && Places.heldElsewhere(player.level())) {
 			Say.to(player, "Not from here: leave this world first");
 			return;
@@ -273,7 +277,8 @@ public final class Demos {
 
 	private static void ask(ServerPlayer player) {
 		if (!ServerConfig.onboarding()) return;
-		if (Visit.of(player) != null) {
+		if (Visit.of(player) != null || justfatlard.pvp_dimensions.integration.SpawnLock.held(player)
+				|| Places.heldElsewhere(player.level())) {
 			asking.put(player.getUUID(), System.currentTimeMillis() + 60_000L);
 			return;
 		}

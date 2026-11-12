@@ -78,6 +78,10 @@ public final class Travel {
 			Say.to(player, "Not from here: leave this world first");
 			return null;
 		}
+		if (justfatlard.pvp_dimensions.integration.SpawnLock.held(player)) {
+			Say.to(player, "Not while you're held at the spawn");
+			return null;
+		}
 
 		Preset preset = arena.preset;
 		boolean admin = Access.admin(player);
@@ -102,6 +106,7 @@ public final class Travel {
 		Optional<Visit.Experience> experience = preset.isolated() ? Optional.of(Visit.Experience.of(player)) : Optional.empty();
 		Optional<List<AddedSlots.Held>> added = preset.isolated() ? Optional.of(AddedSlots.take(player)) : Optional.empty();
 		Visit.set(player, new Visit(arena.id, home, stash, experience, Optional.empty(), Optional.of(player.gameMode().getName()), added));
+		player.removeAttached(Visit.LEFT_FROM);
 		Asks.arrived(player, arena);
 		if (preset.isolated()) {
 			player.getInventory().clearContent();
@@ -302,6 +307,8 @@ public final class Travel {
 		player.onUpdateAbilities();
 		Teams.restore(player, visit.team().orElse(null));
 		Visit.set(player, null);
+		if (why == Why.MOVED) player.setAttached(Visit.LEFT_FROM, visit.home());
+		else player.removeAttached(Visit.LEFT_FROM);
 
 		if (arena != null) {
 			Arena.Member member = arena.member(player.getUUID());
@@ -382,7 +389,7 @@ public final class Travel {
 		} else if (!dead && Places.isArena(player.level().dimension())
 				&& (!Access.admin(player) || Arenas.at(player.level(), player.getX(), player.getZ()) == null)) {
 			// Nobody is left standing where no arena is: that ground is gone, or about to be.
-			player.teleport(home(server, new Visit.Home(Places.OVERWORLD, 0, 0, 0, 0, 0)));
+			player.teleport(turnedAway(server, player));
 		}
 	}
 
@@ -470,7 +477,8 @@ public final class Travel {
 			return;
 		}
 		if (Places.isArena(to.dimension()) && !Access.admin(player)) {
-			Say.to(player, "Arenas are entered by invitation or through a lit frame");
+			Say.to(player, player.hasAttached(Visit.LEFT_FROM) ? "That arena is behind you; back to where you were before it"
+				: "Arenas are entered by invitation or through a lit frame");
 			sendHomeNextTick(player);
 		}
 	}
@@ -495,7 +503,13 @@ public final class Travel {
 		server.execute(() -> {
 			ServerPlayer now = server.getPlayerList().getPlayer(id);
 			if (now == null || !Places.isArena(now.level().dimension()) || Visit.of(now) != null) return;
-			now.teleport(home(server, new Visit.Home(Places.OVERWORLD, 0, 0, 0, 0, 0)));
+			now.teleport(turnedAway(server, now));
 		});
+	}
+
+	/** Off arena ground with no visit: to where their last visit began, if something else ended it, or to the overworld. */
+	private static TeleportTransition turnedAway(MinecraftServer server, ServerPlayer player) {
+		Visit.Home before = player.removeAttached(Visit.LEFT_FROM);
+		return home(server, before != null ? before : new Visit.Home(Places.OVERWORLD, 0, 0, 0, 0, 0));
 	}
 }
