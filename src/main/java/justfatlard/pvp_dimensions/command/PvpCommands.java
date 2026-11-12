@@ -160,6 +160,14 @@ public final class PvpCommands {
 			return running.size();
 		}));
 
+		// Everyone's, whatever their tier: onboarding is for the players who know the least.
+		root.then(Commands.literal("demos").executes(context -> run(context, Menus::demos)));
+		root.then(Commands.literal("demo").then(Commands.argument("mod", StringArgumentType.word())
+			.suggests((context, builder) -> SharedSuggestionProvider.suggest(
+				justfatlard.pvp_dimensions.onboarding.Demos.all().stream().map(justfatlard.pvp_dimensions.onboarding.Demo::id), builder))
+			.executes(context -> run(context, player ->
+				justfatlard.pvp_dimensions.onboarding.Demos.play(player, StringArgumentType.getString(context, "mod"))))));
+
 		root.then(Commands.literal("done").executes(context -> run(context, ItemSessions::done)));
 		root.then(Commands.literal("cancel").executes(context -> run(context, ItemSessions::cancel)));
 

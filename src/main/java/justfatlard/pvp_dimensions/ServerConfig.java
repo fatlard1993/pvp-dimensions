@@ -32,6 +32,16 @@ public final class ServerConfig {
 		return number("lobby_minutes", 15);
 	}
 
+	/** Whether players are asked to play the mods' demos: when they first join, and when a new one arrives. */
+	public static boolean onboarding() {
+		return number("onboarding", 1) != 0;
+	}
+
+	/** Demos played at once, across everyone; each holds a small plot loaded. */
+	public static int demoArenas() {
+		return number("demo_arenas", 8);
+	}
+
 	private static int number(String key, int fallback) {
 		try {
 			return Integer.parseInt(values.getProperty(key, String.valueOf(fallback)).trim());
@@ -57,6 +67,8 @@ public final class ServerConfig {
 		values.putIfAbsent("max_arenas", String.valueOf(maxArenas()));
 		values.putIfAbsent("user_arenas", String.valueOf(userArenas()));
 		values.putIfAbsent("lobby_minutes", String.valueOf(lobbyMinutes()));
+		values.putIfAbsent("onboarding", onboarding() ? "1" : "0");
+		values.putIfAbsent("demo_arenas", String.valueOf(demoArenas()));
 		save();
 	}
 
@@ -82,5 +94,11 @@ public final class ServerConfig {
 		group.number("lobbyMinutes", "Waiting room waits, minutes", 1, 60, 1, 15)
 			.describe("Then the fight starts by itself, or the arena closes if nobody came")
 			.backedBy(player -> lobbyMinutes(), (player, value) -> set("lobby_minutes", value));
+		group.toggle("onboarding", "Offer mod demos", true)
+			.describe("New players, and everyone when a mod with a demo arrives, are asked to play; /pvp demos lists them either way")
+			.backedBy(player -> onboarding(), (player, value) -> set("onboarding", value ? 1 : 0));
+		group.number("demoArenas", "Demos at once", 1, 32, 1, 8)
+			.describe("Each player plays a demo on a small plot of their own")
+			.backedBy(player -> demoArenas(), (player, value) -> set("demo_arenas", value));
 	}
 }

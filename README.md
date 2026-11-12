@@ -156,6 +156,16 @@ Nothing alive crosses a kept-apart arena's edge: a wolf tamed inside stays there
 
 Item lists are made by holding the items. **Edit** puts your own pack aside and lays the list out in its place; arrange it from the creative menu or chests, then **Done** (or `/pvp done`) keeps what you are holding and gives your own pack back. `/pvp cancel` changes nothing. The **⚄** beside a list fills it at random to start from: a loadout in one armour tier with a weapon to match, a small thing for a kill, bigger for a long streak, a prize worth winning, a shortlist of valuables to let out, pinata loot that gets better with each pinata.
 
+## Demos
+
+Every mod on the server that ships a demo has a small level of its own showing what it does, played by letting you do it. A player joining for the first time is asked once whether they'd like to try them; after an update that adds a mod with a demo, everyone is asked about the new one. **Later** puts the question away, and `/pvp demos` (or **Demos** on the Arena action menu) lists every demo whenever you want it, each ticked once played.
+
+Each demo is yours alone: a fresh copy is made for you, nobody else sees it in the arena list, and like a kept-apart arena your own things, experience and effects are put aside on the way in and handed back on the way out. Nothing from a demo comes home. Play them in any order, and go straight from one to another from inside it: the trip home at the end takes you back where you started, not to the last demo. When you leave one, the next you haven't played is offered.
+
+A demo counts as played as soon as you step into it, unless it has a finish (a goal to win, or a moment the demo itself decides), in which case it counts once you get there.
+
+Demos never use up the arenas the server allows at once; they have their own limit.
+
 ## Commands
 
 | Command | Who | What |
@@ -167,6 +177,7 @@ Item lists are made by holding the items. **Edit** puts your own pack aside and 
 | `/pvp loadout [number]` | players | The loadout screen, or pick one |
 | `/pvp invite <names \| everyone> [arena]`, `/pvp light <arena>` | host, players | Invite more (to the arena you're in or host, unless named); light another frame |
 | `/pvp end [arena]`, `/pvp list` | host, anyone | End one; list them |
+| `/pvp demos`, `/pvp demo <mod>` | anyone | Every mod's demo, played or not; play one, from home or from inside another |
 | `/pvp preset list \| show \| new \| copy \| delete` | admins | Presets; `new` on its own asks what kind of match, `new kind <KIND>` makes one straight off |
 | `/pvp preset set <preset> <setting> <value>` | admins | Change one setting (for a spawn-egg grid, the mob to click) |
 | `/pvp preset items <preset> <list>`, `/pvp done`, `/pvp cancel` | admins | Edit an item list by holding it |
@@ -176,7 +187,7 @@ Item lists are made by holding the items. **Edit** puts your own pack aside and 
 
 ## Server settings
 
-In `config/pvp-dimensions/server.properties`, and on the mod's page of the Pandorical mod menu for ops: **arenas at once** (4), **arenas each user may run** (1), and how many minutes a **waiting room** waits (15).
+In `config/pvp-dimensions/server.properties`, and on the mod's page of the Pandorical mod menu for ops: **arenas at once** (4), **arenas each user may run** (1), how many minutes a **waiting room** waits (15), whether to **offer mod demos** to players (on), and how many **demos at once** (8).
 
 ## On screen
 

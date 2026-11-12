@@ -14,6 +14,7 @@ public final class Screens {
 		EditorScreen.register(screens);
 		KindScreen.register(screens);
 		PickScreen.register(screens);
+		DemoScreen.register(screens);
 	}
 
 	public static void forget(UUID player) {

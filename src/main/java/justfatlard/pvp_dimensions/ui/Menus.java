@@ -30,6 +30,12 @@ public final class Menus {
 		else ChatMenus.preset(player, presetId, section);
 	}
 
+	/** Every mod's demo, played or not. */
+	public static void demos(ServerPlayer player) {
+		if (PandoricalApi.isAvailable(player)) DemoScreen.show(player);
+		else ChatMenus.demos(player);
+	}
+
 	public static void closeScreen(ServerPlayer player) {
 		String open = PandoricalApi.getOpenScreenId(player.getUUID());
 		if (open != null) PandoricalApi.screens().close(player, open);

@@ -93,12 +93,20 @@ public final class Arenas {
 		return vault(server).arenas().get(id);
 	}
 
-	/** Every arena that has not ended, oldest first. */
+	/** Every arena that has not ended, oldest first, demos left out: they are their players' own, and counted apart. */
 	public static List<Arena> running(MinecraftServer server) {
+		return unended(server).filter(arena -> arena.demo.isEmpty()).toList();
+	}
+
+	/** Every demo being played, or being made to be. */
+	public static List<Arena> demos(MinecraftServer server) {
+		return unended(server).filter(arena -> !arena.demo.isEmpty()).toList();
+	}
+
+	private static java.util.stream.Stream<Arena> unended(MinecraftServer server) {
 		return vault(server).arenas().values().stream()
 			.filter(arena -> arena.phase != Arena.Phase.ENDED)
-			.sorted(Comparator.comparingLong(arena -> arena.createdAt))
-			.toList();
+			.sorted(Comparator.comparingLong(arena -> arena.createdAt));
 	}
 
 	/** The arena this player is in, by their visit, while it runs. */
@@ -128,6 +136,7 @@ public final class Arenas {
 	public static void beforeLevels(MinecraftServer server) {
 		SavedTerrains.load(server);
 		Presets.load(server);
+		justfatlard.pvp_dimensions.onboarding.Demos.load(server);
 		Path root = server.getWorldPath(LevelResource.ROOT);
 		for (ArenaVault.DeadPlot dead : vault(server).takeDead()) {
 			Path dimension = DimensionType.getStorageFolder(dead.dimension(), root);
@@ -168,7 +177,7 @@ public final class Arenas {
 	 * After Dead Heads has read its save, or there is nothing yet to forget.
 	 */
 	public static void forgetStrayHeads(MinecraftServer server) {
-		List<Arena> running = running(server);
+		List<Arena> running = unended(server).toList();
 		for (ResourceKey<Level> dimension : List.of(Places.OVERWORLD, Places.NETHER, Places.END)) {
 			if (running.stream().noneMatch(arena -> arena.dimension.equals(dimension))) {
 				justfatlard.pvp_dimensions.integration.DeadHeads.forgetDimension(dimension);
@@ -202,6 +211,12 @@ public final class Arenas {
 	 */
 	public static @Nullable Arena start(MinecraftServer server, @Nullable ServerPlayer starter, String presetId, Preset source,
 			Start options, java.util.function.Consumer<String> complain) {
+		return start(server, starter, presetId, source, options, complain, "");
+	}
+
+	/** @param demo the mod whose demo this is, or empty; a demo is marked before anybody's menu can list it */
+	public static @Nullable Arena start(MinecraftServer server, @Nullable ServerPlayer starter, String presetId, Preset source,
+			Start options, java.util.function.Consumer<String> complain, String demo) {
 		// Refused here rather than in a menu, so a command and a button get the same answer: a
 		// preset naming mods this server hasn't got would run with its kits and prizes quietly
 		// missing their modded halves, which is a different game wearing the same name.
@@ -260,6 +275,7 @@ public final class Arenas {
 		Arena arena = new Arena("a" + number, number, presetId, preset, host, hostName, level.dimension(), plot,
 			survey.minChunkX, survey.minChunkZ, survey.chunks, survey.surfaceY, survey.highestY, survey.wallTop, survey.lobbyY,
 			System.currentTimeMillis());
+		arena.demo = demo;
 		arena.openToAll = options.invite() == Invite.EVERYONE;
 		arena.invited.addAll(options.chosen());
 		vault.add(arena);
@@ -527,7 +543,10 @@ public final class Arenas {
 				}
 			}
 		}
-		if (ticks % 20 == 0) Travel.sweep(server);
+		if (ticks % 20 == 0) {
+			Travel.sweep(server);
+			justfatlard.pvp_dimensions.onboarding.Demos.tick(server);
+		}
 		Landing.tick(server);
 		if (ticks % 1200 == 0) vault(server).touch();
 	}

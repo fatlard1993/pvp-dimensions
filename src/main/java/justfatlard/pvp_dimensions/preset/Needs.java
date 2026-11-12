@@ -66,7 +66,7 @@ public final class Needs {
 	}
 
 	/** Every namespace this server can actually resolve: its mods, and everything in its registries. */
-	static Set<String> namespaces(MinecraftServer server) {
+	public static Set<String> namespaces(MinecraftServer server) {
 		Set<String> here = new TreeSet<>(BUILT_IN);
 		FabricLoader.getInstance().getAllMods().forEach(mod -> here.add(mod.getMetadata().getId()));
 		for (Registry<?> registry : List.<Registry<?>>of(BuiltInRegistries.ITEM, BuiltInRegistries.BLOCK, BuiltInRegistries.ENTITY_TYPE,
@@ -78,7 +78,7 @@ public final class Needs {
 		return here;
 	}
 
-	static void copyTree(Path from, Path to) throws IOException {
+	public static void copyTree(Path from, Path to) throws IOException {
 		try (Stream<Path> walk = Files.walk(from)) {
 			for (Path source : walk.toList()) {
 				Path target = to.resolve(from.relativize(source).toString());

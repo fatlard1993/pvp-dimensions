@@ -146,7 +146,8 @@ public final class Travel {
 			if (zombie) Horde.rise(arrived, arena, member);
 			Borders.send(arrived, arena);
 			Fog.show(arrived, arena);
-			Say.to(arrived, welcome(arena, watching));
+			if (arena.demo.isEmpty()) Say.to(arrived, welcome(arena, watching));
+			else justfatlard.pvp_dimensions.onboarding.Demos.arrived(arrived, arena);
 			if (paid != null) Say.to(arrived, "You paid " + paid.describe(6) + " to come in"
 				+ (preset.feesToWinners ? "; the winners share everyone's" : ""));
 			if (!watching && !zombie) Loadouts.offer(arrived, arena);
@@ -311,6 +312,7 @@ public final class Travel {
 			Arenas.unbar(arena, player);
 			Arenas.vault(server).touch();
 			Arenas.forgetIfSettled(server, arena);
+			justfatlard.pvp_dimensions.onboarding.Demos.left(player, arena, winner);
 		}
 
 		// Only someone still standing in an arena dimension needs taking home; a respawn or

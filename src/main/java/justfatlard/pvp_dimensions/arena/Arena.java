@@ -135,6 +135,8 @@ public final class Arena {
 	public final int lobbyY;
 
 	public Phase phase = Phase.GENERATING;
+	/** The mod whose onboarding demo this is, played by its host alone; empty for every other arena. */
+	public String demo = "";
 	public final long createdAt;
 	public long liveAt;
 	public long endsAt;
@@ -220,9 +222,9 @@ public final class Arena {
 		this.createdAt = createdAt;
 	}
 
-	/** "Skirmish #3", the name players see. */
+	/** "Skirmish #3", the name players see; "Amethyst Door demo" for a demo, of which nobody sees another's. */
 	public String title() {
-		return preset.name + " #" + number;
+		return demo.isEmpty() ? preset.name + " #" + number : preset.name + " demo";
 	}
 
 	/** What the win drew, or null before a win or where there was nothing to draw. */
@@ -307,6 +309,7 @@ public final class Arena {
 		tag.putInt("wall_top", wallTop);
 		tag.putInt("lobby_y", lobbyY);
 		tag.putString("phase", phase.name());
+		if (!demo.isEmpty()) tag.putString("demo", demo);
 		tag.putLong("created_at", createdAt);
 		tag.putLong("live_at", liveAt);
 		tag.putLong("ends_at", endsAt);
@@ -387,6 +390,7 @@ public final class Arena {
 		} catch (IllegalArgumentException e) {
 			arena.phase = Phase.ENDED;
 		}
+		arena.demo = tag.getStringOr("demo", "");
 		arena.liveAt = tag.getLongOr("live_at", 0);
 		arena.endsAt = tag.getLongOr("ends_at", 0);
 		arena.lobbyEndsAt = tag.getLongOr("lobby_ends_at", 0);

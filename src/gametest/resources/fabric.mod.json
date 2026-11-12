@@ -26,7 +26,12 @@
 			"justfatlard.pvp_dimensions.gametest.MinesweeperPlays",
 			"justfatlard.pvp_dimensions.gametest.HotPotatoPlays",
 			"justfatlard.pvp_dimensions.gametest.GolfPlays",
-			"justfatlard.pvp_dimensions.gametest.CustomPlays"
+			"justfatlard.pvp_dimensions.gametest.CustomPlays",
+			"justfatlard.pvp_dimensions.gametest.DemosPlay",
+			"justfatlard.pvp_dimensions.gametest.DemoChain"
+		],
+		"pvp-dimensions-demo": [
+			"justfatlard.pvp_dimensions.gametest.TestDemoHook"
 		]
 	},
 	"depends": {

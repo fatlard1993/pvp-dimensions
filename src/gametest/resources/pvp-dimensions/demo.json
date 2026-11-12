@@ -1,0 +1,24 @@
+{
+  "demo": {
+    "name": "Test demo",
+    "icon": "minecraft:gold_block",
+    "about": ["Stand on the gold block to finish."],
+    "finish": true
+  },
+  "pvp_preset": 1,
+  "needs": [],
+  "preset": {
+    "pvp": false,
+    "goal": "time",
+    "life": 0,
+    "mobs": "off",
+    "size": 2,
+    "world": "overworld",
+    "shape": "flat",
+    "biome": "minecraft:plains",
+    "waiting_room": true,
+    "traversal": "free",
+    "entry_fee": [{"id": "minecraft:diamond", "count": 1}],
+    "weather": "clear"
+  }
+}

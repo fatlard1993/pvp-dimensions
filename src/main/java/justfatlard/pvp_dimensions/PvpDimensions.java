@@ -77,6 +77,7 @@ public class PvpDimensions implements ModInitializer {
 		Registry.register(BuiltInRegistries.BIOME_SOURCE, id("arena"), ArenaBiomes.CODEC);
 		Access.init();
 		Visit.init();
+		justfatlard.pvp_dimensions.onboarding.Demos.register();
 		ItemSessions.init();
 		Arenas.init();
 		ServerConfig.load();
@@ -102,6 +103,7 @@ public class PvpDimensions implements ModInitializer {
 		ServerPlayerEvents.JOIN.register(player -> {
 			Travel.loggedIn(player);
 			ItemSessions.loggedIn(player);
+			justfatlard.pvp_dimensions.onboarding.Demos.loggedIn(player);
 		});
 		ServerPlayerEvents.AFTER_RESPAWN.register((old, fresh, alive) -> {
 			if (!alive) Combat.respawned(fresh);
@@ -144,6 +146,7 @@ public class PvpDimensions implements ModInitializer {
 			justfatlard.pvp_dimensions.ui.GameHud.forget(handler.getPlayer().getUUID());
 			justfatlard.pvp_dimensions.arena.Loadouts.forget(handler.getPlayer().getUUID());
 			justfatlard.pvp_dimensions.arena.Moments.forget(handler.getPlayer().getUUID());
+			justfatlard.pvp_dimensions.onboarding.Demos.forget(handler.getPlayer().getUUID());
 		});
 
 		// An ender chest is the one pack that is the same everywhere: in an arena that keeps
@@ -241,7 +244,8 @@ public class PvpDimensions implements ModInitializer {
 		buttons.addAll(java.util.List.of(
 			ActionMenuApi.Button.runs("minecraft:chest", "Loadout", "pvp loadout"),
 			ActionMenuApi.Button.runs("minecraft:bell", "Begin", "pvp begin"),
-			ActionMenuApi.Button.runs("minecraft:iron_door", "Leave", "pvp leave")));
+			ActionMenuApi.Button.runs("minecraft:iron_door", "Leave", "pvp leave"),
+			ActionMenuApi.Button.runs("minecraft:map", "Demos", "pvp demos")));
 		PandoricalApi.actionMenus().suggestMenu(MOD_ID + ":arena", "Arena", buttons);
 
 		PandoricalApi.commandHelp().describe("/pvp", "Open the arena menu.");
@@ -250,6 +254,8 @@ public class PvpDimensions implements ModInitializer {
 		PandoricalApi.commandHelp().describe("/pvp loadout", "Pick what you carry into the next round.");
 		PandoricalApi.commandHelp().describe("/pvp begin", "Start the match everyone is waiting in.");
 		PandoricalApi.commandHelp().describe("/pvp invite", "Bring somebody into the arena you are in.");
+		PandoricalApi.commandHelp().describe("/pvp demos", "Every mod's demo, played or not; pick one to play it.");
+		PandoricalApi.commandHelp().describe("/pvp demo", "Play a mod's demo by its id, even from inside another.");
 	}
 
 }

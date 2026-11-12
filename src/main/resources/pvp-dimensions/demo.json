@@ -1,0 +1,33 @@
+{
+  "demo": {
+    "name": "PvP Dimensions",
+    "icon": "minecraft:iron_sword",
+    "about": [
+      "Arenas on demand: a fresh piece of ground for every game, floating alone with a border round it.",
+      "This one is a hunt. Take down five zombies; the compass points to the nearest."
+    ],
+    "finish": true
+  },
+  "pvp_preset": 1,
+  "needs": [],
+  "preset": {
+    "name": "PvP Dimensions",
+    "icon": "minecraft:iron_sword",
+    "pvp": false,
+    "goal": "mobs",
+    "mob_goal_kind": "minecraft:zombie",
+    "mob_goal_count": 5,
+    "goal_compass": true,
+    "mobs": "always",
+    "mob_rarity": "common",
+    "mob_default": "off",
+    "mob_levels": { "minecraft:zombie": "normal" },
+    "lives": "off",
+    "life": 15,
+    "size": 3,
+    "world": "overworld",
+    "shape": "natural",
+    "biome": "minecraft:plains",
+    "weather": "clear"
+  }
+}

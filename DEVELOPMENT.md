@@ -90,6 +90,11 @@ made in `createState` from the level's seed, passing it in place of the blank on
 | `ui/ChatMenus.java` | The same, as clickable chat |
 | `ui/ItemSessions.java` | Editing an item list by holding it |
 | `command/PvpCommands.java` | `/pvp` |
+| `onboarding/Demos.java` | Demos played as one-player arenas: making a copy, going from one to the next, asking players, calling hooks |
+| `onboarding/DemoFiles.java`, `onboarding/Demo.java` | Every mod's demo read out of its jar, its ground installed, its preset made safe |
+| `onboarding/Progress.java` | The player attachment: demos offered, stepped into, finished |
+| `api/DemoHook.java`, `api/DemoRun.java` | What another mod compiles against for a scripted demo |
+| `ui/DemoScreen.java` | The demo list |
 | `mixin/PortalProcessorMixin.java` | Gates lead in, exits lead home, nothing else in a sealed arena leads anywhere, whichever mod answers for the portal |
 | `mixin/PortalForcerMixin.java` | Nether trips never come out in a lit gate |
 | `mixin/ServerPlayerMixin.java` | Respawning inside; the arena's own PvP rule, and the horde's |
@@ -101,6 +106,33 @@ made in `createState` from the level's seed, passing it in place of the blank on
 | `mixin/ServerExplosionMixin.java` | Blasts leave standing what may not be broken |
 | `mixin/BlockItemMixin.java`, `mixin/PrimedTntAccessor.java` | Remembering who placed a block, and not using up custom's endless blocks; lighting TNT in its placer's name |
 | `mixin/MobMixin.java`, `mixin/MobAccessor.java` | The arena's mobs never target each other; a giant given the goals the game leaves it without |
+
+## Adding a demo to a mod
+
+A demo is an arena preset the mod ships in its own resources, found by PvP Dimensions in every
+loaded jar at startup; the mod needs no code and no dependency for one.
+
+1. On a dev server with the mod and PvP Dimensions, start an arena, build the level on its ground
+   with the mod's blocks, and `/pvp terrain save <name>`. Skip this for a demo on generated ground.
+2. Make a preset that plays on it (Ground: saved): the kit, the goal, the time. Any goal works; a
+   goal is how a demo with a finish is finished.
+3. Copy `config/pvp-dimensions/presets/<id>.json` to `src/main/resources/pvp-dimensions/demo.json`
+   and, for saved ground, the `<id>.terrain` folder beside it to `pvp-dimensions/demo.terrain`.
+4. Add a `demo` block to the top of the file: `name` and `icon` for the list (the mod's name and the
+   preset's icon otherwise), `about`, a line or two said on arrival, and `"finish": true` if the
+   demo should only count as played once its goal is won or its hook finishes it.
+
+Whatever the preset says, a demo is played alone, with no waiting room, always leavable by command,
+with the player's pack put aside and nothing let out: rewards, prizes and fees are cleared. Its ground
+is installed among the world's saved terrains as `demo-<mod id>` and replaced whenever the mod's
+version changes. `src/main/resources/pvp-dimensions/demo.json` here is a working example on
+generated ground.
+
+For a demo that has to react, a sign that changes or a finish no goal describes, implement
+`api/DemoHook` and declare it as the `pvp-dimensions-demo` entrypoint, compiling against this jar
+`compileOnly` and listing PvP Dimensions under `suggests`. It hears `arrived`, `tick` once a second
+and `left`, each with a `DemoRun`: the player, the level, `at(east, y, south)` for a spot measured
+the way the ground was built, and `finish()`.
 
 ## Testing
 

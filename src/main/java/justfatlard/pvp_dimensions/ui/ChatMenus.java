@@ -81,6 +81,28 @@ public final class ChatMenus {
 		return true;
 	}
 
+	/** Every mod's demo, a line each: ticked once played, with its Play. */
+	public static void demos(ServerPlayer player) {
+		List<justfatlard.pvp_dimensions.onboarding.Demo> all = justfatlard.pvp_dimensions.onboarding.Demos.all();
+		if (all.isEmpty()) {
+			Say.to(player, "None of the mods here has a demo");
+			return;
+		}
+		justfatlard.pvp_dimensions.onboarding.Progress progress = justfatlard.pvp_dimensions.onboarding.Progress.of(player);
+		long played = all.stream().filter(progress::played).count();
+		Say.to(player, "Demos, " + played + " of " + all.size() + " played:");
+		for (justfatlard.pvp_dimensions.onboarding.Demo demo : all) {
+			boolean done = progress.played(demo);
+			MutableComponent line = Component.literal(done ? "  \u2714 " : "  \u25CB ")
+				.withStyle(done ? net.minecraft.ChatFormatting.GREEN : net.minecraft.ChatFormatting.GRAY)
+				.append(Say.line(demo.name() + " "))
+				.append(Say.button(done ? "Again" : "Play", "/pvp demo " + demo.id()));
+			if (!demo.about().isEmpty()) line.withStyle(style -> style.withHoverEvent(
+				new net.minecraft.network.chat.HoverEvent.ShowText(Component.literal(String.join(" ", demo.about())))));
+			Say.to(player, line);
+		}
+	}
+
 	/** The kinds of match a new preset can start from, a family a line. */
 	public static void kinds(ServerPlayer player) {
 		Say.to(player, "What kind of match?");
