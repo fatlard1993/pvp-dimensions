@@ -120,7 +120,7 @@ public final class Demos {
 			return;
 		}
 		if (current != null && current.demo.equals(id)) {
-			Say.to(player, "You're in " + demo.name() + "'s demo already");
+			Say.to(player, "You're in the " + demo.title() + " already");
 			return;
 		}
 		if (ItemSessions.editing(player)) {
@@ -146,7 +146,7 @@ public final class Demos {
 			new Arenas.Start(Arenas.Invite.NOBODY, List.of(), false, false), message -> Say.to(player, message), demo.id());
 		if (arena == null) return;
 		making.put(player.getUUID(), arena.id);
-		Say.bar(player, "Making " + demo.name() + "'s demo");
+		Say.bar(player, "Making the " + demo.title());
 	}
 
 	/** Set down in a demo: counted as stepped into, told what it is, and its hook told. */
@@ -154,7 +154,7 @@ public final class Demos {
 		Demo demo = of(arena);
 		if (demo == null) return;
 		Progress.enter(player, demo.id());
-		player.sendSystemMessage(Say.line(demo.name() + " demo").withStyle(net.minecraft.ChatFormatting.BOLD));
+		player.sendSystemMessage(Say.line(demo.title()).withStyle(net.minecraft.ChatFormatting.BOLD));
 		for (String line : demo.about()) Say.to(player, line);
 		Say.to(player, Say.line((demo.finishes() ? "Finish it to tick it off. " : "")
 			+ "Your own things are kept safe until you leave. ")
@@ -181,7 +181,7 @@ public final class Demos {
 	static void finish(ServerPlayer player, Demo demo) {
 		if (Progress.of(player).finished().contains(demo.id())) return;
 		Progress.finish(player, demo.id());
-		if (demo.finishes()) Say.to(player, demo.name() + " demo done");
+		if (demo.finishes()) Say.to(player, demo.title() + " done");
 	}
 
 	/** Every second: demos that are ready taken to, empty ones closed, hooks ticked, and the asking done. */

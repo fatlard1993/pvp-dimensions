@@ -30,7 +30,8 @@
 			"justfatlard.pvp_dimensions.gametest.CustomPlays",
 			"justfatlard.pvp_dimensions.gametest.DemosPlay",
 			"justfatlard.pvp_dimensions.gametest.DemoChain",
-			"justfatlard.pvp_dimensions.gametest.HeldAtSpawn"
+			"justfatlard.pvp_dimensions.gametest.HeldAtSpawn",
+			"justfatlard.pvp_dimensions.gametest.DemosAsk"
 		],
 		"pvp-dimensions-demo": [
 			"justfatlard.pvp_dimensions.gametest.TestDemoHook"

@@ -224,7 +224,7 @@ public final class Arena {
 
 	/** "Skirmish #3", the name players see; "Amethyst Door demo" for a demo, of which nobody sees another's. */
 	public String title() {
-		return demo.isEmpty() ? preset.name + " #" + number : preset.name + " demo";
+		return demo.isEmpty() ? preset.name + " #" + number : justfatlard.pvp_dimensions.onboarding.Demo.title(preset.name);
 	}
 
 	/** What the win drew, or null before a win or where there was nothing to draw. */

@@ -37,6 +37,10 @@ public final class ServerConfig {
 		return number("onboarding", 1) != 0;
 	}
 
+	public static void onboarding(boolean on) {
+		set("onboarding", on ? 1 : 0);
+	}
+
 	/** Demos played at once, across everyone; each holds a small plot loaded. */
 	public static int demoArenas() {
 		return number("demo_arenas", 8);
@@ -96,7 +100,7 @@ public final class ServerConfig {
 			.backedBy(player -> lobbyMinutes(), (player, value) -> set("lobby_minutes", value));
 		group.toggle("onboarding", "Offer mod demos", true)
 			.describe("New players, and everyone when a mod with a demo arrives, are asked to play; /pvp demos lists them either way")
-			.backedBy(player -> onboarding(), (player, value) -> set("onboarding", value ? 1 : 0));
+			.backedBy(player -> onboarding(), (player, value) -> onboarding(value));
 		group.number("demoArenas", "Demos at once", 1, 32, 1, 8)
 			.describe("Each player plays a demo on a small plot of their own")
 			.backedBy(player -> demoArenas(), (player, value) -> set("demo_arenas", value));

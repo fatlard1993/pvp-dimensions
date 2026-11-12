@@ -19,6 +19,15 @@ import org.jspecify.annotations.Nullable;
 public record Demo(String id, String name, String icon, List<String> about, boolean finishes, Preset preset,
 		@Nullable DemoHook hook) {
 
+	/** "Fire Arrows demo"; a demo already named as one is not called a "demo demo". */
+	public static String title(String name) {
+		return name.toLowerCase(java.util.Locale.ROOT).endsWith("demo") ? name : name + " demo";
+	}
+
+	public String title() {
+		return title(name);
+	}
+
 	/** The preset id an arena played from this demo is recorded under; never a file in the presets folder. */
 	public String presetId() {
 		return "demo:" + id;
