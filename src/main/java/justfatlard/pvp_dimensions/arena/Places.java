@@ -42,7 +42,7 @@ public final class Places {
 	 * Mods whose dimensions hold a visit of their own: what a player carried, set aside at that
 	 * mod's door and handed back when they cross out of it, by whatever means.
 	 */
-	private static final java.util.Set<String> HELD_ELSEWHERE = java.util.Set.of("learning-blocks-justfatlard");
+	private static final java.util.Set<String> HELD_ELSEWHERE = java.util.Set.of("learning-blocks-justfatlard", "minicraft-justfatlard");
 
 	/**
 	 * Whether this level belongs to a mod holding the player's own things. Going in from there would

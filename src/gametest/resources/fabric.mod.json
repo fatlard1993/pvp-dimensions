@@ -33,7 +33,8 @@
 			"justfatlard.pvp_dimensions.gametest.HeldAtSpawn",
 			"justfatlard.pvp_dimensions.gametest.DemosAsk",
 			"justfatlard.pvp_dimensions.gametest.EveryDemoPlays",
-			"justfatlard.pvp_dimensions.gametest.BroughtCreatures"
+			"justfatlard.pvp_dimensions.gametest.BroughtCreatures",
+			"justfatlard.pvp_dimensions.gametest.NotFromTheWorkshop"
 		],
 		"pvp-dimensions-demo": [
 			"justfatlard.pvp_dimensions.gametest.TestDemoHook"

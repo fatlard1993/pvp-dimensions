@@ -6,7 +6,8 @@
     "1.12.0": [
       "Mod demos: each mod with one has a short level to play that shows what it does. New players are asked once if they'd like to try them, and everyone is asked when a new one arrives.",
       "/pvp demos lists them, ticked once played. Play them in any order, straight from one to the next; your own things wait at home until you're done.",
-      "With Spawn Lock, nobody held at the spawn goes into an arena or a demo, and someone jailed from inside an arena is let out where they were before it."
+      "With Spawn Lock, nobody held at the spawn goes into an arena or a demo, and someone jailed from inside an arena is let out where they were before it.",
+      "Arenas can't be joined from Minicraft's workshop: step back out to the bench first, so your own things stay with you."
     ],
     "1.11.0": [
       "A fourth game mode, custom: survival with the powers a preset gives it. Flying, still hurt as in survival; and endless blocks, a list of blocks that putting down never uses up.",
