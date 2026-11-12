@@ -115,7 +115,9 @@ public final class Mobs {
 
 		// Each kind as many times over as its level: a common kind turns up six times as often as a rare one.
 		List<String> kinds = new ArrayList<>();
-		for (String id : MobKinds.of(preset.world)) {
+		List<String> candidates = new ArrayList<>(MobKinds.of(preset.world));
+		candidates.addAll(MobKinds.extra(preset));
+		for (String id : candidates) {
 			int weight = switch (preset.mobLevel(id)) {
 				case OFF -> 0;
 				case RARE -> 1;
@@ -125,7 +127,7 @@ public final class Mobs {
 			for (int i = 0; i < weight; i++) kinds.add(id);
 		}
 		// The kind a hunt is for spawns whatever its level says, and makes up half of what spawns.
-		String hunted = preset.activeGoal() == Preset.Goal.MOBS && MobKinds.of(preset.world).contains(preset.mobGoalKind) ? preset.mobGoalKind : null;
+		String hunted = preset.activeGoal() == Preset.Goal.MOBS && candidates.contains(preset.mobGoalKind) ? preset.mobGoalKind : null;
 		// A hunt for any mob with every kind switched off hunts all of them rather than nothing.
 		if (kinds.isEmpty() && hunted == null && preset.activeGoal() == Preset.Goal.MOBS) kinds.addAll(MobKinds.of(preset.world));
 		if (kinds.isEmpty() && hunted == null) return;
@@ -148,7 +150,7 @@ public final class Mobs {
 			double distance = NEAREST + RANDOM.nextDouble() * (FARTHEST - NEAREST);
 			int x = (int) Math.floor(near.getX() + Math.cos(angle) * distance);
 			int z = (int) Math.floor(near.getZ() + Math.sin(angle) * distance);
-			Vec3 spot = Spawns.standAt(level, arena, x, z);
+			Vec3 spot = swims(kind) ? Spawns.swimAt(level, arena, x, z) : Spawns.standAt(level, arena, x, z);
 			if (spot == null) continue;
 			boolean crowded = false;
 			for (ServerPlayer player : players) {
@@ -174,7 +176,8 @@ public final class Mobs {
 		rider.addTag(KIND + kind);
 		if (rider instanceof Mob mob) {
 			prepare(level, mob, spot, variant != null && variant.baby(), stays);
-			if (level.isBrightOutside() && mob.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {
+			// A cap against the sun is for the arena's undead; a mod's own creature or an animal goes bare.
+			if (MobKinds.listed(kind) && level.isBrightOutside() && mob.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {
 				mob.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.LEATHER_HELMET));
 				mob.setDropChance(EquipmentSlot.HEAD, 0);
 			}
@@ -192,7 +195,8 @@ public final class Mobs {
 			}
 		}
 		level.addFreshEntityWithPassengers(root);
-		if (foe != null) anger(rider, foe);
+		// Only the arena kinds come angry; a creature a demo brings along behaves as itself.
+		if (foe != null && MobKinds.listed(kind)) anger(rider, foe);
 	}
 
 	private static @Nullable Entity create(ServerLevel level, String id, Vec3 spot) {
@@ -221,6 +225,23 @@ public final class Mobs {
 			passenger.discard();
 		}
 		if (stays) mob.setPersistenceRequired();
+	}
+
+	/** A creature that lives in water, a demo's shark or fish, put in water rather than on the ground. */
+	private static boolean swims(String kind) {
+		Identifier parsed = Identifier.tryParse(kind);
+		EntityType<?> type = parsed == null ? null : BuiltInRegistries.ENTITY_TYPE.getOptional(parsed).orElse(null);
+		if (type == null) return false;
+		MobCategory category = type.getCategory();
+		return category == MobCategory.WATER_CREATURE || category == MobCategory.WATER_AMBIENT || category == MobCategory.UNDERGROUND_WATER_CREATURE;
+	}
+
+	/** Whether this is one of the arena kinds, rather than a creature a demo brought along that is left to behave as itself. */
+	private static boolean arenaKind(Mob mob) {
+		for (String tag : mob.entityTags()) {
+			if (tag.startsWith(KIND)) return MobKinds.listed(tag.substring(KIND.length()));
+		}
+		return true;
 	}
 
 	/** Angry at a player, for a mob that would otherwise only fight back. Endermen keep their own rules. */
@@ -261,7 +282,7 @@ public final class Mobs {
 				mob.getBrain().eraseMemory(MemoryModuleType.ATTACK_TARGET);
 				mob.setTarget(null);
 			}
-			if (!(mob instanceof NeutralMob neutral) || mob instanceof Enderman) continue;
+			if (!(mob instanceof NeutralMob neutral) || mob instanceof Enderman || !arenaKind(mob)) continue;
 			if (neutral.isAngry() && mob.getTarget() != null && mob.getTarget().isAlive()) continue;
 			ServerPlayer nearest = players.get(0);
 			for (ServerPlayer player : players) {

@@ -92,6 +92,23 @@ public final class MobKinds {
 		return new ArrayList<>(present);
 	}
 
+	/** Whether this kind is one of the arena kinds the editor offers, rather than one a preset file names itself. */
+	public static boolean listed(String id) {
+		return OVERWORLD.contains(id) || NETHER.contains(id) || END.contains(id);
+	}
+
+	/**
+	 * Kinds a preset names that are not among the arena kinds: a mod's own creatures, or animals, which a
+	 * demo shipped in that mod's jar brings along. Only ever written into a file by hand, never by the editor.
+	 */
+	public static List<String> extra(Preset preset) {
+		List<String> out = new ArrayList<>();
+		for (var entry : preset.mobLevels.entrySet()) {
+			if (entry.getValue() != Preset.MobLevel.OFF && !listed(entry.getKey()) && exists(entry.getKey())) out.add(entry.getKey());
+		}
+		return out;
+	}
+
 	/** The variant this kind is, or null for one of the game's own. */
 	public static @Nullable Variant variant(String id) {
 		return VARIANTS.get(id);

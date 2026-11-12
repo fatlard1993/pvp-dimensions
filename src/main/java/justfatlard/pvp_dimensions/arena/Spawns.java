@@ -94,6 +94,19 @@ public final class Spawns {
 		return raft(level, arena, x, z);
 	}
 
+	/** Water at this column deep enough to swim in, two blocks at least, just under the surface; or null. */
+	public static @org.jspecify.annotations.Nullable Vec3 swimAt(ServerLevel level, Arena arena, int x, int z) {
+		Footprint footprint = arena.footprint();
+		if (x < footprint.minX() + MARGIN || x >= footprint.maxX() - MARGIN || z < footprint.minZ() + MARGIN || z >= footprint.maxZ() - MARGIN) {
+			return null;
+		}
+		if (!level.hasChunk(x >> 4, z >> 4)) return null;
+		BlockPos surface = new BlockPos(x, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1, z);
+		if (!level.getFluidState(surface).is(net.minecraft.tags.FluidTags.WATER)
+				|| !level.getFluidState(surface.below()).is(net.minecraft.tags.FluidTags.WATER)) return null;
+		return Vec3.atBottomCenterOf(surface.below());
+	}
+
 	public static Vec3 standAt(ServerLevel level, Arena arena, int x, int z) {
 		return standAt(level, arena, x, z, false);
 	}
