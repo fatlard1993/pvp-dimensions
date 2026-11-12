@@ -82,11 +82,16 @@ public final class Mobs {
 	 * Whether a mob loading in an arena dimension may stay there. One of the arena's own may, and so
 	 * may what one of them brings with it, a slime's halves, an evoker's vexes, a spider's rider,
 	 * which arrives right beside it and is marked as the arena's too.
+	 *
+	 * <p>In a demo, any may: the darkness spawns nothing there either, so a monster in one came from
+	 * the player or the mod being shown, a spawner, an egg, a potted creeper, which is the point.
 	 */
 	public static boolean allowed(Entity entity, ServerLevel level) {
 		if (entity.getType().getCategory() != MobCategory.MONSTER) return true;
 		if (entity.entityTags().contains(Balls.TAG)) return Balls.keeps(entity, level);
 		if (entity.entityTags().contains(OURS) || entity.entityTags().contains(MOUNT)) return true;
+		Arena here = Arenas.at(level, entity.getX(), entity.getZ());
+		if (here != null && !here.demo.isEmpty()) return true;
 		AABB beside = entity.getBoundingBox().inflate(OFFSPRING_REACH);
 		if (level.getEntitiesOfClass(Mob.class, beside, mob -> mob != entity && mob.entityTags().contains(OURS)).isEmpty()) return false;
 		entity.addTag(OURS);

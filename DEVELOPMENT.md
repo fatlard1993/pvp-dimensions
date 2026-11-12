@@ -125,7 +125,8 @@ loaded jar at startup; the mod needs no code and no dependency for one.
 A demo can bring the mod's own creatures, or animals: name them in the preset's `mob_levels` (with
 `"mob_default": "off"` for only them), and a `mob_goal_kind` may name one too. Ones the editor does not
 offer are left to behave as themselves rather than made angry at the player, and a water creature is
-put in water.
+put in water. Monsters the arena did not spawn itself, from a spawner, an egg or the mod's own doing,
+are kept in a demo, though an ordinary arena sends them away.
 
 Whatever the preset says, a demo is played alone, with no waiting room, always leavable by command,
 with the player's pack put aside and nothing let out: rewards, prizes and fees are cleared. Its ground
