@@ -495,16 +495,18 @@ public final class Travel {
 	 * ends as a StackOverflowError in the tick loop; it took the server down on 2026-09-17.
 	 *
 	 * <p>A tick later the outer teleport is over and there is nothing left to re-enter. The player
-	 * is looked up afresh because they may have logged out or died in between.
+	 * is looked up afresh because they may have logged out or died in between. Queued with
+	 * {@code schedule}, never {@code execute}: called on the server thread, {@code execute} runs the
+	 * task on the spot, inside the very teleport it was meant to wait out.
 	 */
 	private static void sendHomeNextTick(ServerPlayer player) {
 		MinecraftServer server = player.level().getServer();
 		java.util.UUID id = player.getUUID();
-		server.execute(() -> {
+		server.schedule(new net.minecraft.server.TickTask(server.getTickCount(), () -> {
 			ServerPlayer now = server.getPlayerList().getPlayer(id);
 			if (now == null || !Places.isArena(now.level().dimension()) || Visit.of(now) != null) return;
 			now.teleport(turnedAway(server, now));
-		});
+		}));
 	}
 
 	/** Off arena ground with no visit: to where their last visit began, if something else ended it, or to the overworld. */
