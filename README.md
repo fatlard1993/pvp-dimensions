@@ -158,7 +158,7 @@ Item lists are made by holding the items. **Edit** puts your own pack aside and 
 
 ## Demos
 
-Every mod on the server that ships a demo has a small level of its own showing what it does, played by letting you do it. A player joining for the first time is asked once whether they'd like to try them; after an update that adds a mod with a demo, everyone is asked about the new one. **Later** puts the question away, and `/pvp demos` (or **Demos** on the Arena action menu) lists every demo whenever you want it, each ticked once played.
+Every mod on the server that ships a demo has a small level of its own showing what it does, played by letting you do it. A player joining for the first time is asked once whether they'd like to try them; after an update that adds a mod with a demo, everyone is asked about the new one. **Later** puts the question away, and `/pvp demos` (or **Demos** on the Arena action menu) lists every demo whenever you want it, each ticked once played. Each mod's own page in the Pandorical mod menu has a **Play demo** button too, where that mod ships one.
 
 Each demo is yours alone: a fresh copy is made for you, nobody else sees it in the arena list, and like a kept-apart arena your own things, experience and effects are put aside on the way in and handed back on the way out. Nothing from a demo comes home. Play them in any order, and go straight from one to another from inside it: the trip home at the end takes you back where you started, not to the last demo. When you leave one, the next you haven't played is offered.
 

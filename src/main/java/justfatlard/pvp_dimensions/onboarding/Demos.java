@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import justfatlard.pandorical.api.Capabilities;
+import justfatlard.pandorical.api.ModPageApi;
 import justfatlard.pandorical.api.NoticeApi;
 import justfatlard.pandorical.api.PandoricalApi;
 import justfatlard.pvp_dimensions.PvpDimensions;
@@ -71,6 +72,15 @@ public final class Demos {
 				case "list" -> Menus.demos(player);
 				default -> { }
 			}
+		});
+		// Every mod's page in the mod menu leads to its demo, where it ships one.
+		PandoricalApi.modPages().button((player, modId) -> {
+			Demo demo = get(modId);
+			if (demo == null) return null;
+			boolean played = Progress.of(player).played(demo);
+			return new ModPageApi.Button(played ? "Play demo again" : "Play demo",
+				played ? "A fresh copy, yours alone" : "A small level of your own that shows it by letting you do it",
+				"pvp demo " + demo.id());
 		});
 	}
 
