@@ -423,7 +423,8 @@ public final class Arenas {
 		Footprints.put(arena.footprint());
 		hold(server, arena);
 
-		if (starter != null && options.portal()) {
+		// The starter may have gone into another arena while the ground was surveyed: no frame is lit there.
+		if (starter != null && options.portal() && !Places.isArena(starter.level().dimension())) {
 			int lit = Portals.lightNear(starter.level(), starter.position(), arena);
 			if (lit > 0) Say.to(starter, "The frame beside you is lit and leads into " + arena.title());
 			else Say.to(starter, "No empty obsidian frame nearby to light; invitations are the way in");
