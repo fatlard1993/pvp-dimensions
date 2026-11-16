@@ -65,6 +65,10 @@ public final class Arenas {
 	public static final TicketType TICKET = Registry.register(BuiltInRegistries.TICKET_TYPE, PvpDimensions.id("arena"),
 		new TicketType(0L, TicketType.FLAG_LOADING | TicketType.FLAG_SIMULATION | TicketType.FLAG_KEEP_DIMENSION_ACTIVE));
 
+	/** Loads the ground a player is going home to, and holds it a few seconds after it is there, for them to arrive on. */
+	static final TicketType LANDING = Registry.register(BuiltInRegistries.TICKET_TYPE, PvpDimensions.id("landing"),
+		new TicketType(200L, TicketType.FLAG_LOADING | TicketType.FLAG_KEEP_DIMENSION_ACTIVE));
+
 	/** How long an open arena with nobody in it keeps its chunks loaded. */
 	private static final long IDLE_RELEASE_MILLIS = 2 * 60_000L;
 
@@ -196,6 +200,7 @@ public final class Arenas {
 	}
 
 	public static void stopping(MinecraftServer server) {
+		Landing.flush();
 		for (ServerBossEvent bar : bars.values()) bar.removeAllPlayers();
 		bars.clear();
 		preparing.clear();
@@ -704,6 +709,7 @@ public final class Arenas {
 		Jobs.tick();
 		Curtain.tick();
 		Waves.drain(server);
+		Landing.setDown(server);
 		Balls.physics(server);
 		ConnectFour.physics(server);
 		HotPotato.physics(server);
@@ -934,12 +940,27 @@ public final class Arenas {
 		Asks.closed(server, arena);
 		Fees.settle(arena);
 
+		List<ServerPlayer> going = new ArrayList<>();
 		for (Arena.Member member : List.copyOf(arena.members.values())) {
 			ServerPlayer player = server.getPlayerList().getPlayer(member.id);
 			// Somebody on the death screen has no body to send home or hand a pack to: their visit
 			// ends when they respawn. Anyone away ends theirs when they next log in.
-			if (player != null && member.inside && Visit.of(player) != null && !player.isDeadOrDying()) {
-				Travel.goHome(player, arena, Travel.Why.ENDED);
+			if (player != null && member.inside && Visit.of(player) != null && !player.isDeadOrDying()) going.add(player);
+		}
+		// Pets follow their owners home, so they go once the last owner has; until then the plot
+		// stays loaded under them.
+		Runnable allGone = () -> {
+			Gateways.petsHome(server, arena);
+			release(server, arena);
+		};
+		if (going.isEmpty()) {
+			allGone.run();
+		} else {
+			int[] left = {going.size()};
+			for (ServerPlayer player : going) {
+				Travel.goHomeWhenLoaded(player, arena, Travel.Why.ENDED, () -> {
+					if (--left[0] == 0) allGone.run();
+				});
 			}
 		}
 
@@ -962,8 +983,6 @@ public final class Arenas {
 		lastMobs.remove(arena.id);
 		Portals.darken(server, arena);
 		Teams.remove(server, arena);
-		Gateways.petsHome(server, arena);
-		release(server, arena);
 		Footprint plot = arena.footprint();
 		justfatlard.pvp_dimensions.integration.DeadHeads.forgetPlot(arena.dimension, plot.minX(), plot.minZ(), plot.maxX(), plot.maxZ());
 		Footprints.remove(arena.id);

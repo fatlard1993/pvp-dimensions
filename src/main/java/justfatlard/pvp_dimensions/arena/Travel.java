@@ -248,10 +248,41 @@ public final class Travel {
 
 	// --- Out ---
 
-	/** Out and home now: the leave command, the arena ending. */
+	/** Out and home now: the leave command. */
 	public static void goHome(ServerPlayer player, @Nullable Arena arena, Why why) {
 		TeleportTransition trip = leave(player, arena, why);
 		if (trip != null) player.teleport(trip);
+	}
+
+	/**
+	 * Out and home once the ground there has loaded, which is a tick or two later where it was
+	 * already loaded: the arena ending, with everyone in it going at once. Until then nothing is
+	 * handed back and the visit stands, so a player who logs out on the way, or is on a server that
+	 * stops, comes home at their next login the way anyone away from an ended arena does.
+	 * {@code then} runs once they have gone, or once they no longer can.
+	 */
+	public static void goHomeWhenLoaded(ServerPlayer player, Arena arena, Why why, Runnable then) {
+		MinecraftServer server = player.level().getServer();
+		Visit visit = Visit.of(player);
+		if (visit == null) {
+			then.run();
+			return;
+		}
+		ServerLevel level = server.getLevel(visit.home().dimension());
+		Vec3 at;
+		if (level == null || Places.isArena(visit.home().dimension())) {
+			level = server.overworld();
+			at = Vec3.atBottomCenterOf(level.getRespawnData().pos());
+		} else {
+			at = new Vec3(visit.home().x(), visit.home().y(), visit.home().z());
+		}
+		java.util.UUID id = player.getUUID();
+		Landing.whenLoaded(player, level, at, () -> {
+			ServerPlayer now = server.getPlayerList().getPlayer(id);
+			Visit still = now != null ? Visit.of(now) : null;
+			if (still != null && still.arena().equals(arena.id) && !now.isDeadOrDying()) goHome(now, arena, why);
+			then.run();
+		});
 	}
 
 	/**
@@ -405,7 +436,7 @@ public final class Travel {
 		java.util.Set<java.util.UUID> seen = new java.util.HashSet<>();
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
 			Visit visit = Visit.of(player);
-			if (visit == null || player.isDeadOrDying()) continue;
+			if (visit == null || player.isDeadOrDying() || Landing.waiting(player.getUUID())) continue;
 			Arena arena = Arenas.get(server, visit.arena());
 			if (arena != null && arena.phase != Arena.Phase.ENDED && player.level().dimension().equals(arena.dimension)) continue;
 			seen.add(player.getUUID());
