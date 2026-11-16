@@ -144,6 +144,7 @@ public class PvpDimensions implements ModInitializer {
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, disconnecting) -> {
 			Screens.forget(handler.getPlayer().getUUID());
 			justfatlard.pvp_dimensions.ui.GameHud.forget(handler.getPlayer().getUUID());
+			justfatlard.pvp_dimensions.arena.Weather.untold(handler.getPlayer().getUUID());
 			justfatlard.pvp_dimensions.arena.Loadouts.forget(handler.getPlayer().getUUID());
 			justfatlard.pvp_dimensions.arena.Moments.forget(handler.getPlayer().getUUID());
 			justfatlard.pvp_dimensions.onboarding.Demos.forget(handler.getPlayer().getUUID());

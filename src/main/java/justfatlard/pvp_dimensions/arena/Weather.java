@@ -3,6 +3,7 @@ package justfatlard.pvp_dimensions.arena;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import justfatlard.pvp_dimensions.preset.Preset;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.protocol.game.ClientboundGameEventPacket;
@@ -38,6 +39,8 @@ public final class Weather {
 	private static final Map<String, float[]> shown = new HashMap<>();
 	/** The weather each arena last announced. */
 	private static final Map<String, Preset.Weather> said = new HashMap<>();
+	/** Each player's rain and thunder as last sent, until their sky may have been reset. */
+	private static final Map<UUID, float[]> told = new HashMap<>();
 
 	/** Whether the arena runs weather at all: it needs a sky. */
 	public static boolean has(Arena arena) {
@@ -82,6 +85,9 @@ public final class Weather {
 		for (Arena.Member member : arena.inside()) {
 			ServerPlayer player = server.getPlayerList().getPlayer(member.id);
 			if (player == null || player.level() != level) continue;
+			float[] last = told.get(member.id);
+			if (last != null && last[0] == sky[0] && last[1] == sky[1]) continue;
+			told.put(member.id, sky.clone());
 			player.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.RAIN_LEVEL_CHANGE, sky[0]));
 			player.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.THUNDER_LEVEL_CHANGE, sky[1]));
 		}
@@ -127,5 +133,16 @@ public final class Weather {
 	public static void forget(Arena arena) {
 		shown.remove(arena.id);
 		said.remove(arena.id);
+	}
+
+	/** This player may have a fresh sky: joining, respawning, changing dimension. */
+	public static void untold(UUID player) {
+		told.remove(player);
+	}
+
+	static void clear() {
+		shown.clear();
+		said.clear();
+		told.clear();
 	}
 }

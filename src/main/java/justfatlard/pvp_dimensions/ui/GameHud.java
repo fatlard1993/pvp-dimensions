@@ -39,6 +39,8 @@ public final class GameHud {
 
 	/** What each player was last shown, to tell a change of shape from a change of numbers. */
 	private static final Map<UUID, String> shapes = new ConcurrentHashMap<>();
+	/** What each player's board was last sent, part by part, so only what has changed goes again. */
+	private static final Map<UUID, Map<String, Map<String, String>>> sent = new ConcurrentHashMap<>();
 
 	public static boolean showing(ServerPlayer player) {
 		return shapes.containsKey(player.getUUID());
@@ -58,20 +60,30 @@ public final class GameHud {
 
 	private static void show(ServerPlayer player, Scoreboard.Board board) {
 		String shape = shape(board);
+		List<ComponentUpdate> now = updates(board);
+		Map<String, Map<String, String>> before = sent.computeIfAbsent(player.getUUID(), id -> new ConcurrentHashMap<>());
 		if (shape.equals(shapes.get(player.getUUID()))) {
-			PandoricalApi.hud().update(player, OVERLAY, updates(board));
+			List<ComponentUpdate> changed = new ArrayList<>();
+			for (ComponentUpdate update : now) {
+				if (!update.changedProps().equals(before.put(update.componentId(), update.changedProps()))) changed.add(update);
+			}
+			if (!changed.isEmpty()) PandoricalApi.hud().update(player, OVERLAY, changed);
 			return;
 		}
 		shapes.put(player.getUUID(), shape);
+		before.clear();
+		for (ComponentUpdate update : now) before.put(update.componentId(), update.changedProps());
 		PandoricalApi.hud().show(player, build(board).build());
 	}
 
 	public static void hide(ServerPlayer player) {
+		sent.remove(player.getUUID());
 		if (shapes.remove(player.getUUID()) != null && PandoricalApi.isAvailable(player)) PandoricalApi.hud().hide(player, OVERLAY);
 	}
 
 	public static void forget(UUID player) {
 		shapes.remove(player);
+		sent.remove(player);
 	}
 
 	/** The lines' identities, what the board has and not what it says. */
