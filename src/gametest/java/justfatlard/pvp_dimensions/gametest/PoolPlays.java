@@ -42,11 +42,11 @@ public final class PoolPlays implements FabricClientGameTest {
 			server.runOnServer(s -> {
 				Preset preset = Kinds.POOL.make();
 				preset.waitingRoom = false;
-				Arena arena = Arenas.start(s, connection.getServerPlayer(), "pool-test", preset,
+				Arenas.Pending pending = Arenas.start(s, connection.getServerPlayer(), "pool-test", preset,
 					new Arenas.Start(Arenas.Invite.NOBODY, List.of(), false, true), complaint -> {
 						throw new AssertionError("the arena would not start: " + complaint);
 					});
-				check(arena != null, "no arena");
+				check(pending != null, "no arena");
 			});
 			server.waitFor(s -> arena(s) != null && arena(s).phase == Arena.Phase.LIVE, 2400);
 			server.waitFor(s -> balls(s).size() == 16, 200);

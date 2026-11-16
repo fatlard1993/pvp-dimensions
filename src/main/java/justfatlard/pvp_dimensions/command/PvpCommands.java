@@ -214,9 +214,9 @@ public final class PvpCommands {
 		if (Access.of(source) != Access.Tier.ADMIN && !preset.forUsers) return fail(context, "That preset is kept for admins");
 		if (player != null && Visit.of(player) != null) return fail(context, "Leave your arena before starting another");
 		Arenas.Start actual = player == null ? new Arenas.Start(options.invite(), options.chosen(), false, false) : options;
-		Arena arena = Arenas.start(source.getServer(), player, id, preset, actual, words -> source.sendFailure(Component.literal(words)));
-		if (arena == null) return 0;
-		source.sendSuccess(() -> Say.line("Making " + arena.title() + "; it opens in a moment"), true);
+		Arenas.Pending pending = Arenas.start(source.getServer(), player, id, preset, actual, words -> source.sendFailure(Component.literal(words)));
+		if (pending == null) return 0;
+		source.sendSuccess(() -> Say.line("Making " + pending.title() + "; it opens in a moment"), true);
 		return 1;
 	}
 

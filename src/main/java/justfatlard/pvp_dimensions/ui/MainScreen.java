@@ -385,8 +385,8 @@ public final class MainScreen {
 		close(player);
 		Arenas.Start options = new Arenas.Start(choice.everyone() ? Arenas.Invite.EVERYONE : Arenas.Invite.NOBODY, List.of(),
 			choice.portal() && !Places.isArena(player.level().dimension()), true);
-		Arena arena = Arenas.start(player.level().getServer(), player, choice.preset(), choice.draft(), options, words -> Say.to(player, words));
-		if (arena != null) Say.to(player, "Making " + arena.title() + "; you'll be taken in when it's ready");
+		Arenas.Pending pending = Arenas.start(player.level().getServer(), player, choice.preset(), choice.draft(), options, words -> Say.to(player, words));
+		if (pending != null) Say.to(player, "Making " + pending.title() + "; you'll be taken in when it's ready");
 	}
 
 	private static void close(ServerPlayer player) {

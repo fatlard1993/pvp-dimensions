@@ -43,11 +43,11 @@ public final class ExitsShowTheGate implements FabricClientGameTest {
 				Preset preset = Kinds.DEATHMATCH.make();
 				preset.waitingRoom = false;
 				preset.exitPortal = true;
-				Arena arena = Arenas.start(s, connection.getServerPlayer(), "exits-test", preset,
+				Arenas.Pending pending = Arenas.start(s, connection.getServerPlayer(), "exits-test", preset,
 					new Arenas.Start(Arenas.Invite.NOBODY, List.of(), true, false), complaint -> {
 						throw new AssertionError("the arena would not start: " + complaint);
 					});
-				check(arena != null, "no arena");
+				check(pending != null, "no arena");
 			});
 			server.waitFor(s -> Tables.arena(s) != null && Tables.arena(s).phase == Arena.Phase.LIVE, 2400);
 			server.waitFor(s -> s.overworld().getBlockState(frame).is(Blocks.NETHER_PORTAL), 200);

@@ -31,11 +31,11 @@ final class Tables {
 			Preset preset = kind.make();
 			preset.waitingRoom = false;
 			tweak.accept(preset);
-			Arena arena = Arenas.start(s, connection.getServerPlayer(), kind.name().toLowerCase() + "-test", preset,
+			Arenas.Pending pending = Arenas.start(s, connection.getServerPlayer(), kind.name().toLowerCase() + "-test", preset,
 				new Arenas.Start(Arenas.Invite.NOBODY, List.of(), false, true), complaint -> {
 					throw new AssertionError("the arena would not start: " + complaint);
 				});
-			check(arena != null, "no arena");
+			check(pending != null, "no arena");
 		});
 		server.waitFor(s -> arena(s) != null && arena(s).phase == Arena.Phase.LIVE, 2400);
 	}

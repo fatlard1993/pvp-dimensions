@@ -14,7 +14,6 @@ import justfatlard.pandorical.api.ScreenBuilder;
 import justfatlard.pandorical.protocol.ComponentDef;
 import justfatlard.pvp_dimensions.Access;
 import justfatlard.pvp_dimensions.Say;
-import justfatlard.pvp_dimensions.arena.Arena;
 import justfatlard.pvp_dimensions.arena.Arenas;
 import justfatlard.pvp_dimensions.arena.Places;
 import justfatlard.pvp_dimensions.arena.Visit;
@@ -546,7 +545,7 @@ public final class EditorScreen {
 		editing.remove(player.getUUID());
 		Menus.closeScreen(player);
 		Arenas.Start options = new Arenas.Start(Arenas.Invite.EVERYONE, List.of(), !Places.isArena(player.level().dimension()), true);
-		Arena arena = Arenas.start(player.level().getServer(), player, presetId, preset, options, words -> Say.to(player, words));
-		if (arena != null) Say.to(player, "Making " + arena.title() + "; you'll be taken in when it's ready");
+		Arenas.Pending pending = Arenas.start(player.level().getServer(), player, presetId, preset, options, words -> Say.to(player, words));
+		if (pending != null) Say.to(player, "Making " + pending.title() + "; you'll be taken in when it's ready");
 	}
 }

@@ -7,10 +7,12 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import justfatlard.pvp_dimensions.Access;
 import justfatlard.pvp_dimensions.PvpDimensions;
 import justfatlard.pvp_dimensions.Say;
@@ -31,6 +33,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.Util;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
@@ -39,6 +42,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.NoiseColumn;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -194,6 +198,7 @@ public final class Arenas {
 	public static void stopping(MinecraftServer server) {
 		for (ServerBossEvent bar : bars.values()) bar.removeAllPlayers();
 		bars.clear();
+		preparing.clear();
 		waiting.clear();
 		ticketed.clear();
 		emptySince.clear();
@@ -212,19 +217,103 @@ public final class Arenas {
 	// --- Starting ---
 
 	/**
-	 * A new arena from a preset, on a fresh plot. Its ground generates over the next moments;
-	 * invitations go out and people are let in once it is ready.
+	 * An arena asked for whose plot is still being surveyed, off the server thread. It counts
+	 * against the arena limits from the moment it is asked for, and its number and plots are its
+	 * own already, so two at once never take the same ground. Dropped with nothing to undo if it is
+	 * cancelled or the server stops first: no chunk of its plot exists yet.
+	 */
+	public static final class Pending {
+		public final String id;
+		private final int number;
+		private final String presetId;
+		private final Preset preset;
+		private final @Nullable UUID starter;
+		private final UUID host;
+		private final String hostName;
+		private final Start options;
+		private final java.util.function.Consumer<String> complain;
+		private final String demo;
+		private final ResourceKey<Level> dimension;
+		private final @Nullable Ground ground;
+		private final SavedTerrains.@Nullable Meta meta;
+		private int tries;
+		private int surveying;
+		private @Nullable CompletableFuture<Survey> survey;
+		private int bestPlot;
+		private @Nullable Survey best;
+		private @Nullable Arena arena;
+
+		private Pending(int number, String presetId, Preset preset, @Nullable ServerPlayer starter, Start options,
+				java.util.function.Consumer<String> complain, String demo, ResourceKey<Level> dimension,
+				@Nullable Ground ground, SavedTerrains.@Nullable Meta meta) {
+			this.id = "a" + number;
+			this.number = number;
+			this.presetId = presetId;
+			this.preset = preset;
+			this.starter = starter != null ? starter.getUUID() : null;
+			this.host = starter != null ? starter.getUUID() : new UUID(0, 0);
+			this.hostName = starter != null ? starter.getGameProfile().name() : "Server";
+			this.options = options;
+			this.complain = complain;
+			this.demo = demo;
+			this.dimension = dimension;
+			this.ground = ground;
+			this.meta = meta;
+		}
+
+		/** The name the arena will go by, the same as {@link Arena#title()}. */
+		public String title() {
+			return demo.isEmpty() ? preset.name + " #" + number : justfatlard.pvp_dimensions.onboarding.Demo.title(preset.name);
+		}
+
+		/** The arena, once its ground is surveyed and it is made; null before. */
+		public @Nullable Arena arena() {
+			return arena;
+		}
+
+		/** Not wanted after all: never made. Too late once it is; end the arena instead. */
+		public void cancel() {
+			preparing.remove(id, this);
+		}
+
+		private void survey(int plot) {
+			tries++;
+			surveying = plot;
+			Ground on = java.util.Objects.requireNonNull(ground);
+			survey = CompletableFuture.supplyAsync(() -> Arenas.survey(on, preset, null, plot), Util.backgroundExecutor());
+		}
+	}
+
+	/** Arenas asked for whose ground is still being surveyed, by id, oldest first. */
+	private static final Map<String, Pending> preparing = new LinkedHashMap<>();
+
+	/** The arena asked for under this id that is still being surveyed, or null. */
+	public static @Nullable Pending preparing(String id) {
+		return preparing.get(id);
+	}
+
+	/** How many demos are still being surveyed, which count among the demos as much as those made. */
+	public static int preparingDemos() {
+		return (int) preparing.values().stream().filter(pending -> !pending.demo.isEmpty()).count();
+	}
+
+	/**
+	 * A new arena from a preset, on a fresh plot. Where its ground grows from noise, the plot is
+	 * surveyed off the server thread first and the arena is made a moment later; otherwise it is
+	 * made at once. Its ground then generates over the next moments; invitations go out and people
+	 * are let in once it is ready.
 	 *
 	 * @param starter the player starting it, or null from the console
-	 * @return the arena, or null with the reason already said to {@code complain}
+	 * @return the arena on its way, made already if no survey was needed, or null with the reason
+	 *         already said to {@code complain}
 	 */
-	public static @Nullable Arena start(MinecraftServer server, @Nullable ServerPlayer starter, String presetId, Preset source,
+	public static @Nullable Pending start(MinecraftServer server, @Nullable ServerPlayer starter, String presetId, Preset source,
 			Start options, java.util.function.Consumer<String> complain) {
 		return start(server, starter, presetId, source, options, complain, "");
 	}
 
 	/** @param demo the mod whose demo this is, or empty; a demo is marked before anybody's menu can list it */
-	public static @Nullable Arena start(MinecraftServer server, @Nullable ServerPlayer starter, String presetId, Preset source,
+	public static @Nullable Pending start(MinecraftServer server, @Nullable ServerPlayer starter, String presetId, Preset source,
 			Start options, java.util.function.Consumer<String> complain, String demo) {
 		// Refused here rather than in a menu, so a command and a button get the same answer: a
 		// preset naming mods this server hasn't got would run with its kits and prizes quietly
@@ -235,19 +324,23 @@ public final class Arenas {
 			return null;
 		}
 		List<Arena> open = running(server);
-		if (open.size() >= ServerConfig.maxArenas()) {
-			complain.accept("There are already " + open.size() + " arenas running, the most this server allows");
+		List<Pending> coming = preparing.values().stream().filter(pending -> pending.demo.isEmpty()).toList();
+		int counted = open.size() + coming.size();
+		if (counted >= ServerConfig.maxArenas()) {
+			complain.accept("There are already " + counted + " arenas running, the most this server allows");
 			return null;
 		}
 		if (starter != null && Access.of(starter) == Access.Tier.USER) {
-			long mine = open.stream().filter(arena -> arena.host.equals(starter.getUUID())).count();
+			long mine = open.stream().filter(arena -> arena.host.equals(starter.getUUID())).count()
+				+ coming.stream().filter(pending -> pending.host.equals(starter.getUUID())).count();
 			if (mine >= ServerConfig.userArenas()) {
 				complain.accept("You already have an arena running; end it first");
 				return null;
 			}
 		}
 		Preset preset = Presets.copy(source);
-		if (preset.source == Preset.Source.SAVED && SavedTerrains.meta(preset.saved) == null) {
+		SavedTerrains.Meta meta = preset.source == Preset.Source.SAVED ? SavedTerrains.meta(preset.saved) : null;
+		if (preset.source == Preset.Source.SAVED && meta == null) {
 			complain.accept("The saved terrain \"" + preset.saved + "\" is gone");
 			return null;
 		}
@@ -265,29 +358,67 @@ public final class Arenas {
 		}
 
 		ArenaVault vault = vault(server);
-		// A plot that is all sea, for a preset that did not ask for sea, is passed over for the
-		// next: a few tries, keeping the best, since the next plot is only ever a few numbers on.
+		Ground ground = Ground.of(level, generator);
+		boolean noise = meta == null && !preset.levelGround() && !preset.roofed();
+		Pending pending = new Pending(vault.takeNumber(), presetId, preset, starter, options, complain, demo, level.dimension(),
+			noise ? ground : null, meta);
 		int plot = vault.takePlot(level.dimension());
-		Survey survey = survey(level, generator, preset, plot);
-		for (int tries = 1; tries < 4 && survey.land() < 0.6; tries++) {
-			int next = vault.takePlot(level.dimension());
-			Survey another = survey(level, generator, preset, next);
-			if (another.land() > survey.land()) {
-				plot = next;
-				survey = another;
-			}
+		if (!noise) {
+			make(server, pending, plot, survey(ground, preset, meta, plot));
+			return pending;
 		}
-		int number = vault.takeNumber();
+		preparing.put(pending.id, pending);
+		pending.survey(plot);
+		return pending;
+	}
 
-		UUID host = starter != null ? starter.getUUID() : new UUID(0, 0);
-		String hostName = starter != null ? starter.getGameProfile().name() : "Server";
-		Arena arena = new Arena("a" + number, number, presetId, preset, host, hostName, level.dimension(), plot,
-			survey.minChunkX, survey.minChunkZ, survey.chunks, survey.surfaceY, survey.highestY, survey.wallTop, survey.lobbyY,
-			System.currentTimeMillis());
-		arena.demo = demo;
+	/** Every tick: a survey that has finished is weighed, and its arena made or the next plot tried. */
+	private static void prepare(MinecraftServer server) {
+		if (preparing.isEmpty()) return;
+		for (Pending pending : List.copyOf(preparing.values())) {
+			CompletableFuture<Survey> running = pending.survey;
+			if (running == null || !running.isDone()) continue;
+			Survey survey;
+			try {
+				survey = running.join();
+			} catch (java.util.concurrent.CompletionException | java.util.concurrent.CancellationException e) {
+				PvpDimensions.LOGGER.error("Surveying the ground for {} failed", pending.title(), e);
+				preparing.remove(pending.id);
+				pending.complain.accept(pending.title() + " could not be made: its ground could not be surveyed");
+				continue;
+			}
+			// A plot that is all sea, for a preset that did not ask for sea, is passed over for the
+			// next: a few tries, keeping the best, since the next plot is only ever a few numbers on.
+			if (pending.best == null || survey.land() > pending.best.land()) {
+				pending.best = survey;
+				pending.bestPlot = pending.surveying;
+			}
+			if (pending.tries < 4 && pending.best.land() < 0.6) {
+				pending.survey(vault(server).takePlot(pending.dimension));
+				continue;
+			}
+			preparing.remove(pending.id);
+			make(server, pending, pending.bestPlot, pending.best);
+		}
+	}
+
+	/** The arena itself, on the plot its survey chose: held, lit, and its starter queued to go in. */
+	private static void make(MinecraftServer server, Pending pending, int plot, Survey survey) {
+		ServerLevel level = server.getLevel(pending.dimension);
+		if (level == null) {
+			pending.complain.accept("The arena dimensions are missing from this world");
+			return;
+		}
+		ServerPlayer starter = pending.starter != null ? server.getPlayerList().getPlayer(pending.starter) : null;
+		Start options = pending.options;
+		Arena arena = new Arena(pending.id, pending.number, pending.presetId, pending.preset, pending.host, pending.hostName,
+			pending.dimension, plot, survey.minChunkX, survey.minChunkZ, survey.chunks, survey.surfaceY, survey.highestY,
+			survey.wallTop, survey.lobbyY, System.currentTimeMillis());
+		arena.demo = pending.demo;
 		arena.openToAll = options.invite() == Invite.EVERYONE;
 		arena.invited.addAll(options.chosen());
-		vault.add(arena);
+		vault(server).add(arena);
+		pending.arena = arena;
 
 		Footprints.put(arena.footprint());
 		hold(server, arena);
@@ -297,13 +428,12 @@ public final class Arenas {
 			if (lit > 0) Say.to(starter, "The frame beside you is lit and leads into " + arena.title());
 			else Say.to(starter, "No empty obsidian frame nearby to light; invitations are the way in");
 		}
-		if (starter != null && options.join()) waiting.computeIfAbsent(arena.id, id -> new HashSet<>()).add(starter.getUUID());
+		if (pending.starter != null && options.join()) waiting.computeIfAbsent(arena.id, id -> new HashSet<>()).add(pending.starter);
 		for (UUID chosen : options.chosen()) {
-			if (!chosen.equals(host)) invite(server, arena, chosen, starter);
+			if (!chosen.equals(pending.host)) invite(server, arena, chosen, starter);
 		}
-		PvpDimensions.LOGGER.info("{} started {} ({} chunks, {})", hostName, arena.title(), arena.chunks, level.dimension().identifier());
+		PvpDimensions.LOGGER.info("{} started {} ({} chunks, {})", pending.hostName, arena.title(), arena.chunks, level.dimension().identifier());
 		MainScreen.refreshAll(server);
-		return arena;
 	}
 
 	/**
@@ -311,7 +441,7 @@ public final class Arenas {
 	 * {@code OCEAN_FLOOR_WG} and {@code WORLD_SURFACE_WG}: from the one column rather than two, since
 	 * each asks for the whole of it.
 	 */
-	private static int[] heights(ServerLevel level, NoiseColumn column) {
+	private static int[] heights(LevelHeightAccessor level, NoiseColumn column) {
 		int top = level.getMinY();
 		boolean topFound = false;
 		for (int y = level.getMaxY(); y >= level.getMinY(); y--) {
@@ -325,20 +455,33 @@ public final class Arenas {
 		return new int[] {level.getMinY(), top};
 	}
 
+	/**
+	 * What a survey reads of a dimension, taken on the server thread: the generator's noise and
+	 * its state are what worldgen threads read too, and the heights are plain numbers, so the
+	 * survey itself can run on any thread without the level.
+	 */
+	private record Ground(ArenaGenerator generator, RandomState random, LevelHeightAccessor height, int logicalTop, int seaLevel) {
+		static Ground of(ServerLevel level, ArenaGenerator generator) {
+			return new Ground(generator, generator.randomState(level.getChunkSource().randomState()),
+				LevelHeightAccessor.create(level.getMinY(), level.getHeight()),
+				level.getMinY() + level.dimensionType().logicalHeight() - 1, generator.getSeaLevel());
+		}
+	}
+
 	/** @param land how much of it is dry ground, 0 to 1; 1 wherever that is not a question */
-	private record Survey(int minChunkX, int minChunkZ, int chunks, int surfaceY, int highestY, int wallTop, int lobbyY, double land) {}
+	public record Survey(int minChunkX, int minChunkZ, int chunks, int surfaceY, int highestY, int wallTop, int lobbyY, double land) {}
 
 	/**
 	 * Where on its plot an arena goes, and how high its ground stands, worked out from the noise
 	 * before a single chunk exists. For ground that grows, spots all across the plot are tried
 	 * and the one with the most land and the gentlest hills is kept.
 	 */
-	private static Survey survey(ServerLevel level, ArenaGenerator generator, Preset preset, int plot) {
+	private static Survey survey(Ground on, Preset preset, SavedTerrains.@Nullable Meta meta, int plot) {
+		LevelHeightAccessor level = on.height();
 		boolean saved = preset.source == Preset.Source.SAVED;
-		SavedTerrains.Meta meta = saved ? SavedTerrains.meta(preset.saved) : null;
 		int chunks = meta != null ? meta.chunks() : Math.max(2, Math.min(Fields.MAX_SIZE, preset.size));
 		int width = chunks * 16;
-		int logicalTop = level.getMinY() + level.dimensionType().logicalHeight() - 1;
+		int logicalTop = on.logicalTop();
 		int centerX = Places.centerX(plot);
 		int centerZ = Places.centerZ(plot);
 		int surfaceY;
@@ -355,7 +498,8 @@ public final class Arenas {
 			surfaceY = 64;
 			highestY = logicalTop;
 		} else {
-			RandomState random = generator.randomState(level.getChunkSource().randomState());
+			ArenaGenerator generator = on.generator();
+			RandomState random = on.random();
 			boolean wantsWater = preset.biome.contains("ocean") || preset.biome.contains("river");
 			double bestScore = Double.NEGATIVE_INFINITY;
 			int bestLand = 0;
@@ -364,8 +508,8 @@ public final class Arenas {
 			int samples = 4;
 			int bestX = centerX;
 			int bestZ = centerZ;
-			int bestSurface = generator.getSeaLevel();
-			int bestHighest = generator.getSeaLevel();
+			int bestSurface = on.seaLevel();
+			int bestHighest = on.seaLevel();
 			for (int dx = -3; dx <= 3; dx++) {
 				for (int dz = -3; dz <= 3; dz++) {
 					int x = centerX + dx * step;
@@ -427,6 +571,17 @@ public final class Arenas {
 		int minChunkX = (centerX >> 4) - chunks / 2;
 		int minChunkZ = (centerZ >> 4) - chunks / 2;
 		return new Survey(minChunkX, minChunkZ, chunks, surfaceY, highestY, wallTop, lobbyY, landShare);
+	}
+
+	/**
+	 * The survey a start runs for this preset on this plot, run here and now on the calling
+	 * thread: what an arena made from an off-thread survey can be checked against.
+	 */
+	public static @Nullable Survey survey(MinecraftServer server, Preset preset, int plot) {
+		ServerLevel level = server.getLevel(Terrains.dimensionOf(preset));
+		if (level == null || !(level.getChunkSource().getGenerator() instanceof ArenaGenerator generator)) return null;
+		SavedTerrains.Meta meta = preset.source == Preset.Source.SAVED ? SavedTerrains.meta(preset.saved) : null;
+		return survey(Ground.of(level, generator), preset, meta, plot);
 	}
 
 	/** Load the arena's chunks, and keep them loaded. */
@@ -544,6 +699,7 @@ public final class Arenas {
 	// --- Every tick ---
 
 	public static void tick(MinecraftServer server) {
+		prepare(server);
 		Jobs.tick();
 		Curtain.tick();
 		Balls.physics(server);

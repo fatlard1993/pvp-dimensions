@@ -46,11 +46,11 @@ public final class HeldAtSpawn implements FabricClientGameTest {
 
 				Preset preset = Kinds.DEATHMATCH.make();
 				preset.waitingRoom = false;
-				Arena arena = Arenas.start(s, player, "held-test", preset,
+				Arenas.Pending pending = Arenas.start(s, player, "held-test", preset,
 					new Arenas.Start(Arenas.Invite.NOBODY, List.of(), false, false), complaint -> {
 						throw new AssertionError("the arena would not start: " + complaint);
 					});
-				check(arena != null, "no arena");
+				check(pending != null, "no arena");
 				return player.position();
 			});
 			server.waitFor(s -> Tables.arena(s) != null && Tables.arena(s).phase == Arena.Phase.LIVE, 2400);

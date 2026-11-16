@@ -148,14 +148,16 @@ public final class Demos {
 		String already = making.remove(player.getUUID());
 		Arena stale = already == null ? null : Arenas.get(server, already);
 		if (stale != null) Arenas.end(server, stale, "another demo was picked");
-		if (Arenas.demos(server).size() >= ServerConfig.demoArenas()) {
+		Arenas.Pending stillComing = already == null ? null : Arenas.preparing(already);
+		if (stillComing != null) stillComing.cancel();
+		if (Arenas.demos(server).size() + Arenas.preparingDemos() >= ServerConfig.demoArenas()) {
 			Say.to(player, "Every demo space is in use; try again in a minute");
 			return;
 		}
-		Arena arena = Arenas.start(server, player, demo.presetId(), demo.preset(),
+		Arenas.Pending pending = Arenas.start(server, player, demo.presetId(), demo.preset(),
 			new Arenas.Start(Arenas.Invite.NOBODY, List.of(), false, false), message -> Say.to(player, message), demo.id());
-		if (arena == null) return;
-		making.put(player.getUUID(), arena.id);
+		if (pending == null) return;
+		making.put(player.getUUID(), pending.id);
 		Say.bar(player, "Making the " + demo.title());
 	}
 
@@ -200,7 +202,13 @@ public final class Demos {
 		for (Map.Entry<UUID, String> entry : List.copyOf(making.entrySet())) {
 			Arena arena = Arenas.get(server, entry.getValue());
 			ServerPlayer player = server.getPlayerList().getPlayer(entry.getKey());
-			if (arena == null || arena.phase == Arena.Phase.ENDED) {
+			Arenas.Pending coming = arena == null ? Arenas.preparing(entry.getValue()) : null;
+			if (coming != null) {
+				if (player == null) {
+					making.remove(entry.getKey());
+					coming.cancel();
+				}
+			} else if (arena == null || arena.phase == Arena.Phase.ENDED) {
 				making.remove(entry.getKey());
 			} else if (player == null) {
 				making.remove(entry.getKey());
