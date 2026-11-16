@@ -37,7 +37,7 @@ public final class Waves {
 	private Waves() {}
 
 	private static final RandomSource RANDOM = RandomSource.create();
-	/** A wave is never more than this many, however many players or per player. */
+	/** A wave is never more than this many, however many players or per player, counting any still up from the waves before. */
 	private static final int MOST = 150;
 	/** At this many left, the rest glow. */
 	private static final int GLOW_AT = 3;
@@ -59,7 +59,7 @@ public final class Waves {
 		Preset preset = arena.preset;
 		if (preset.mobStyle != Preset.MobStyle.WAVES || arena.phase != Arena.Phase.LIVE || arena.closesAt > 0 || arena.wavesOver) return;
 		if (arena.nextWaveAt > 0) {
-			if (now >= arena.nextWaveAt) send(server, level, arena, now);
+			if (now >= arena.nextWaveAt) send(server, level, arena, now, 0);
 			return;
 		}
 		if (ticks % 20 != 0) return;
@@ -72,9 +72,9 @@ public final class Waves {
 		if (standing.isEmpty()) {
 			cleared(server, arena, now);
 		} else if (preset.waveLimit > 0 && now - arena.waveStartedAt >= preset.waveLimit * 60_000L && next(arena) >= 0
-				&& !(preset.activeGoal() == Preset.Goal.WAVES && last(arena))) {
+				&& !(preset.activeGoal() == Preset.Goal.WAVES && last(arena)) && standing.size() < MOST) {
 			Arenas.tellInside(server, arena, "The next wave won't wait");
-			send(server, level, arena, now);
+			send(server, level, arena, now, standing.size());
 		}
 	}
 
@@ -113,8 +113,12 @@ public final class Waves {
 		};
 	}
 
-	/** The next wave, all at once, around whoever is fighting; later, if nobody is there to meet it. */
-	private static void send(MinecraftServer server, ServerLevel level, Arena arena, long now) {
+	/**
+	 * The next wave, all at once, around whoever is fighting; later, if nobody is there to meet it.
+	 *
+	 * @param standing how many of the waves before are still up, which this one does not add to past {@link #MOST}
+	 */
+	private static void send(MinecraftServer server, ServerLevel level, Arena arena, long now, int standing) {
 		int index = next(arena);
 		if (index < 0) {
 			arena.wavesOver = true;
@@ -135,7 +139,7 @@ public final class Waves {
 		for (Preset.WaveMob entry : wave.mobs) {
 			String kind = entry.kind();
 			int count = Math.max(1, Math.round(entry.tenths() * players.size() / 10F));
-			for (int i = 0; i < count && sent < MOST; i++, sent++) {
+			for (int i = 0; i < count && sent < MOST - standing; i++, sent++) {
 				ServerPlayer near = players.get(RANDOM.nextInt(players.size()));
 				if (!Mobs.spawnNear(level, arena, near, kind, players, true)) Mobs.spawnAt(level, kind, Spawns.random(level, arena), true, near);
 			}

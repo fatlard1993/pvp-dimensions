@@ -66,6 +66,17 @@ public final class Traps {
 		return null;
 	}
 
+	/** Blocks put down and gone since, broken or blown up: nobody dies in a trap that is not there. */
+	static void prune(ServerLevel level, Arena arena) {
+		Map<Long, UUID> byPos = placed.get(arena.id);
+		if (byPos == null) return;
+		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+		byPos.keySet().removeIf(packed -> {
+			pos.set(packed);
+			return level.hasChunk(pos.getX() >> 4, pos.getZ() >> 4) && level.getBlockState(pos).isAir();
+		});
+	}
+
 	public static void forget(Arena arena) {
 		placed.remove(arena.id);
 	}

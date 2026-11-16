@@ -556,6 +556,7 @@ public final class Arenas {
 				default -> { }
 			}
 			if (arena.phase == Arena.Phase.LOBBY || arena.phase == Arena.Phase.LIVE) Weather.tick(server, level, arena, now);
+			if (ticks % 1200 == 0) Traps.prune(level, arena);
 			if (arena.phase != Arena.Phase.ENDED) {
 				idle(server, arena, now);
 				if (ticks % 20 == 0) {
