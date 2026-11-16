@@ -409,7 +409,11 @@ public final class Spies {
 			}
 			// Riding anything at all is enough: a player on a seat stays on it whoever put them
 			// there, and re-seating one who is already sitting would drop them a block each time.
-			if (player.getVehicle() != null) continue;
+			if (player.getVehicle() != null) {
+				// Logged out sitting: the game took their seat with them and brought it back as a new stand.
+				if (player.getVehicle() instanceof ArmorStand back && theirs.get(member.id) instanceof ArmorStand had && had.isRemoved()) theirs.put(member.id, back);
+				continue;
+			}
 			// Whoever got off their seat left it standing where it was.
 			ArmorStand left = theirs.remove(member.id);
 			if (left != null) left.discard();
