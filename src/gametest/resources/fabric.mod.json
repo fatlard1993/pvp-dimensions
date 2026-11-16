@@ -37,7 +37,8 @@
 			"justfatlard.pvp_dimensions.gametest.NotFromTheWorkshop",
 			"justfatlard.pvp_dimensions.gametest.MonstersInDemos",
 			"justfatlard.pvp_dimensions.gametest.ArenaPrepares",
-			"justfatlard.pvp_dimensions.gametest.WallsFromLines"
+			"justfatlard.pvp_dimensions.gametest.WallsFromLines",
+			"justfatlard.pvp_dimensions.gametest.WavesArrive"
 		],
 		"pvp-dimensions-demo": [
 			"justfatlard.pvp_dimensions.gametest.TestDemoHook"

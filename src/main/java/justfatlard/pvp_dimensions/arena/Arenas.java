@@ -702,6 +702,7 @@ public final class Arenas {
 		prepare(server);
 		Jobs.tick();
 		Curtain.tick();
+		Waves.drain(server);
 		Balls.physics(server);
 		ConnectFour.physics(server);
 		HotPotato.physics(server);
