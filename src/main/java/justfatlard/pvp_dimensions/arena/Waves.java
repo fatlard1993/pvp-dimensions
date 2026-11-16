@@ -59,7 +59,7 @@ public final class Waves {
 		Preset preset = arena.preset;
 		if (preset.mobStyle != Preset.MobStyle.WAVES || arena.phase != Arena.Phase.LIVE || arena.closesAt > 0 || arena.wavesOver) return;
 		if (arena.nextWaveAt > 0) {
-			if (now >= arena.nextWaveAt) send(server, level, arena, now, 0);
+			if (now >= arena.nextWaveAt) send(server, level, arena, now, standing(level, arena).size());
 			return;
 		}
 		if (ticks % 20 != 0) return;

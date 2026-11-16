@@ -75,6 +75,8 @@ public final class Goals {
 	private static final class Count {
 		final Map<Integer, Integer> counts = new HashMap<>();
 		int columns;
+		/** The slice due next: one missed, as a takeover goal that came and went, starts the count over. */
+		int slice;
 	}
 
 	// --- The start ---
@@ -534,7 +536,11 @@ public final class Goals {
 		int slice = Math.floorMod(pass - 1, COUNT_PASSES);
 		Count sweep = slice == 0 ? new Count() : counting.get(arena.id);
 		// Started part way through a count: the first whole one waits for the next.
-		if (sweep == null) return;
+		if (sweep == null || sweep.slice != slice) {
+			counting.remove(arena.id);
+			return;
+		}
+		sweep.slice++;
 		counting.put(arena.id, sweep);
 		Map<net.minecraft.world.level.block.Block, Integer> teamOf = new HashMap<>();
 		for (int team = 0; team < arena.preset.teams; team++) teamOf.put(terracotta(team).getBlock(), team);
