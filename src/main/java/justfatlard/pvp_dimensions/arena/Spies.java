@@ -12,9 +12,7 @@ import java.util.UUID;
 import justfatlard.pvp_dimensions.Say;
 import net.minecraft.ChatFormatting;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import org.jspecify.annotations.Nullable;
 
@@ -395,11 +393,11 @@ public final class Spies {
 	 * client for it. Anything that clamps a position instead ends up in a tug of war the player
 	 * feels as rubber-banding, and the round would look broken rather than seated.
 	 */
-	private static final Map<String, Map<UUID, Integer>> seats = new HashMap<>();
+	private static final Map<String, Map<UUID, ArmorStand>> seats = new HashMap<>();
 
 	/** Sit everyone who is not sitting, and let go of everyone who should not be. */
 	private static void seat(MinecraftServer server, Arena arena) {
-		Map<UUID, Integer> theirs = seats.computeIfAbsent(arena.id, id -> new HashMap<>());
+		Map<UUID, ArmorStand> theirs = seats.computeIfAbsent(arena.id, id -> new HashMap<>());
 		boolean talking = !open(arena);
 		for (Arena.Member member : arena.members.values()) {
 			ServerPlayer player = server.getPlayerList().getPlayer(member.id);
@@ -412,6 +410,9 @@ public final class Spies {
 			// Riding anything at all is enough: a player on a seat stays on it whoever put them
 			// there, and re-seating one who is already sitting would drop them a block each time.
 			if (player.getVehicle() != null) continue;
+			// Whoever got off their seat left it standing where it was.
+			ArmorStand left = theirs.remove(member.id);
+			if (left != null) left.discard();
 			// No marker flag: it is private in this version, so the seat keeps a hitbox. It is
 			// invisible, unhittable and inside the player sitting on it, which is near enough.
 			ArmorStand seat = new ArmorStand(player.level(), player.getX(), player.getY(), player.getZ());
@@ -421,37 +422,43 @@ public final class Spies {
 			seat.setSilent(true);
 			player.level().addFreshEntity(seat);
 			player.startRiding(seat, true, true);
-			theirs.put(member.id, seat.getId());
+			theirs.put(member.id, seat);
 		}
 	}
 
 	/** Let one player up, and take their seat away with them. */
-	private static void stand(ServerPlayer player, @Nullable Integer seatId) {
-		Entity vehicle = player.getVehicle();
-		if (vehicle instanceof ArmorStand) {
+	private static void stand(@Nullable ServerPlayer player, @Nullable ArmorStand seat) {
+		if (player != null && player.getVehicle() instanceof ArmorStand vehicle) {
 			player.stopRiding();
 			vehicle.discard();
 		}
-		if (seatId == null) return;
-		Entity left = ((ServerLevel) player.level()).getEntity(seatId);
-		if (left instanceof ArmorStand) left.discard();
+		if (seat != null) seat.discard();
 	}
 
 	/** Everyone up, seats gone: the round is over or the blades are out. */
 	private static void standAll(MinecraftServer server, Arena arena) {
-		Map<UUID, Integer> theirs = seats.remove(arena.id);
+		Map<UUID, ArmorStand> theirs = seats.remove(arena.id);
 		if (theirs == null) return;
-		for (Map.Entry<UUID, Integer> sat : theirs.entrySet()) {
-			ServerPlayer player = server.getPlayerList().getPlayer(sat.getKey());
-			if (player != null) stand(player, sat.getValue());
+		for (Map.Entry<UUID, ArmorStand> sat : theirs.entrySet()) {
+			stand(server.getPlayerList().getPlayer(sat.getKey()), sat.getValue());
 		}
 	}
 
 	/** A round is over: its cards mean nothing now. */
 	public static void clear(Arena arena) {
-		seats.remove(arena.id);
+		Map<UUID, ArmorStand> theirs = seats.remove(arena.id);
+		if (theirs != null) for (ArmorStand seat : theirs.values()) seat.discard();
 		rounds.remove(arena.id);
 		if (calls.remove(arena.id) != null) Asks.settled(arena);
 		hunts.remove(arena.id);
+	}
+
+	/** The server is going: seats are not kept, and a round does not outlive it. */
+	static void clear() {
+		for (Map<UUID, ArmorStand> theirs : seats.values()) for (ArmorStand seat : theirs.values()) seat.discard();
+		seats.clear();
+		rounds.clear();
+		calls.clear();
+		hunts.clear();
 	}
 }
