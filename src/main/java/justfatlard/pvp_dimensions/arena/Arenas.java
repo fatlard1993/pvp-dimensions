@@ -39,6 +39,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.NoiseColumn;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -297,6 +298,25 @@ public final class Arenas {
 		return arena;
 	}
 
+	/**
+	 * The ocean floor and the top of a column of noise, as {@code getBaseHeight} gives them for
+	 * {@code OCEAN_FLOOR_WG} and {@code WORLD_SURFACE_WG}: from the one column rather than two, since
+	 * each asks for the whole of it.
+	 */
+	private static int[] heights(ServerLevel level, NoiseColumn column) {
+		int top = level.getMinY();
+		boolean topFound = false;
+		for (int y = level.getMaxY(); y >= level.getMinY(); y--) {
+			BlockState state = column.getBlock(y);
+			if (!topFound && Heightmap.Types.WORLD_SURFACE_WG.isOpaque().test(state)) {
+				top = y + 1;
+				topFound = true;
+			}
+			if (Heightmap.Types.OCEAN_FLOOR_WG.isOpaque().test(state)) return new int[] {y + 1, top};
+		}
+		return new int[] {level.getMinY(), top};
+	}
+
 	/** @param land how much of it is dry ground, 0 to 1; 1 wherever that is not a question */
 	private record Survey(int minChunkX, int minChunkZ, int chunks, int surfaceY, int highestY, int wallTop, int lobbyY, double land) {}
 
@@ -349,8 +369,9 @@ public final class Arenas {
 						for (int j = 0; j < samples; j++) {
 							int sx = x - width / 2 + (int) ((i + 0.5) * width / samples);
 							int sz = z - width / 2 + (int) ((j + 0.5) * width / samples);
-							int floor = generator.getBaseHeight(sx, sz, Heightmap.Types.OCEAN_FLOOR_WG, level, random);
-							int top = generator.getBaseHeight(sx, sz, Heightmap.Types.WORLD_SURFACE_WG, level, random);
+							int[] heights = heights(level, generator.getBaseColumn(sx, sz, level, random));
+							int floor = heights[0];
+							int top = heights[1];
 							floors.add(floor);
 							highest = Math.max(highest, top);
 							boolean ground = preset.world == Preset.World.END ? floor > level.getMinY() + 1 : top - floor <= 1;

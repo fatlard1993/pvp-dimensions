@@ -26,6 +26,8 @@ final class Curtain {
 	/** Ticks the part above the ground takes to come down. */
 	private static final int SHOWN_TICKS = 160;
 	private static final int UNDERGROUND_PER_TICK = 12;
+	/** Wall blocks looked at in one tick, all curtains together; a big arena's layer runs over into the next. */
+	private static final int BLOCKS_PER_TICK = 16_384;
 
 	private record Column(int x, int z, BlockState wall, int @Nullable [] source, int ground) {}
 
@@ -37,6 +39,8 @@ final class Curtain {
 	private final int bottom;
 	private final int abovePerTick;
 	private int y;
+	/** The column the layer at {@code y} carries on from, where the last tick ran out partway through it. */
+	private int next;
 	private int ticks;
 
 	private Curtain(ServerLevel level, List<Column> columns, int top, int surface, int bottom) {
@@ -67,19 +71,27 @@ final class Curtain {
 
 	/** Every curtain a little further down; once a tick. */
 	static void tick() {
+		int budget = BLOCKS_PER_TICK;
 		Iterator<Curtain> curtains = falling.iterator();
-		while (curtains.hasNext()) {
-			if (curtains.next().step()) curtains.remove();
+		while (curtains.hasNext() && budget > 0) {
+			Curtain curtain = curtains.next();
+			budget = curtain.step(budget);
+			if (curtain.y < curtain.bottom) curtains.remove();
 		}
 	}
 
-	/** A few more layers down; true once it reaches the bottom. */
-	private boolean step() {
+	static void clear() {
+		falling.clear();
+	}
+
+	/** A few more layers down, as far as {@code budget} wall blocks go; what is left of it. */
+	private int step(int budget) {
 		int layers = y > surface ? abovePerTick : UNDERGROUND_PER_TICK;
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 		BlockPos.MutableBlockPos from = new BlockPos.MutableBlockPos();
-		for (int layer = 0; layer < layers && y >= bottom; layer++, y--) {
-			for (int i = 0; i < columns.size(); i++) {
+		for (int layer = 0; layer < layers && y >= bottom && budget > 0; layer++) {
+			for (; next < columns.size() && budget > 0; next++, budget--) {
+				int i = next;
 				Column column = columns.get(i);
 				pos.set(column.x(), y, column.z());
 				if (level.getBlockState(pos) != column.wall()) continue;
@@ -93,6 +105,9 @@ final class Curtain {
 					level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, column.wall()), column.x() + 0.5, y + 0.5, column.z() + 0.5, 3, 0.3, 0.3, 0.3, 0.05);
 				}
 			}
+			if (next < columns.size()) break;
+			next = 0;
+			y--;
 		}
 		if (y >= surface - 1 && ticks % 4 == 0 && !columns.isEmpty()) {
 			Column noisy = columns.get(level.getRandom().nextInt(columns.size()));
@@ -100,6 +115,6 @@ final class Curtain {
 			level.playSound(null, noisy.x() + 0.5, Math.max(y, surface), noisy.z() + 0.5, sound.getBreakSound(), SoundSource.BLOCKS, 2F, 0.8F);
 		}
 		ticks++;
-		return y < bottom;
+		return budget;
 	}
 }

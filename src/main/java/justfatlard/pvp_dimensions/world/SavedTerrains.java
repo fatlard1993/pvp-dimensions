@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import com.google.gson.Gson;
@@ -179,7 +180,13 @@ public final class SavedTerrains {
 		});
 	}
 
-	/** Lay a saved terrain into an arena's empty plot, a chunk a slice. */
+	/** Chunks of a saved terrain read and unpacked ahead of the one being laid down. */
+	private static final int READ_AHEAD = 4;
+
+	/**
+	 * Lay a saved terrain into an arena's empty plot, a chunk a slice. Each chunk's file is read
+	 * and unpacked off the server thread, a few ahead of the one being laid.
+	 */
 	public static void paste(ServerLevel level, Footprint footprint, String name, Runnable done) {
 		Meta meta = known.get(name);
 		if (root == null || meta == null) {
@@ -188,29 +195,43 @@ public final class SavedTerrains {
 		}
 		Path folder = root.resolve(meta.name());
 		int chunks = Math.min(meta.chunks(), footprint.chunks());
+		int total = chunks * chunks;
+		var blocks = level.registryAccess().lookupOrThrow(Registries.BLOCK);
+		java.util.ArrayDeque<CompletableFuture<@Nullable StructureTemplate>> reading = new java.util.ArrayDeque<>();
+		AtomicInteger read = new AtomicInteger();
 		AtomicInteger next = new AtomicInteger();
 		RandomSource random = RandomSource.create();
 		Jobs.add(() -> {
+			while (reading.size() < READ_AHEAD && read.get() < total) {
+				int index = read.getAndIncrement();
+				Path file = folder.resolve(index % chunks + "_" + index / chunks + ".nbt");
+				reading.add(CompletableFuture.supplyAsync(() -> read(blocks, file), Util.ioPool()));
+			}
 			int index = next.getAndIncrement();
-			if (index >= chunks * chunks) {
+			if (index >= total) {
 				done.run();
 				return true;
 			}
-			int i = index % chunks;
-			int j = index / chunks;
-			Path file = folder.resolve(i + "_" + j + ".nbt");
-			if (!Files.exists(file)) return false;
-			try {
-				CompoundTag tag = NbtIo.readCompressed(file, NbtAccounter.unlimitedHeap());
-				StructureTemplate template = new StructureTemplate();
-				template.load(level.registryAccess().lookupOrThrow(Registries.BLOCK), tag);
-				BlockPos origin = new BlockPos(footprint.minX() + i * 16, level.getMinY(), footprint.minZ() + j * 16);
-				template.placeInWorld(level, origin, origin, new StructurePlaceSettings(), random, Block.UPDATE_CLIENTS);
-			} catch (IOException e) {
-				PvpDimensions.LOGGER.error("Saved terrain chunk {} could not be read", file, e);
-			}
+			StructureTemplate template = reading.poll().join();
+			if (template == null) return false;
+			BlockPos origin = new BlockPos(footprint.minX() + index % chunks * 16, level.getMinY(), footprint.minZ() + index / chunks * 16);
+			template.placeInWorld(level, origin, origin, new StructurePlaceSettings(), random, Block.UPDATE_CLIENTS);
 			return false;
 		});
+	}
+
+	/** One chunk of a saved terrain, unpacked; null where it has no file or the file can't be read. */
+	private static @Nullable StructureTemplate read(net.minecraft.core.HolderGetter<Block> blocks, Path file) {
+		if (!Files.exists(file)) return null;
+		try {
+			CompoundTag tag = NbtIo.readCompressed(file, NbtAccounter.unlimitedHeap());
+			StructureTemplate template = new StructureTemplate();
+			template.load(blocks, tag);
+			return template;
+		} catch (IOException e) {
+			PvpDimensions.LOGGER.error("Saved terrain chunk {} could not be read", file, e);
+			return null;
+		}
 	}
 
 	public static boolean delete(String name) {

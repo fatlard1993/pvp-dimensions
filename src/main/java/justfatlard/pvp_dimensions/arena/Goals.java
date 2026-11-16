@@ -67,6 +67,15 @@ public final class Goals {
 	private static final Map<String, Map<Integer, Integer>> covered = new HashMap<>();
 	/** Each arena's teams' share of the ground, in percent, as last counted. */
 	private static final Map<String, Map<Integer, Integer>> coveredPercent = new HashMap<>();
+	/** Passes one count of the ground is spread over: a tenth of the arena's rows each, a whole count every hundred ticks. */
+	private static final int COUNT_PASSES = 10;
+	/** Each arena's count of the ground part way through, by arena. */
+	private static final Map<String, Count> counting = new HashMap<>();
+
+	private static final class Count {
+		final Map<Integer, Integer> counts = new HashMap<>();
+		int columns;
+	}
 
 	// --- The start ---
 
@@ -508,22 +517,33 @@ public final class Goals {
 
 	// --- Colour takeover ---
 
-	private static void takeover(MinecraftServer server, ServerLevel level, Arena arena) {
+	private static void takeover(MinecraftServer server, ServerLevel level, Arena arena, int pass) {
 		Footprint footprint = arena.footprint();
+		// The slice this pass counts; the last of them falls on the pass the whole count used to.
+		int slice = Math.floorMod(pass - 1, COUNT_PASSES);
+		Count sweep = slice == 0 ? new Count() : counting.get(arena.id);
+		// Started part way through a count: the first whole one waits for the next.
+		if (sweep == null) return;
+		counting.put(arena.id, sweep);
 		Map<net.minecraft.world.level.block.Block, Integer> teamOf = new HashMap<>();
 		for (int team = 0; team < arena.preset.teams; team++) teamOf.put(terracotta(team).getBlock(), team);
-		Map<Integer, Integer> counts = new HashMap<>();
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-		int columns = 0;
-		for (int x = footprint.minX(); x < footprint.maxX(); x++) {
+		int rows = footprint.maxX() - footprint.minX();
+		int fromX = footprint.minX() + rows * slice / COUNT_PASSES;
+		int toX = footprint.minX() + rows * (slice + 1) / COUNT_PASSES;
+		for (int x = fromX; x < toX; x++) {
 			for (int z = footprint.minZ(); z < footprint.maxZ(); z++) {
 				if (!level.hasChunk(x >> 4, z >> 4)) continue;
-				columns++;
+				sweep.columns++;
 				int y = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1;
 				Integer team = teamOf.get(level.getBlockState(pos.set(x, y, z)).getBlock());
-				if (team != null) counts.merge(team, 1, Integer::sum);
+				if (team != null) sweep.counts.merge(team, 1, Integer::sum);
 			}
 		}
+		if (slice < COUNT_PASSES - 1) return;
+		counting.remove(arena.id);
+		Map<Integer, Integer> counts = sweep.counts;
+		int columns = sweep.columns;
 		covered.put(arena.id, counts);
 		Map<Integer, Integer> percents = new HashMap<>();
 		for (Map.Entry<Integer, Integer> count : counts.entrySet()) percents.put(count.getKey(), columns == 0 ? 0 : count.getValue() * 100 / columns);
@@ -689,7 +709,7 @@ public final class Goals {
 			case CTF -> flags(server, level, arena);
 			case DESTRUCTION -> bases(server, level, arena);
 			case TAKEOVER -> {
-				if (pass % 10 == 0) takeover(server, level, arena);
+				takeover(server, level, arena, pass);
 			}
 			case MOBS -> {
 				if (!outable(arena.preset) || now - arena.liveAt < 5_000L) break;
@@ -1026,6 +1046,7 @@ public final class Goals {
 	public static void forget(Arena arena) {
 		covered.remove(arena.id);
 		coveredPercent.remove(arena.id);
+		counting.remove(arena.id);
 		Hill.forget(arena);
 		Moments.forget(arena);
 		Spies.clear(arena);
