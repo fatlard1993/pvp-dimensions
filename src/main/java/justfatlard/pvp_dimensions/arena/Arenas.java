@@ -197,8 +197,16 @@ public final class Arenas {
 		waiting.clear();
 		ticketed.clear();
 		emptySince.clear();
+		lastMobs.clear();
 		Jobs.clear();
 		Portals.clear();
+		Curtain.clear();
+		Goals.clear();
+		Waves.clear();
+		Weather.clear();
+		Traps.clear();
+		Landing.clear();
+		justfatlard.pvp_dimensions.onboarding.Demos.clear();
 	}
 
 	// --- Starting ---

@@ -189,4 +189,9 @@ public final class Waves {
 		left.remove(arena.id);
 		sentCount.remove(arena.id);
 	}
+
+	static void clear() {
+		left.clear();
+		sentCount.clear();
+	}
 }

@@ -127,4 +127,9 @@ public final class Hill {
 		counted.remove(arena.id);
 		held.remove(arena.id);
 	}
+
+	static void clear() {
+		counted.clear();
+		held.clear();
+	}
 }

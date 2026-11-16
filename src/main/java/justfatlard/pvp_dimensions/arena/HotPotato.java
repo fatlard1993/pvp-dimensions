@@ -268,4 +268,9 @@ public final class HotPotato {
 		potatoes.remove(arena.id);
 		nextAt.remove(arena.id);
 	}
+
+	static void clear() {
+		potatoes.clear();
+		nextAt.clear();
+	}
 }

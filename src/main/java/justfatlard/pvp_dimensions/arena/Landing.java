@@ -99,4 +99,8 @@ public final class Landing {
 			return false;
 		});
 	}
+
+	static void clear() {
+		watched.clear();
+	}
 }

@@ -80,4 +80,8 @@ public final class Traps {
 	public static void forget(Arena arena) {
 		placed.remove(arena.id);
 	}
+
+	static void clear() {
+		placed.clear();
+	}
 }

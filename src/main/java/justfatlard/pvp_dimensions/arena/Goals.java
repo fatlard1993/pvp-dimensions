@@ -1075,4 +1075,26 @@ public final class Goals {
 		GuessWho.forget(arena);
 		CopsRobbers.forget(arena);
 	}
+
+	static void clear() {
+		covered.clear();
+		coveredPercent.clear();
+		counting.clear();
+		Hill.clear();
+		Moments.clear();
+		Spies.clear();
+		Balls.clear();
+		KeepAway.clear();
+		HotPotato.clear();
+		Golf.clear();
+		Pool.clear();
+		Battleship.clear();
+		Bowling.clear();
+		ConnectFour.clear();
+		Mastermind.clear();
+		Memory.clear();
+		Minesweeper.clear();
+		GuessWho.clear();
+		CopsRobbers.clear();
+	}
 }

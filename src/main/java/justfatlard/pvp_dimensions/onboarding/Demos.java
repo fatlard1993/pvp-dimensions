@@ -285,6 +285,13 @@ public final class Demos {
 		hopping.remove(player);
 	}
 
+	public static void clear() {
+		making.clear();
+		asking.clear();
+		hopping.clear();
+		awaySince.clear();
+	}
+
 	private static void ask(ServerPlayer player) {
 		if (!ServerConfig.onboarding()) return;
 		if (Visit.of(player) != null || justfatlard.pvp_dimensions.integration.SpawnLock.held(player)

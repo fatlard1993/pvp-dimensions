@@ -341,4 +341,8 @@ public final class Balls {
 		List<Ball> balls = held.remove(arena.id);
 		if (balls != null) for (Ball ball : balls) ball.cube.discard();
 	}
+
+	static void clear() {
+		held.clear();
+	}
 }

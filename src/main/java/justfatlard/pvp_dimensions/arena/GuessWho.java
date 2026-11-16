@@ -944,4 +944,8 @@ public final class GuessWho {
 		for (Display.ItemDisplay[] gallery : game.floating) for (Display.ItemDisplay shown : gallery) if (shown != null) shown.discard();
 		for (Interaction[] gallery : game.boxes) for (Interaction box : gallery) if (box != null) box.discard();
 	}
+
+	static void clear() {
+		games.clear();
+	}
 }

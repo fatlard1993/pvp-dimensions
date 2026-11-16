@@ -375,4 +375,10 @@ public final class Golf {
 		given.remove(arena.id);
 		sparked.remove(arena.id);
 	}
+
+	static void clear() {
+		rounds.clear();
+		given.clear();
+		sparked.clear();
+	}
 }

@@ -410,4 +410,8 @@ public final class ConnectFour {
 		Game game = games.remove(arena.id);
 		if (game != null && game.falling != null) game.falling.cube().discard();
 	}
+
+	static void clear() {
+		games.clear();
+	}
 }

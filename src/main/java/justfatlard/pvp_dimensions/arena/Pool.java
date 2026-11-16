@@ -538,4 +538,8 @@ public final class Pool {
 	public static void forget(Arena arena) {
 		plays.remove(arena.id);
 	}
+
+	static void clear() {
+		plays.clear();
+	}
 }

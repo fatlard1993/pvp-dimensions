@@ -300,4 +300,16 @@ public final class Moments {
 		fallenAtWave.remove(arena.id);
 		hillTakenBy.remove(arena.id);
 	}
+
+	static void clear() {
+		bursts.clear();
+		lastVictim.clear();
+		hurtBy.clear();
+		carriers.clear();
+		flagCarriers.clear();
+		lives.clear();
+		fallen.clear();
+		fallenAtWave.clear();
+		hillTakenBy.clear();
+	}
 }

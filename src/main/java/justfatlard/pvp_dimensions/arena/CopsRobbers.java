@@ -781,4 +781,8 @@ public final class CopsRobbers {
 	public static void forget(Arena arena) {
 		games.remove(arena.id);
 	}
+
+	static void clear() {
+		games.clear();
+	}
 }

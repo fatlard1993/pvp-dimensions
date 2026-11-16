@@ -90,6 +90,10 @@ public final class KeepAway {
 		counted.remove(arena.id);
 	}
 
+	static void clear() {
+		counted.clear();
+	}
+
 	/** Time ran out with teams: the scores say it. Without, the longest holder takes it. */
 	static boolean timeUp(MinecraftServer server, Arena arena) {
 		if (arena.preset.teamsOn()) return false;
