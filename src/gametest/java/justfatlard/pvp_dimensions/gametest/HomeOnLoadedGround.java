@@ -42,6 +42,7 @@ public final class HomeOnLoadedGround implements FabricClientGameTest {
 			});
 
 			int chunk = SectionPos.blockToSectionCoord(FAR);
+			long[] endedAt = new long[1];
 			server.runOnServer(s -> {
 				ServerPlayer player = connection.getServerPlayer();
 				Arena arena = Tables.arena(s);
@@ -52,6 +53,7 @@ public final class HomeOnLoadedGround implements FabricClientGameTest {
 				ServerLevel overworld = s.overworld();
 				check(overworld.getChunkSource().getChunkNow(chunk, chunk) == null, "the far ground was already loaded");
 
+				endedAt[0] = System.currentTimeMillis();
 				Arenas.end(s, arena, "the test is over");
 				check(overworld.getChunkSource().getChunkNow(chunk, chunk) == null, "the ground at home was loaded in the tick the arena ended");
 				check(player.level().dimension().equals(arena.dimension), "the player was sent home before their ground was there");
@@ -67,6 +69,9 @@ public final class HomeOnLoadedGround implements FabricClientGameTest {
 				check(!Landing.waiting(player.getUUID()), "the player is home and still waiting");
 				check(Math.abs(player.getX() - FAR) < 2 && Math.abs(player.getZ() - FAR) < 2, "the player was not set down at home: " + player.position());
 				check(s.overworld().getChunkSource().getChunkNow(chunk, chunk) != null, "the player arrived over ground that isn't loaded");
+				// From 10 s on, Landing stops waiting and loads the ground on the spot, which would pass the rest of this test too.
+				long took = System.currentTimeMillis() - endedAt[0];
+				check(took < 10_000, "the ground at home took " + took + " ms, so it was loaded on the spot, not by asking for it ahead");
 				landed.set(player.position());
 			});
 			context.waitTicks(60);

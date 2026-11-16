@@ -257,8 +257,9 @@ public final class Travel {
 	/**
 	 * Out and home once the ground there has loaded, which is a tick or two later where it was
 	 * already loaded: the arena ending, with everyone in it going at once. Until then nothing is
-	 * handed back and the visit stands, so a player who logs out on the way, or is on a server that
-	 * stops, comes home at their next login the way anyone away from an ended arena does.
+	 * handed back and the visit stands, so a player who logs out on the way comes home at their
+	 * next login the way anyone away from an ended arena does. If the server stops first, anyone
+	 * still waiting goes at once, their ground loaded on the spot.
 	 * {@code then} runs once they have gone, or once they no longer can.
 	 */
 	public static void goHomeWhenLoaded(ServerPlayer player, Arena arena, Why why, Runnable then) {
