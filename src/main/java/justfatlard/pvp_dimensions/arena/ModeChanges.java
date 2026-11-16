@@ -23,6 +23,7 @@ public final class ModeChanges {
 	private ModeChanges() {}
 
 	private static List<Preset.ModeChange> sorted(Preset preset) {
+		if (preset.modeChanges.isEmpty()) return List.of();
 		return preset.modeChanges.stream().sorted(Comparator.comparingInt(change -> change.minute)).toList();
 	}
 

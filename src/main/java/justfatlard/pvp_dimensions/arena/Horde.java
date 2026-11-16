@@ -119,13 +119,16 @@ public final class Horde {
 		return tag.getBooleanOr(MARK, false);
 	}
 
+	/** Golems set on the horde already: the same golem is loaded again each time its chunk comes back into view. */
+	private static final java.util.Set<Mob> guarding = java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
+
 	/**
 	 * A golem the players built, loaded: set on the horde as it would be on any zombie. The iron
 	 * golem's own refusal to hurt a player is lifted for the horde in {@code IronGolemMixin}.
 	 */
 	public static void guard(Entity entity) {
 		boolean built = entity instanceof IronGolem iron ? iron.isPlayerCreated() : entity instanceof SnowGolem;
-		if (!built || !(entity instanceof Mob golem)) return;
+		if (!built || !(entity instanceof Mob golem) || !guarding.add(golem)) return;
 		((MobAccessor) golem).pvpDimensions$targets().addGoal(3,
 			new NearestAttackableTargetGoal<>(golem, Player.class, 10, true, false, (target, level) -> is(target)));
 	}

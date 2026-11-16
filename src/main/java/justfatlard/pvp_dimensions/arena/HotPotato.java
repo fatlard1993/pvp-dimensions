@@ -92,8 +92,10 @@ public final class HotPotato {
 			if (ball == null) continue;
 			ball.cube.setNoGravity(true);
 			ball.cube.setDeltaMovement(Vec3.ZERO);
-			ball.cube.setPos(holder.getX(), holder.getY() + OVERHEAD, holder.getZ());
-			ball.cube.needsSync = true;
+			if (ball.cube.getX() != holder.getX() || ball.cube.getY() != holder.getY() + OVERHEAD || ball.cube.getZ() != holder.getZ()) {
+				ball.cube.setPos(holder.getX(), holder.getY() + OVERHEAD, holder.getZ());
+				ball.cube.needsSync = true;
+			}
 			// Watched every tick: a fuse can run its last few ticks out between two of the slower checks.
 			Arena.Member caught = arena.member(potato.holder);
 			if (caught != null && ball.cube.isPrimed() && ball.cube.getFuse() <= CAUGHT_AT) blast(server, level, arena, ball, caught, System.currentTimeMillis());

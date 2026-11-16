@@ -63,7 +63,10 @@ public final class Soccer {
 			Balls.Ball ball = balls.get(i);
 			int into = goalHolding(arena, ball);
 			if (into >= 0) scored(server, level, arena, into, ball, kickOff(level, arena, i));
-			else Balls.rescue(server, arena, ball, kickOff(level, arena, i), now);
+			else {
+				int spot = i;
+				Balls.rescue(server, arena, ball, () -> kickOff(level, arena, spot), now);
+			}
 			if (arena.closesAt > 0) return;
 		}
 	}

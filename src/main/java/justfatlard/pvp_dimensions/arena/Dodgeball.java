@@ -1,6 +1,8 @@
 package justfatlard.pvp_dimensions.arena;
 
 import java.util.List;
+import java.util.function.Supplier;
+import com.google.common.base.Suppliers;
 import justfatlard.pvp_dimensions.preset.Preset;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -22,13 +24,14 @@ public final class Dodgeball {
 	static void tick(MinecraftServer server, ServerLevel level, Arena arena, long now) {
 		if (!Hits.counts(arena.preset, Preset.HitKind.BALL)) return;
 		List<Balls.Ball> balls = Balls.of(level, arena);
-		Vec3 middle = Balls.middle(level, arena);
+		Supplier<Vec3> middleOnce = Suppliers.memoize(() -> Balls.middle(level, arena));
 		while (balls.size() < arena.preset.ballCount) {
+			Vec3 middle = middleOnce.get();
 			double angle = Math.PI * 2 * balls.size() / arena.preset.ballCount;
 			Vec3 at = Spawns.near(level, arena, (int) Math.floor(middle.x + Math.cos(angle) * SPREAD), (int) Math.floor(middle.z + Math.sin(angle) * SPREAD), 1);
 			if (Balls.spawn(level, arena, at, Balls.swallowed(arena.preset.ballBlock), null) == null) return;
 		}
-		for (Balls.Ball ball : List.copyOf(balls)) Balls.rescue(server, arena, ball, middle, now);
+		for (Balls.Ball ball : List.copyOf(balls)) Balls.rescue(server, arena, ball, middleOnce, now);
 	}
 
 	/** A ball has reached a player: a hit, if somebody else sent it and it came hard enough. */

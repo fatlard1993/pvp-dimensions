@@ -121,6 +121,7 @@ public final class Weather {
 	 * reach the ground and the sky is open over it, as the biome has it fall.
 	 */
 	public static Biome.Precipitation at(ServerLevel level, BlockPos pos) {
+		if (shown.isEmpty()) return Biome.Precipitation.NONE;
 		Arena arena = Arenas.at(level, pos.getX(), pos.getZ());
 		float[] sky = arena == null ? null : shown.get(arena.id);
 		if (sky == null || sky[0] < 0.2F) return Biome.Precipitation.NONE;

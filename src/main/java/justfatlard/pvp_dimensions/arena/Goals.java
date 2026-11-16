@@ -318,12 +318,12 @@ public final class Goals {
 			}
 		} else if (goal == Preset.Goal.DESTRUCTION && breaker == null) {
 			for (int team = 0; team < arena.bases.size(); team++) {
-				if (cube(arena, team).contains(pos)) return true;
+				if (inCube(arena, team, pos)) return true;
 			}
 		} else if (goal == Preset.Goal.DESTRUCTION) {
 			Arena.Member member = arena.member(breaker.getUUID());
 			if (member == null || member.team < 0 || member.team >= arena.bases.size()) return false;
-			return cube(arena, member.team).contains(pos);
+			return inCube(arena, member.team, pos);
 		}
 		return false;
 	}
@@ -443,6 +443,17 @@ public final class Goals {
 			}
 		}
 		return blocks;
+	}
+
+	/** Whether this spot is one of {@link #cube}'s. */
+	private static boolean inCube(Arena arena, int team, BlockPos pos) {
+		if (team >= arena.bases.size()) return false;
+		BlockPos base = arena.bases.get(team);
+		int size = Math.max(1, arena.preset.baseSize);
+		int minX = base.getX() - size / 2;
+		int minZ = base.getZ() - size / 2;
+		return pos.getX() >= minX && pos.getX() < minX + size && pos.getY() >= base.getY() && pos.getY() < base.getY() + size
+			&& pos.getZ() >= minZ && pos.getZ() < minZ + size;
 	}
 
 	/** A division wall that holds until it falls, where the preset says it does. */

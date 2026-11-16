@@ -1,7 +1,10 @@
 package justfatlard.pvp_dimensions.arena;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.WeakHashMap;
 import justfatlard.pvp_dimensions.preset.MobKinds;
 import justfatlard.pvp_dimensions.mixin.MobAccessor;
 import net.minecraft.world.entity.EntityReference;
@@ -316,13 +319,16 @@ public final class Mobs {
 		return wall == null || state != wall;
 	}
 
+	/** Those given their goals already: the same mob is loaded again each time its chunk comes back into view. */
+	private static final Set<Entity> minded = Collections.newSetFromMap(new WeakHashMap<>());
+
 	/**
 	 * One of the arena's own loaded, freshly spawned or back from disk: a giant is given a mind,
 	 * which the game leaves it without and which doesn't keep across a save, and a zombie fists
 	 * for where its arena lets it break through.
 	 */
 	public static void loaded(Entity entity) {
-		if (!entity.entityTags().contains(OURS)) return;
+		if (!entity.entityTags().contains(OURS) || !minded.add(entity)) return;
 		if (entity instanceof Zombie zombie) ((MobAccessor) zombie).pvpDimensions$goals().addGoal(1, new ZombieBreaks(zombie));
 		if (!(entity instanceof Giant giant)) return;
 		MobAccessor mind = (MobAccessor) giant;

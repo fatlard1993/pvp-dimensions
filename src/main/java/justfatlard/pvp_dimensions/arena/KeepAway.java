@@ -33,7 +33,7 @@ public final class KeepAway {
 	static void tick(MinecraftServer server, ServerLevel level, Arena arena, long now) {
 		Balls.Ball ball = ball(level, arena);
 		if (ball == null) return;
-		Balls.rescue(server, arena, ball, Balls.middle(level, arena), now);
+		Balls.rescue(server, arena, ball, () -> Balls.middle(level, arena), now);
 		if (now - counted.getOrDefault(arena.id, now) < 1000) return;
 		counted.put(arena.id, now);
 

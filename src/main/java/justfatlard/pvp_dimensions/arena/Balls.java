@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Supplier;
 import java.util.function.ToDoubleFunction;
 import justfatlard.pvp_dimensions.preset.Preset;
 import justfatlard.pvp_dimensions.world.Footprint;
@@ -138,8 +139,9 @@ public final class Balls {
 	}
 
 	/** A ball nobody has touched for a while, away from home, brought back to it. */
-	static void rescue(MinecraftServer server, Arena arena, Ball ball, Vec3 home, long now) {
+	static void rescue(MinecraftServer server, Arena arena, Ball ball, Supplier<Vec3> where, long now) {
 		if (now - ball.touchedAt < IDLE_MILLIS) return;
+		Vec3 home = where.get();
 		boolean away = ball.cube.position().distanceTo(home) > NEAR_HOME;
 		UUID last = ball.lastTouch;
 		place(ball, home);
