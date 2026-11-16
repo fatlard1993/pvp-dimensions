@@ -57,14 +57,14 @@ final class Curtain {
 		Footprint footprint = arena.footprint();
 		Terrain terrain = footprint.terrain();
 		List<Column> columns = new ArrayList<>();
-		for (int x = footprint.minX(); x < footprint.maxX(); x++) {
-			for (int z = footprint.minZ(); z < footprint.maxZ(); z++) {
-				BlockState wall = terrain.wallAt(footprint, x, z);
-				if (wall == null || wall == Terrain.BEDROCK) continue;
-				int[] source = Arenas.besideWall(footprint, terrain, x, z);
-				int ground = source == null ? level.getMinY() : level.getHeight(Heightmap.Types.OCEAN_FLOOR, source[0], source[1]);
-				columns.add(new Column(x, z, wall, source, ground));
-			}
+		for (int[] local : terrain.divisions().walls(footprint.width())) {
+			int x = footprint.minX() + local[0];
+			int z = footprint.minZ() + local[1];
+			BlockState wall = terrain.wallAt(footprint, x, z);
+			if (wall == null || wall == Terrain.BEDROCK) continue;
+			int[] source = Arenas.besideWall(footprint, terrain, x, z);
+			int ground = source == null ? level.getMinY() : level.getHeight(Heightmap.Types.OCEAN_FLOOR, source[0], source[1]);
+			columns.add(new Column(x, z, wall, source, ground));
 		}
 		if (!columns.isEmpty()) falling.add(new Curtain(level, columns, arena.wallTop, arena.surfaceY, level.getMinY()));
 	}

@@ -1,5 +1,8 @@
 package justfatlard.pvp_dimensions.world;
 
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -66,6 +69,59 @@ public record Divisions(int cols, int rows, int slices) {
 			if (localZ == line - 1 || localZ == line) return true;
 		}
 		return false;
+	}
+
+	/**
+	 * Every column {@link #wall} stands on, west to east and north to south within each, as
+	 * {@code {localX, localZ}}: found from the walls' own lines and rays rather than by asking
+	 * every column of the square.
+	 */
+	public List<int[]> walls(int width) {
+		List<int[]> found = new ArrayList<>();
+		if (parts() <= 1) return found;
+		BitSet[] byX = new BitSet[width];
+		for (int x = 0; x < width; x++) byX[x] = new BitSet(width);
+		if (slices > 0) {
+			double half = width / 2.0;
+			double[] angles = sliceAngles(slices);
+			for (int i = 0; i < slices; i++) {
+				double dx = Math.cos(angles[2 * i]);
+				double dz = Math.sin(angles[2 * i]);
+				for (int z = 0; z < width; z++) {
+					double pz = z + 0.5 - half;
+					// wall() asks |px * dz - pz * dx| < 1, with |px| at most half: rows too far
+					// off the ray's line have nothing, and in the rest it is a band of px. A column
+					// of slack round both for rounding; every candidate is put to wall() itself.
+					if (Math.abs(pz * dx) > 1 + (half + 1) * Math.abs(dz)) continue;
+					int from = 0;
+					int to = width - 1;
+					if (Math.abs(dz) > 1e-9) {
+						double a = (pz * dx - 1) / dz + half - 0.5;
+						double b = (pz * dx + 1) / dz + half - 0.5;
+						from = (int) Math.max(0, Math.floor(Math.min(a, b)) - 1);
+						to = (int) Math.min(width - 1, Math.ceil(Math.max(a, b)) + 1);
+					}
+					for (int x = from; x <= to; x++) {
+						if (!byX[x].get(z) && wall(width, x, z)) byX[x].set(z);
+					}
+				}
+			}
+		} else {
+			for (int i = 1; i < cols; i++) {
+				int line = Math.round(i * width / (float) cols);
+				for (int x = Math.max(0, line - 1); x <= Math.min(width - 1, line); x++) byX[x].set(0, width);
+			}
+			for (int j = 1; j < rows; j++) {
+				int line = Math.round(j * width / (float) rows);
+				for (int z = Math.max(0, line - 1); z <= Math.min(width - 1, line); z++) {
+					for (int x = 0; x < width; x++) byX[x].set(z);
+				}
+			}
+		}
+		for (int x = 0; x < width; x++) {
+			for (int z = byX[x].nextSetBit(0); z >= 0; z = byX[x].nextSetBit(z + 1)) found.add(new int[] {x, z});
+		}
+		return found;
 	}
 
 	/**
