@@ -3,6 +3,9 @@
     "Arenas on demand. Pick a preset from a menu and a fresh piece of ground is made for the fight, floating alone in a dimension of its own, gone when the clock runs out."
   ],
   "versions": {
+    "1.12.2": [
+      "A player in an arena with a kit can't trade it away, or be handed things that would be lost when they leave."
+    ],
     "1.12.1": [
       "Every mod's page in the mod menu has Play demo, where the mod ships one.",
       "Spies: standing up from a seat no longer leaves an armour stand behind every time.",

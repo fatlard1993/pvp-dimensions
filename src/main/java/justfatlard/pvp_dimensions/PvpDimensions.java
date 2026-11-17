@@ -73,6 +73,11 @@ public class PvpDimensions implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		// In an arena with a kit, the player's own things are put aside and the kit is lent to them.
+		justfatlard.pandorical.api.PandoricalApi.loans().register(player -> {
+			justfatlard.pvp_dimensions.arena.Visit visit = justfatlard.pvp_dimensions.arena.Visit.of(player);
+			return visit == null || visit.stash().isEmpty() ? null : net.minecraft.network.chat.Component.literal("in an arena");
+		});
 		Registry.register(BuiltInRegistries.CHUNK_GENERATOR, id("arena"), ArenaGenerator.CODEC);
 		Registry.register(BuiltInRegistries.BIOME_SOURCE, id("arena"), ArenaBiomes.CODEC);
 		Access.init();
