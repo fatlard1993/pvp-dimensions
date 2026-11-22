@@ -3,7 +3,7 @@
   "id": "pvp-dimensions-justfatlard",
   "version": "${version}",
   "name": "PvP Dimensions",
-  "description": "Arenas on demand: a dimension of its own for a fight, started from a menu, entered by invite or through a nearby portal frame, gone when the game is over",
+  "description": "Arenas on demand, each fight in a dimension of its own",
   "authors": [
     "justfatlard"
   ],
