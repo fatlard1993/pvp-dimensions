@@ -36,6 +36,9 @@
       "links": {
         "modmenu.donate": "https://github.com/sponsors/fatlard1993"
       }
+    },
+    "lithium:options": {
+      "mixin.ai.poi.fast_portals": false
     }
   }
 }
