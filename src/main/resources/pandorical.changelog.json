@@ -3,6 +3,9 @@
     "Arenas on demand. Pick a preset from a menu and a fresh piece of ground is made for the fight, floating alone in a dimension of its own, gone when the clock runs out."
   ],
   "versions": {
+    "1.12.4": [
+      "Lithium's faster portal search, which replaces the search this mod hooks and stopped the server at startup beside it, is switched off from this mod's own manifest."
+    ],
     "1.12.3": [
       "Describes itself in one short line of what it adds."
     ],
