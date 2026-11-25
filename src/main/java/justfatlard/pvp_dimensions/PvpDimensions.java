@@ -78,6 +78,7 @@ public class PvpDimensions implements ModInitializer {
 			justfatlard.pvp_dimensions.arena.Visit visit = justfatlard.pvp_dimensions.arena.Visit.of(player);
 			return visit == null || visit.stash().isEmpty() ? null : net.minecraft.network.chat.Component.literal("in an arena");
 		});
+		justfatlard.pandorical.api.PandoricalApi.sideTrips().permit(Travel::mayStepAside);
 		Registry.register(BuiltInRegistries.CHUNK_GENERATOR, id("arena"), ArenaGenerator.CODEC);
 		Registry.register(BuiltInRegistries.BIOME_SOURCE, id("arena"), ArenaBiomes.CODEC);
 		Access.init();

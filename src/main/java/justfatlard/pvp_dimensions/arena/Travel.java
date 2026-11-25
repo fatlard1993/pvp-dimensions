@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import justfatlard.pandorical.api.PandoricalApi;
 import justfatlard.pvp_dimensions.Access;
 import justfatlard.pvp_dimensions.Say;
 import justfatlard.pvp_dimensions.preset.ItemList;
@@ -294,6 +295,9 @@ public final class Travel {
 	public static @Nullable TeleportTransition leave(ServerPlayer player, @Nullable Arena arena, Why why) {
 		Visit visit = Visit.of(player);
 		if (visit == null) return null;
+		// Off on a side trip (a Miniature Bench's workshop, from a demo), they are holding that
+		// mod's pack with the arena's put aside under it: back here first, with the arena's pack.
+		if (away(player)) PandoricalApi.sideTrips().callBack(player);
 		MinecraftServer server = player.level().getServer();
 		Preset preset = arena != null ? arena.preset : null;
 		boolean winner = arena != null && arena.winners.remove(player.getUUID());
@@ -359,6 +363,24 @@ public final class Travel {
 		return Places.isArena(player.level().dimension()) ? home(server, visit.home()) : null;
 	}
 
+	/** Stepped out to another mod's world from a demo, and coming back: still in the arena. */
+	public static boolean away(ServerPlayer player) {
+		return PandoricalApi.sideTrips().away(player);
+	}
+
+	/**
+	 * Whether this player may step out to another mod's world and come back. Only from a demo:
+	 * nothing comes home from one, and it is played alone, so nobody waits on them or fights them
+	 * while they are gone. From a game, the trip would be a way out of the fight that keeps the kit.
+	 */
+	public static boolean mayStepAside(ServerPlayer player) {
+		Visit visit = Visit.of(player);
+		if (visit == null) return false;
+		Arena arena = Arenas.get(player.level().getServer(), visit.arena());
+		return arena != null && !arena.demo.isEmpty() && arena.phase == Arena.Phase.LIVE
+			&& player.level().dimension().equals(arena.dimension);
+	}
+
 	/** The trip home, for a respawn that must come out there. */
 	public static TeleportTransition homeTrip(MinecraftServer server, Visit.Home home) {
 		return home(server, home);
@@ -399,7 +421,8 @@ public final class Travel {
 		Visit visit = Visit.of(player);
 		if (visit != null) {
 			Arena arena = Arenas.get(server, visit.arena());
-			if (arena == null || arena.phase == Arena.Phase.ENDED || !player.level().dimension().equals(arena.dimension)) {
+			boolean here = player.level().dimension().equals(arena == null ? null : arena.dimension);
+			if (arena == null || arena.phase == Arena.Phase.ENDED || !here && !away(player)) {
 				if (!dead) {
 					TeleportTransition trip = leave(player, arena, Why.LOGIN);
 					if (trip != null) player.teleport(trip);
@@ -409,6 +432,7 @@ public final class Travel {
 				Arena.Member member = arena.join(player.getUUID(), player.getGameProfile().name());
 				member.inside = true;
 				Arenas.wake(server, arena);
+				if (!here) return;
 				Fog.show(player, arena);
 				Powers.give(player, arena);
 				if (!dead && !arena.footprint().containsBlock(player.getX(), player.getZ())) {
@@ -439,7 +463,7 @@ public final class Travel {
 			Visit visit = Visit.of(player);
 			if (visit == null || player.isDeadOrDying() || Landing.waiting(player.getUUID())) continue;
 			Arena arena = Arenas.get(server, visit.arena());
-			if (arena != null && arena.phase != Arena.Phase.ENDED && player.level().dimension().equals(arena.dimension)) continue;
+			if (arena != null && arena.phase != Arena.Phase.ENDED && (player.level().dimension().equals(arena.dimension) || away(player))) continue;
 			seen.add(player.getUUID());
 			long since = strayed.computeIfAbsent(player.getUUID(), id -> now);
 			if (now - since < 3000) continue;
@@ -503,8 +527,13 @@ public final class Travel {
 		Visit visit = Visit.of(player);
 		if (visit != null) {
 			Arena arena = Arenas.get(player.level().getServer(), visit.arena());
-			if (arena != null && from.dimension().equals(arena.dimension) && !to.dimension().equals(arena.dimension)) {
+			if (arena == null) return;
+			if (from.dimension().equals(arena.dimension) && !to.dimension().equals(arena.dimension) && !away(player)) {
 				leave(player, arena, Why.MOVED);
+			} else if (to.dimension().equals(arena.dimension) && !from.dimension().equals(arena.dimension)) {
+				// Back from a side trip: the trip there drew that world's border and reach for them.
+				Borders.send(player, arena);
+				Fog.show(player, arena);
 			}
 			return;
 		}

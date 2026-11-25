@@ -3,6 +3,9 @@
     "Arenas on demand. Pick a preset from a menu and a fresh piece of ground is made for the fight, floating alone in a dimension of its own, gone when the clock runs out."
   ],
   "versions": {
+    "1.13.0": [
+      "From inside a demo you can step into another mod's world and back, such as a Miniature Bench's workshop: the demo waits for you, and if it ends while you are away you are brought back first, so your own things come home and nothing else does."
+    ],
     "1.12.4": [
       "Lithium's faster portal search, which replaces the search this mod hooks and stopped the server at startup beside it, is switched off from this mod's own manifest."
     ],

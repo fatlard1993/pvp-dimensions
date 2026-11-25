@@ -233,7 +233,7 @@ public final class Demos {
 				ServerPlayer player = server.getPlayerList().getPlayer(member.id);
 				if (player == null) continue;
 				anyHere = true;
-				if (demo != null) call(demo, player, arena, DemoHook::tick);
+				if (demo != null && player.level().dimension().equals(arena.dimension)) call(demo, player, arena, DemoHook::tick);
 			}
 			if (anyHere) awaySince.remove(arena.id);
 			else if (now - awaySince.computeIfAbsent(arena.id, id -> now) > AWAY_MILLIS) Arenas.end(server, arena, "its player was away too long");

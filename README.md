@@ -164,6 +164,8 @@ Each demo is yours alone: a fresh copy is made for you, nobody else sees it in t
 
 A demo counts as played as soon as you step into it, unless it has a finish (a goal to win, or a moment the demo itself decides), in which case it counts once you get there.
 
+From inside a demo you can step into another mod's world and come back to it, as a [Minicraft](https://github.com/fatlard1993/minicraft) bench takes you into its workshop. The demo waits for you while you are gone, and if it ends first you are brought back to it before going home, so only your own things come home.
+
 Demos never use up the arenas the server allows at once; they have their own limit.
 
 ## Commands
