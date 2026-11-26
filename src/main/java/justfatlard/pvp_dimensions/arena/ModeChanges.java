@@ -60,6 +60,8 @@ public final class ModeChanges {
 			if (change.kits) {
 				player.getInventory().clearContent();
 				Travel.equip(player, arena, true);
+			} else {
+				Powers.handOut(player, arena);
 			}
 		}
 		title(server, arena, word(change.mode) + "!", change.kits ? "Everyone's kit handed out afresh" : "The game mode has changed", true);

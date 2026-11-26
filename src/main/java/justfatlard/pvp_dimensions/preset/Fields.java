@@ -261,8 +261,10 @@ public final class Fields {
 		fields.add(new Field.Note(PLAYERS, "game_mode.note", true, Summary::playsInSurvival));
 		fields.add(new Field.Toggle(PLAYERS, "flight", "Custom: flying", p -> p.flight, (p, v) -> p.flight = v)
 			.help("Everyone can fly as in creative, and can still be hurt").when(Preset::customUsed));
+		fields.add(new Field.Toggle(PLAYERS, "instant_breaking", "Custom: instant breaking", p -> p.instantBreaking, (p, v) -> p.instantBreaking = v)
+			.help("Blocks break at a touch as in creative, and still drop as in survival").when(Preset::customUsed));
 		fields.add(Field.Items.list(PLAYERS, "endless_blocks", "Custom: endless blocks", p -> p.endlessBlocks, (p, v) -> p.endlessBlocks = v)
-			.help("Putting one of these down never uses it up; hand them out in a kit. Anything else is used up as in survival")
+			.help("Everyone is handed one of each, and putting one down never uses it up. Anything else is used up as in survival")
 			.when(Preset::customUsed));
 		fields.add(new Field.Note(PLAYERS, "custom.note", true, Summary::customPlaysSurvival));
 		fields.add(Field.Choice.ofEnum(PLAYERS, "spawn", "Spawn at", Preset.Spawn.class,

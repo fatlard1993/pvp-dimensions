@@ -244,6 +244,7 @@ public final class Travel {
 		player.setHealth(player.getMaxHealth());
 		player.getFoodData().setFoodLevel(20);
 		player.getFoodData().setSaturation(5);
+		Powers.handOut(player, arena);
 		player.containerMenu.broadcastChanges();
 	}
 
@@ -341,6 +342,7 @@ public final class Travel {
 		if (player.gameMode() != before) player.setGameMode(before);
 		before.updatePlayerAbilities(player.getAbilities());
 		player.onUpdateAbilities();
+		Powers.take(player);
 		Teams.restore(player, visit.team().orElse(null));
 		Visit.set(player, null);
 		if (why == Why.MOVED) player.setAttached(Visit.LEFT_FROM, visit.home());

@@ -19,7 +19,7 @@ public final class Preset {
 	public enum RespawnKit { NONE, ENTRY, CUSTOM }
 	public enum Mode { FFA, TEAMS }
 	public enum LateJoin { ALLOW, SPECTATE, DENY }
-	/** Custom is survival with the powers the preset gives it: flight, and blocks that never run out. */
+	/** Custom is survival with the powers the preset gives it: flight, instant breaking, and blocks that never run out. */
 	public enum GameRule { SURVIVAL, ADVENTURE, CREATIVE, CUSTOM }
 	public enum Spawn { RANDOM, TEAM, CENTER }
 	public enum NameTags { SHOWN, TEAMMATES, HIDDEN }
@@ -191,6 +191,8 @@ public final class Preset {
 	public GameRule gameMode = GameRule.SURVIVAL;
 	/** Whether players can fly while the arena is in custom. */
 	public boolean flight = true;
+	/** Whether players break blocks at a touch, as in creative, while the arena is in custom. */
+	public boolean instantBreaking = true;
 	/** Blocks that putting down never uses up while the arena is in custom. */
 	public ItemList endlessBlocks = new ItemList();
 	public Spawn spawn = Spawn.RANDOM;

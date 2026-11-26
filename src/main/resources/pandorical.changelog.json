@@ -3,6 +3,10 @@
     "Arenas on demand. Pick a preset from a menu and a fresh piece of ground is made for the fight, floating alone in a dimension of its own, gone when the clock runs out."
   ],
   "versions": {
+    "1.14.0": [
+      "Custom game mode: instant breaking, blocks broken at a touch as in creative, on unless the preset turns it off.",
+      "Custom game mode: everyone is handed one of each endless block, so they no longer have to be put in a kit."
+    ],
     "1.13.0": [
       "From inside a demo you can step into another mod's world and back, such as a Miniature Bench's workshop: the demo waits for you, and if it ends while you are away you are brought back first, so your own things come home and nothing else does."
     ],

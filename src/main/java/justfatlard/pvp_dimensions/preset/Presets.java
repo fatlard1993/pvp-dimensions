@@ -367,6 +367,7 @@ public final class Presets {
 		json.addProperty("late_join", name(p.lateJoin));
 		json.addProperty("game_mode", name(p.gameMode));
 		json.addProperty("flight", p.flight);
+		json.addProperty("instant_breaking", p.instantBreaking);
 		json.add("endless_blocks", encode(ItemList.CODEC, p.endlessBlocks));
 		json.addProperty("spawn", name(p.spawn));
 		json.addProperty("name_tags", name(p.nameTags));
@@ -581,6 +582,7 @@ public final class Presets {
 		p.lateJoin = choice(json, "late_join", Preset.LateJoin.class, p.lateJoin);
 		p.gameMode = choice(json, "game_mode", Preset.GameRule.class, p.gameMode);
 		bool(json, "flight", v -> p.flight = v);
+		bool(json, "instant_breaking", v -> p.instantBreaking = v);
 		p.endlessBlocks = decode(json, "endless_blocks", ItemList.CODEC, p.endlessBlocks);
 		p.spawn = choice(json, "spawn", Preset.Spawn.class, p.spawn);
 		p.nameTags = choice(json, "name_tags", Preset.NameTags.class, p.nameTags);

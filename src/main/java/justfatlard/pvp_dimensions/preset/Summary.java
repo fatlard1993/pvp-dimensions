@@ -71,7 +71,7 @@ public final class Summary {
 	}
 
 	public static @Nullable String customPlaysSurvival(Preset p) {
-		return p.customUsed() && !p.flight && p.endlessBlocks.isEmpty() ? "With no flying and no endless blocks, custom plays as survival" : null;
+		return p.customUsed() && !p.flight && !p.instantBreaking && p.endlessBlocks.isEmpty() ? "With no flying, no instant breaking and no endless blocks, custom plays as survival" : null;
 	}
 
 	public static @Nullable String pooledLivesAlone(Preset p) {

@@ -4,6 +4,7 @@ import static justfatlard.pvp_dimensions.gametest.Tables.arena;
 import static justfatlard.pvp_dimensions.gametest.Tables.check;
 
 import justfatlard.pvp_dimensions.arena.Arenas;
+import justfatlard.pvp_dimensions.arena.Powers;
 import justfatlard.pvp_dimensions.arena.Travel;
 import justfatlard.pvp_dimensions.preset.ItemList;
 import justfatlard.pvp_dimensions.preset.Kinds;
@@ -19,6 +20,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
@@ -27,8 +29,9 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Custom, played: survival with flight, a listed block that never runs out and an unlisted one
- * that does, nothing allowed out, and the flight taken away again on the way home.
+ * Custom, played: survival with flight and instant breaking, the listed blocks handed out one each,
+ * a listed block that never runs out and an unlisted one that does, nothing allowed out, and the
+ * powers taken away again on the way home.
  */
 public final class CustomPlays implements FabricClientGameTest {
 
@@ -45,6 +48,12 @@ public final class CustomPlays implements FabricClientGameTest {
 				ServerPlayer player = connection.getServerPlayer();
 				check(player.gameMode() == GameType.SURVIVAL, "custom did not play as survival: " + player.gameMode());
 				check(player.getAbilities().mayfly, "custom with flying on gave no flight");
+				check(player.getAttributeValue(Attributes.BLOCK_BREAK_SPEED) >= 1024, "custom with instant breaking on left breaking slow: "
+					+ player.getAttributeValue(Attributes.BLOCK_BREAK_SPEED));
+				check(player.getInventory().countItem(Items.OAK_PLANKS) == 1, "the endless blocks were not handed out one each: "
+					+ player.getInventory().countItem(Items.OAK_PLANKS));
+				Powers.handOut(player, arena(s));
+				check(player.getInventory().countItem(Items.OAK_PLANKS) == 1, "an endless block already held was handed out again");
 
 				ServerLevel level = Arenas.level(s, arena(s));
 				ItemStack planks = new ItemStack(Items.OAK_PLANKS, 3);
@@ -59,6 +68,7 @@ public final class CustomPlays implements FabricClientGameTest {
 
 				Travel.goHome(player, arena(s), Travel.Why.COMMAND);
 				check(!player.getAbilities().mayfly && !player.getAbilities().flying, "flight came home from custom");
+				check(player.getAttributeValue(Attributes.BLOCK_BREAK_SPEED) == 1, "instant breaking came home from custom");
 			});
 		}
 	}
@@ -66,6 +76,7 @@ public final class CustomPlays implements FabricClientGameTest {
 	private static void custom(Preset preset) {
 		preset.gameMode = Preset.GameRule.CUSTOM;
 		preset.flight = true;
+		preset.instantBreaking = true;
 		preset.endlessBlocks = ItemList.of("minecraft:oak_planks", 1);
 		preset.traversal = Preset.Traversal.FREE;
 	}
@@ -75,8 +86,9 @@ public final class CustomPlays implements FabricClientGameTest {
 		Preset preset = Kinds.DEATHMATCH.make();
 		custom(preset);
 		preset.flight = false;
+		preset.instantBreaking = false;
 		Preset back = Presets.readFile(Presets.writeFile(preset));
-		check(back.gameMode == Preset.GameRule.CUSTOM && !back.flight && back.endlessBlocks.allows(Items.OAK_PLANKS),
+		check(back.gameMode == Preset.GameRule.CUSTOM && !back.flight && !back.instantBreaking && back.endlessBlocks.allows(Items.OAK_PLANKS),
 			"custom did not survive a save");
 		check(back.isolated() && !back.rewardsOut(), "endless blocks let things out");
 		back.endlessBlocks = new ItemList();
